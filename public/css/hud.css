@@ -1,0 +1,156 @@
+/* ============ HUD NHÂN VẬT — góc trái trên ============ */
+
+#playerHud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 232px;
+  padding: 10px 12px;
+  background: rgba(13, 18, 29, .9);
+  border: 1px solid #263047;
+  border-radius: 11px;
+  z-index: 35;
+  backdrop-filter: blur(6px);
+}
+#playerHud.hidden { display: none; }
+
+.hud-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.hud-name { font-size: 13px; font-weight: 700; color: #e6e9ef; }
+.hud-meta { font-size: 10px; color: #6b7791; }
+
+/* ---------------- các thanh ---------------- */
+
+.hud-bars { display: flex; flex-direction: column; gap: 4px; }
+
+.hud-bar {
+  position: relative;
+  height: 15px;
+  background: #0a0e17;
+  border: 1px solid #222b40;
+  border-radius: 4px;
+  overflow: hidden;
+}
+/* Class không dùng tài nguyên đó thì thanh mờ hẳn đi thay vì biến mất —
+   người chơi vẫn thấy hệ thống có thanh đó, chỉ là mình không dùng */
+.hud-bar.unused { opacity: .3; }
+
+.hud-bar > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  transition: width .35s ease;
+}
+.hud-bar.hp > i { background: linear-gradient(90deg, #2f9e4f, #5ed97f); }
+.hud-bar.mana > i { background: linear-gradient(90deg, #2f62b8, #6aa8ff); }
+.hud-bar.rage > i { background: linear-gradient(90deg, #bf5222, #ffab52); }
+.hud-bar.karma > i { background: linear-gradient(90deg, #7c4ddb, #c9a6ff); }
+
+/* Karma đầy thì nhấp nháy — Thiên Ân đã sẵn sàng */
+.hud-bar.karma.full > i { animation: karmaReady 1.3s ease-in-out infinite; }
+@keyframes karmaReady { 50% { filter: brightness(1.65); } }
+
+.hud-bar > label {
+  position: absolute;
+  left: 7px;
+  top: 0;
+  line-height: 15px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: rgba(255, 255, 255, .82);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .95);
+  pointer-events: none;
+}
+.hud-bar > span {
+  position: absolute;
+  right: 7px;
+  top: 0;
+  line-height: 15px;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .95);
+  pointer-events: none;
+}
+
+/* ---------------- ô trạng thái ---------------- */
+
+.hud-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid #1c2436;
+}
+.hud-status.empty { display: none; }
+
+.st {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #1a2233;
+  border: 1px solid #2b3651;
+  font-size: 12px;
+  cursor: default;
+}
+.st.buff { border-color: #2f5340; background: #16281d; }
+.st.debuff { border-color: #5c3138; background: #281a1a; }
+
+.st-turns {
+  position: absolute;
+  right: -3px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #0d121d;
+  border: 1px solid #2b3651;
+  font-size: 8px;
+  font-weight: 700;
+  color: #cfe0ff;
+}
+
+.st-more {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #131b2c;
+  border: 1px dashed #2b3651;
+  color: #8b95ab;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.st-more:hover { border-color: #4c7dff; color: #cfe0ff; }
+.st-more.open { border-style: solid; border-color: #4c7dff; color: #cfe0ff; }
+
+/* Hàng trạng thái ẩn, mở ra khi bấm mũi tên */
+.hud-status-extra {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  margin-top: 5px;
+  padding-top: 7px;
+  border-top: 1px dashed #232c42;
+}
+.hud-status-extra.open { display: flex; }
+
+@media (max-width: 700px) {
+  #playerHud { width: 180px; padding: 8px 10px; }
+}

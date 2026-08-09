@@ -6,6 +6,7 @@ const monsterData = require('./data/monsters');
 const boons = require('./data/boons');
 const nations = require('./data/nations');
 const loot = require('./loot');
+const classData = require('./data/classes');
 
 /**
  * Trận đánh turn-based.
@@ -46,6 +47,8 @@ function playerCombatant(player) {
     cooldowns: {},
     effects: [],
     rage: 0,
+    karma: player.karma || 0,
+    resources: classData.resourcesFor(player.className),
     reviveUsed: false,
     alive: true,
   };
@@ -83,6 +86,12 @@ function monsterCombatant(def, index) {
   c.hp = c.hpMax;
   c.mana = c.manaMax;
   return c;
+}
+
+/** Karma chỉ tích cho người chơi — quái không có thanh này. */
+function gainKarma(c, amount) {
+  if (!c?.isPlayer || !c.alive) return;
+  c.karma = Math.min(classData.KARMA_MAX, c.karma + amount);
 }
 
 /* ------------------------------------------------------ lớp Battle ------- */
@@ -318,6 +327,13 @@ class Battle {
 
       hits.push({ id: target.id, kind: 'damage', amount: result.amount, crit: result.crit, hp: target.hp });
 
+      // Karma tích theo tỉ lệ sát thương so với máu tối đa, không theo con số
+      // tuyệt đối — nếu theo số tuyệt đối thì đánh quái máu trâu sẽ tích đầy
+      // ngay còn đánh quái giấy thì mãi không đầy
+      const G = classData.KARMA_GAIN;
+      gainKarma(actor, (result.amount / target.hpMax) * 100 * G.onDamageDealt);
+      gainKarma(target, (result.amount / target.hpMax) * 100 * G.onDamageTaken);
+
       // Hút Máu từ trang bị
       if (actor.combat.lifesteal > 0 && actor.alive) {
         const healed = Math.max(1, Math.round(result.amount * actor.combat.lifesteal));
@@ -388,6 +404,9 @@ class Battle {
       }
       c.alive = false;
       c.effects = [];
+      if (c.side === 'enemy') {
+        for (const a of this.living('ally')) gainKarma(a, classData.KARMA_GAIN.onKill);
+      }
       events.push({ type: 'death', id: c.id, name: c.name, side: c.side });
     }
   }
@@ -412,6 +431,8 @@ class Battle {
       for (const id of Object.keys(c.cooldowns)) {
         c.cooldowns[id] = Math.max(0, c.cooldowns[id] - 1);
       }
+
+      gainKarma(c, classData.KARMA_GAIN.perRound);
 
       // Hồi mana theo Ý Chí, cộng thêm phần từ trang bị
       if (c.alive) {
@@ -521,6 +542,8 @@ class Battle {
       hp: c.hp, hpMax: c.hpMax,
       mana: c.mana, manaMax: c.manaMax,
       rage: c.rage, rageMax: RAGE_MAX,
+      karma: c.karma || 0, karmaMax: classData.KARMA_MAX,
+      resources: c.resources || null,
       speed: Math.round(this.effectiveSpeed(c)),
       alive: c.alive,
       effects: c.effects.map((e) => ({ type: e.type, turns: e.turns })),

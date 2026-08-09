@@ -90,6 +90,7 @@ const Battle = (() => {
       state.deadlineAt = Date.now() + data.msLeft;
       runTimer();
     }
+    Hud.fromCombatant(me());
     render();
   }
 
@@ -280,6 +281,7 @@ const Battle = (() => {
 
     state.data = newState;
     state.playing = false;
+    Hud.fromCombatant(me());
     render();
   }
 

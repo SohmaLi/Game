@@ -94,7 +94,14 @@ Phân bố: 4 công · 4 thủ · 2 tiện ích · 2 hỗ trợ.
 
 ### 2.3 Năm chỉ số
 
-💡 Bắt buộc phải có để tính sát thương và thứ tự lượt:
+🔒 **Chốt giữ 5 chỉ số gốc, không thêm.**
+
+Lý do: mỗi cấp cho 3 điểm, tổng cả đời nhân vật là hữu hạn. Thêm chỉ số thứ 6, thứ 7
+không làm nhân vật sâu hơn — nó chia nhỏ cùng một số điểm ra nhiều chỗ, khiến mỗi
+điểm cộng vào cảm giác nhạt đi, và gần như chắc chắn sinh ra "chỉ số rác" không ai
+cộng vào. Chiều sâu đến từ **chỉ số dẫn xuất** (9 dòng ở bảng Chiến đấu) và từ
+**trang bị + bị động**. Nếu sau này thấy thiếu, cách rẻ hơn là cho mỗi chỉ số gốc
+ảnh hưởng thêm một thứ nữa — ví dụ Ý Chí thêm "giảm thời gian hồi chiêu".
 
 | Chỉ số | Ảnh hưởng |
 |---|---|
@@ -319,6 +326,36 @@ Quái đi lang thang trên bản đồ. Chạm vào là vào trận — **cùng 
 💡 Với PvE 5 người thì lần lượt từng người cũng chấp nhận được, nhưng làm chọn đồng thời
 ngay từ đầu sẽ **không phải viết lại** khi mở PvP 10 người sau này.
 
+### 5.2b Bốn thanh tài nguyên
+
+🔒 Nhân vật có bốn thanh, hiện ở **góc trái trên**:
+
+| Thanh | Ai có | Vai trò |
+|---|---|---|
+| **HP** | Mọi class | Máu |
+| **Mana** | Class dùng phép (Pháp Sư) | Tiêu cho kỹ năng phép thuật |
+| **Nộ Khí** | Class dùng lực (Chiến Binh) | Tích khi đánh và khi bị đánh, tiêu cho chiêu mạnh |
+| **Karma** | Mọi class | 💡 xem dưới |
+
+Class không dùng thanh nào thì thanh đó **mờ đi chứ không biến mất** — người chơi
+vẫn thấy hệ thống có thanh đó, chỉ là mình không dùng.
+
+💡 **Karma — đề xuất, chờ duyệt.** Tích qua mọi hành động trong trận (gây sát thương,
+chịu sát thương, hạ gục, và cộng đều mỗi vòng). Đầy 100 thì mở khoá **Thiên Ân** —
+một đòn đặc biệt gắn với chính Đặc Ân mà vì sao đã ban cho nhân vật.
+
+Vì sao chọn hướng này: Đặc Ân hiện chỉ là hiệu ứng chạy ngầm, người chơi không "cảm"
+thấy nó. Cho nó một đòn bấm được sẽ biến thứ ngẫu nhiên lúc tạo nhân vật thành bản
+sắc mà người chơi chủ động dùng — và 12 Đặc Ân thành 12 Thiên Ân, tự nó tạo ra 12
+lối chơi. Karma **theo người chơi ra khỏi trận**; Nộ Khí thì nguội đi khi trận kết thúc.
+
+### 5.2c Ô trạng thái
+
+🔒 Hiện tối đa **5 ô**, còn lại gộp vào nút mũi tên, bấm thì xổ xuống.
+
+Nhiều lớp cùng loại gộp thành một ô kèm số lớp (ví dụ *Trúng độc ×3*) thay vì bày ba
+ô giống hệt nhau — nếu không thì chỉ riêng hiệu ứng độc cộng dồn đã chiếm hết chỗ.
+
 ### 5.3 Quy mô
 
 | Chế độ | Người chơi | Quái | Trạng thái |
@@ -381,6 +418,25 @@ ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa
 | **9** | *PvP — hoãn, làm sau cùng* | |
 
 Giai đoạn 3 là chỗ game "thành hình": trước đó chỉ là kỹ thuật, sau đó là nội dung.
+
+---
+
+## 7b. Quy ước giao diện
+
+🔒 **Chuột phải bị chặn trên toàn khu vực game** để nhường chỗ cho menu riêng.
+Ngoại lệ: ô nhập liệu vẫn giữ menu của trình duyệt — người chơi cần copy/paste khi
+gõ tên nhân vật, cướp mất cái đó là gây khó chịu vô cớ.
+
+Chuột phải vào trang bị / vật phẩm / kỹ năng mở menu nhỏ:
+
+| Mục | Ghi chú |
+|---|---|
+| 🔍 Xem chi tiết | Cửa sổ đầy đủ: chỉ số, bị động, ô lắp |
+| ⬆ Mặc vào / ↩ Tháo ra | Tuỳ món đang ở túi hay đang mặc |
+| 🗑 Vứt bỏ | **Luôn hỏi lại.** Đồ hạng Hiếm trở lên cảnh báo mạnh hơn |
+
+Nguyên tắc: mọi hành động không hoàn tác được đều phải qua hộp xác nhận. Mất một
+món Truyền Thuyết vì lỡ tay là chuyện người chơi sẽ nhớ rất lâu.
 
 ---
 

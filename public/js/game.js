@@ -102,6 +102,8 @@ function connect(name, type) {
       $('roomLabel').textContent = `${res.room.label} · ${res.room.id}`;
       enterGame();
 
+      UI.init();
+      Hud.init();
       Battle.init(socket, res.you);
       Panel.init(socket);
       if (res.characterState) Panel.update(res.characterState);
@@ -148,6 +150,9 @@ function enterGame() {
 
 function leaveGame() {
   Panel.close();
+  UI.closeMenu();
+  UI.closeModal();
+  Hud.hide();
   $('statusBar').classList.add('hidden');
   $('menu').classList.remove('hidden');
   $('hud').classList.add('hidden');

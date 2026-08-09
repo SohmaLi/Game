@@ -1,0 +1,130 @@
+/* ============ MENU CHUỘT PHẢI · HỘP XÁC NHẬN · XEM CHI TIẾT ============ */
+
+.ctx {
+  position: fixed;
+  z-index: 60;
+  min-width: 168px;
+  padding: 5px;
+  background: #0d121d;
+  border: 1px solid #2b3651;
+  border-radius: 9px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, .7);
+  animation: ctxIn .11s ease;
+}
+.ctx.hidden { display: none; }
+@keyframes ctxIn { from { opacity: 0; transform: scale(.96); } }
+
+.ctx-head {
+  padding: 6px 9px 8px;
+  border-bottom: 1px solid #1c2436;
+  margin-bottom: 4px;
+}
+.ctx-title {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctx-sub { font-size: 10px; color: #6b7791; }
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #cfe0ff;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.ctx-item:hover { background: #1a2338; }
+.ctx-item .ctx-icon { width: 14px; text-align: center; opacity: .8; }
+.ctx-item.danger { color: #ff9aa8; }
+.ctx-item.danger:hover { background: #2c1a1f; }
+.ctx-item:disabled { opacity: .35; cursor: default; background: transparent; }
+
+.ctx-sep { height: 1px; margin: 4px 2px; background: #1c2436; }
+
+/* ---------------- hộp thoại chung ---------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 8, 13, .78);
+}
+.modal.hidden { display: none; }
+
+.modal-box {
+  width: min(360px, calc(100vw - 32px));
+  padding: 22px;
+  background: #141a27;
+  border: 1px solid #2b3651;
+  border-radius: 13px;
+  animation: modalIn .16s ease;
+}
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px); } }
+
+.modal-box h3 { font-size: 16px; margin-bottom: 9px; color: #e6e9ef; }
+.modal-box p { font-size: 13px; color: #a9b4c9; line-height: 1.65; }
+.modal-box .warn { color: #ff9aa8; }
+
+.modal-actions { display: flex; gap: 9px; margin-top: 20px; }
+.modal-actions button {
+  flex: 1;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-cancel { background: #1c2436; color: #a9b4c9; }
+.btn-cancel:hover { background: #232d44; }
+.btn-ok { background: linear-gradient(135deg, #4c7dff, #7c5cff); color: #fff; }
+.btn-ok.danger { background: linear-gradient(135deg, #c94848, #e06a4a); }
+
+/* ---------------- xem chi tiết ---------------- */
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.detail-icon {
+  width: 46px; height: 46px;
+  flex: 0 0 46px;
+  border-radius: 9px;
+  border: 2px solid;
+}
+.detail-name { font-size: 15px; font-weight: 700; }
+.detail-sub { font-size: 11px; color: #6b7791; }
+
+.detail-block {
+  padding: 11px 0;
+  border-top: 1px solid #1c2436;
+}
+.detail-block h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #6b7791;
+  margin-bottom: 6px;
+}
+.detail-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 2px 0;
+}
+.detail-line .v { color: #7ee89a; font-weight: 600; }
+.detail-passive { font-size: 12px; color: #d3b8f0; padding: 3px 0; }
+.detail-passive b { color: #e0ccff; }

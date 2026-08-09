@@ -46,6 +46,9 @@ const Panel = (() => {
   function update(c) {
     data = c;
     renderStatusBar();
+    // HUD góc trái chỉ nghe bảng nhân vật khi đang ngoài trận; trong trận thì
+    // dữ liệu thật nằm ở combatant nên để màn chiến đấu tự nuôi nó
+    if (!Battle.isOpen()) Hud.fromCharacter(c);
     if (isOpen()) render();
   }
 
@@ -95,13 +98,23 @@ const Panel = (() => {
         </div>`;
 
       if (item) {
-        el.onmouseenter = (e) => showTip(e, item, 'Bấm để tháo ra');
+        el.onmouseenter = (e) => showTip(e, item, 'Bấm để tháo ra · chuột phải để xem thêm');
         el.onmousemove = moveTip;
         el.onmouseleave = hideTip;
-        el.onclick = () => {
+        el.onclick = () => { hideTip(); unequip(slot.id); };
+        el.oncontextmenu = (e) => {
+          e.preventDefault();
           hideTip();
-          socket.emit('inv:unequip', { slot: slot.id }, (res) => {
-            if (!res?.ok) toast('warn', 'Không tháo được', res?.error || '');
+          UI.menu(e, {
+            title: item.name,
+            subtitle: `${item.rarityName} · Cấp ${item.level} · đang mặc`,
+            color: RARITY_COLOR[item.rarity],
+            items: [
+              { icon: '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
+              { icon: '↩', label: 'Tháo ra', onClick: () => unequip(slot.id) },
+              null,
+              { icon: '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discardEquipped(slot, item) },
+            ],
           });
         };
       }
@@ -162,18 +175,24 @@ const Panel = (() => {
       cell.className = 'cell filled';
       cell.style.color = RARITY_COLOR[item.rarity];
       cell.style.borderColor = RARITY_COLOR[item.rarity];
-      cell.onmouseenter = (e) => showTip(e, item, 'Bấm để mặc · Shift+bấm để vứt');
+      cell.onmouseenter = (e) => showTip(e, item, 'Bấm để mặc · chuột phải để xem thêm');
       cell.onmousemove = moveTip;
       cell.onmouseleave = hideTip;
-      cell.onclick = (e) => {
+      cell.onclick = () => { hideTip(); equip(item); };
+      cell.oncontextmenu = (e) => {
+        e.preventDefault();
         hideTip();
-        if (e.shiftKey) {
-          socket.emit('inv:discard', { uid: item.uid });
-        } else {
-          socket.emit('inv:equip', { uid: item.uid }, (res) => {
-            if (!res?.ok) toast('warn', 'Không mặc được', res?.error || '');
-          });
-        }
+        UI.menu(e, {
+          title: item.name,
+          subtitle: `${item.rarityName} · Cấp ${item.level}`,
+          color: RARITY_COLOR[item.rarity],
+          items: [
+            { icon: '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
+            { icon: '⬆', label: 'Mặc vào', onClick: () => equip(item) },
+            null,
+            { icon: '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discard(item) },
+          ],
+        });
       };
       box.appendChild(cell);
     }
@@ -184,6 +203,64 @@ const Panel = (() => {
       cell.className = 'cell';
       box.appendChild(cell);
     }
+  }
+
+  /* ------------------------------------------------ hành động --------- */
+
+  function equip(item) {
+    socket.emit('inv:equip', { uid: item.uid }, (res) => {
+      if (!res?.ok) toast('warn', 'Không mặc được', res?.error || '');
+    });
+  }
+
+  function unequip(slotId) {
+    socket.emit('inv:unequip', { slot: slotId }, (res) => {
+      if (!res?.ok) toast('warn', 'Không tháo được', res?.error || '');
+    });
+  }
+
+  /**
+   * Vứt đồ là hành động không hoàn tác được, nên luôn hỏi lại. Đồ hạng cao thì
+   * cảnh báo mạnh hơn — mất một món Truyền Thuyết vì lỡ tay là chuyện người
+   * chơi sẽ nhớ rất lâu.
+   */
+  async function discard(item) {
+    const precious = ['rare', 'epic', 'legendary'].includes(item.rarity);
+    const ok = await UI.confirm({
+      title: 'Vứt bỏ món này?',
+      message: `<b style="color:${RARITY_COLOR[item.rarity]}">${UI.esc(item.name)}</b>
+        <span style="color:#6b7791">(${UI.esc(item.rarityName)} · Cấp ${item.level})</span>
+        <br><br>${precious
+          ? '<span class="warn">Đây là đồ hạng cao. Vứt rồi là mất vĩnh viễn, không lấy lại được.</span>'
+          : 'Món đồ sẽ biến mất vĩnh viễn.'}`,
+      confirmLabel: 'Vứt bỏ',
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('inv:discard', { uid: item.uid }, (res) => {
+      if (res?.ok) toast('warn', 'Đã vứt', item.name);
+      else toast('warn', 'Không vứt được', res?.error || '');
+    });
+  }
+
+  /** Đồ đang mặc phải tháo ra trước rồi mới vứt được. */
+  async function discardEquipped(slot, item) {
+    const ok = await UI.confirm({
+      title: 'Tháo ra rồi vứt bỏ?',
+      message: `<b style="color:${RARITY_COLOR[item.rarity]}">${UI.esc(item.name)}</b> đang được mặc ở ô
+        <b>${UI.esc(slot.name)}</b>.<br><br>Món này sẽ được tháo ra và vứt bỏ vĩnh viễn.`,
+      confirmLabel: 'Tháo và vứt',
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('inv:unequip', { slot: slot.id }, (res) => {
+      if (!res?.ok) return toast('warn', 'Không tháo được', res?.error || '');
+      socket.emit('inv:discard', { uid: item.uid }, (r2) => {
+        if (r2?.ok) toast('warn', 'Đã vứt', item.name);
+      });
+    });
   }
 
   /* ------------------------------------------------ tooltip ----------- */

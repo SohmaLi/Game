@@ -8,6 +8,7 @@ const roamer = require('./roamer');
 const inventory = require('./inventory');
 const progression = require('./progression');
 const itemData = require('./data/items');
+const classData = require('./data/classes');
 
 let nextRoomId = 1;
 
@@ -68,6 +69,7 @@ class Room {
       gold: character?.gold || 0,
       statPoints: character?.stats?.points || 0,
       inv: inventory.create(),
+      karma: 0,
     };
     this.players.set(socket.id, player);
     socket.join(this.id);
@@ -276,6 +278,7 @@ class Room {
       id: p.id, socketId: p.id, name: p.name, level: p.level,
       nation: p.nation, boonId: p.boonId, className: p.className, stats: p.stats,
       equip: inventory.bonuses(p.inv),
+      karma: p.karma,
     }));
 
     this.stopLoop();
@@ -348,6 +351,9 @@ class Room {
       boonId: p.boonId,
       stats: p.stats,
       statPoints: p.statPoints,
+      karma: p.karma || 0,
+      karmaMax: classData.KARMA_MAX,
+      resources: classData.resourcesFor(p.className),
       equipBonus: bonus.stats,
       combat: {
         hpMax: combat.hpMax, manaMax: combat.manaMax,
@@ -371,6 +377,14 @@ class Room {
 
   endBattle() {
     if (!this.battle) return;
+
+    // Karma theo người chơi ra khỏi trận. Nộ Khí thì không — nộ là thứ tích
+    // trong lúc đánh và nguội đi khi trận kết thúc, còn Karma là tích luỹ dài hạn.
+    for (const c of this.battle.allies) {
+      const p = this.players.get(c.id);
+      if (p) p.karma = c.karma || 0;
+    }
+
     this.battle.destroy();
     this.battle = null;
 
