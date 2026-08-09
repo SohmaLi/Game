@@ -1,0 +1,395 @@
+# Tài liệu thiết kế — **FROZEN**
+
+> Game 2D top-down online · khám phá real-time · chiến đấu turn-based
+> PvE tối đa 5 người/phòng · PvP tối đa 10 người/phòng *(hoãn sang sau)*
+> Phiên bản 0.2 — 07/08/2026
+
+**Ký hiệu:** 🔒 đã chốt · 💡 mình đề xuất, chờ duyệt · ❓ còn bỏ ngỏ
+
+---
+
+## 1. Bối cảnh
+
+### 1.1 Thế giới
+
+🔒 Fantasy phương Tây. Một lục địa chia thành nhiều quốc gia. Phép thuật tồn tại và
+là một phần của đời sống thường ngày.
+
+💡 **Lục địa Aethelmark.** Từng là lãnh thổ thống nhất dưới một đế chế cổ, nay vỡ thành
+nhiều vương quốc tranh giành ảnh hưởng. Phép thuật không phải thứ hiếm hoi dành cho số
+ít — nó chảy trong mạch đất, và ai sinh ra ở Aethelmark cũng mang trong mình một dấu
+ấn của nó.
+
+### 1.2 Thập Nhị Thần Tọa
+
+💡 Phần lore giải thích vì sao có **đúng 12** đặc ân:
+
+> Trên bầu trời Aethelmark có Mười Hai Vì Sao — người xưa gọi là *Thập Nhị Thần Tọa*.
+> Mỗi đứa trẻ sinh ra dưới một vì sao, và vì sao đó ban cho nó một **Đặc Ân**: năng lực
+> bẩm sinh không thể học, không thể cho đi, không thể đổi.
+>
+> Không ai chọn được vì sao của mình. Người ta chỉ chọn được sẽ làm gì với nó.
+
+### 1.3 Bốn quốc gia
+
+🔒 Người chơi chọn quốc gia. Ảnh hưởng: **lore + một đặc quyền riêng của mỗi nước.**
+
+| Quốc gia | Đặc trưng | Thái độ với phép thuật | 💡 Đặc quyền |
+|---|---|---|---|
+| **Vương quốc Corvane** | Quân sự, kỵ binh nặng, kỷ luật thép | Kiểm soát chặt, chỉ quân đội được dùng | **Kỷ Luật Thép** — +5% Giáp · phí sửa trang bị −30% |
+| **Học viện Sylvara** | Thành bang của học giả và pháp sư | Tôn sùng, nghiên cứu không giới hạn | **Tàng Thư Các** — +5% Mana tối đa · học sách Dị Điển rẻ hơn 30% |
+| **Liên minh Duskmoor** | Thương nhân, hải cảng, lính đánh thuê | Thực dụng — cái gì bán được thì dùng | **Mối Lợi** — +10% vàng rơi ra · phí giao dịch −50% |
+| **Đất hoang Vharn** | Bộ lạc, không vua, sống cùng thú hoang | Bản năng, không sách vở | **Bản Năng Hoang Dã** — +5% Nhanh Nhẹn · nhận ít hơn 10% sát thương từ Thú Vật |
+
+💡 **Nguyên tắc cân bằng:** đặc quyền quốc gia phải **nhỏ và thiên về tiện ích**, không
+được định đoạt lối chơi. Nếu Corvane mạnh hơn rõ rệt trong chiến đấu thì 90% người chơi
+sẽ chọn Corvane và ba nước còn lại thành trang trí. Đặc quyền ở mức 5–10% là đủ để người
+chơi cảm thấy lựa chọn của mình có ý nghĩa mà không tạo ra "nước mạnh nhất".
+
+❓ Đổi quốc gia có được không? Mình đề xuất **không** — quốc gia là gốc gác, giữ nguyên
+để lựa chọn ban đầu có sức nặng.
+
+---
+
+## 2. Nhân vật
+
+### 2.1 Nguyên tắc gốc
+
+🔒 Mọi người chơi bắt đầu như nhau. Khác biệt đến từ:
+1. **Đặc Ân** — ngẫu nhiên, khóa vĩnh viễn
+2. **Quốc gia** — tự chọn
+3. **Class** — tự chọn, đổi được ở mốc level
+
+### 2.2 Mười Hai Đặc Ân
+
+🔒 **Cơ chế bốc:** ngẫu nhiên lúc tạo nhân vật · được **rút lại tối đa 3 lần** · sau lần
+thứ 3 (hoặc khi người chơi bấm giữ) thì **khóa vĩnh viễn**.
+
+```
+  Bốc lần 1  ──►  Giữ?  ──► KHÓA
+                   │
+                   └─ Rút lại (còn 2 lần)  ──►  ...  ──►  Lần 4 = KHÓA bắt buộc
+```
+
+💡 Nguyên tắc thiết kế: **không đặc ân nào khóa class.** Cả 12 đều dùng được cho cả Pháp
+Sư lẫn Chiến Binh, chỉ nghiêng khác nhau. Người bốc trúng đặc ân "sai class" mà thấy mình
+yếu hơn hẳn thì sẽ bỏ game ngay ngày đầu.
+
+| # | Vì sao | Đặc Ân | Hiệu ứng | Nghiêng về |
+|---|---|---|---|---|
+| 1 | Lưỡi Kiếm | **Song Kích** | 15% cơ hội đòn đánh thường ra hai lần | Công |
+| 2 | Ngọn Lửa | **Cuồng Nộ** | Máu càng thấp sát thương càng cao (tối đa +30% khi dưới 30% HP) | Công |
+| 3 | Mũi Tên | **Chí Mạng** | +10% tỉ lệ chí mạng · +25% sát thương chí mạng | Công |
+| 4 | Rắn Độc | **Xâm Thực** | Đòn đánh gây thêm sát thương theo thời gian, cộng dồn 3 lớp | Công |
+| 5 | Tấm Khiên | **Kiên Định** | Giảm 12% sát thương vật lý nhận vào | Thủ |
+| 6 | Vòng Nguyệt Quế | **Hộ Tâm** | Giảm 12% sát thương phép nhận vào | Thủ |
+| 7 | Gương Bạc | **Phản Phệ** | Dội lại 15% sát thương nhận được cho kẻ tấn công | Thủ |
+| 8 | Phượng Hoàng | **Bất Diệt** | Một lần mỗi trận, hồi sinh với 25% HP khi gục | Thủ |
+| 9 | Cánh Gió | **Tốc Hành** | +15% Nhanh Nhẹn — đi trước trong thứ tự lượt | Tiện ích |
+| 10 | Bàn Tay Vàng | **Duyên Kho Báu** | +50% tỉ lệ rơi đồ (5% → 7.5% cho sách Dị Điển) | Tiện ích |
+| 11 | Suối Nguồn | **Cộng Hưởng** | Giảm 20% mana tiêu hao của kỹ năng chủ động | Hỗ trợ |
+| 12 | Vòng Tay | **Đồng Cảm** | Hồi 3% HP cho toàn đội mỗi lượt · chỉ có tác dụng khi đi nhóm | Hỗ trợ |
+
+Phân bố: 4 công · 4 thủ · 2 tiện ích · 2 hỗ trợ.
+
+### 2.3 Năm chỉ số
+
+💡 Bắt buộc phải có để tính sát thương và thứ tự lượt:
+
+| Chỉ số | Ảnh hưởng |
+|---|---|
+| **Sức Mạnh** | Sát thương vật lý |
+| **Trí Tuệ** | Sát thương phép · Mana tối đa |
+| **Thể Chất** | HP tối đa · Giáp |
+| **Nhanh Nhẹn** | **Thứ tự ra tay trong lượt** · tỉ lệ né |
+| **Ý Chí** | Kháng phép · hồi mana mỗi lượt |
+
+⚠️ **Nhanh Nhẹn là chỉ số nguy hiểm nhất về mặt cân bằng** trong hệ turn-based — nó quyết
+định ai đánh trước, mà đánh trước trong turn-based thường là thắng. Cần theo dõi kỹ để
+không thành "cứ nhồi Nhanh Nhẹn là vô đối".
+
+---
+
+## 3. Class
+
+### 3.1 Danh sách
+
+🔒 Ra mắt 2 class, thêm sau:
+
+| Class | Vai trò | Tài nguyên | Lối chơi |
+|---|---|---|---|
+| **Chiến Binh** | Cận chiến, chịu đòn | Mana + **Nộ Khí** | Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh |
+| **Pháp Sư** | Sát thương phép | Mana | Bùng nổ sớm, mỏng manh, phải tính toán mana |
+
+💡 **Vì sao Chiến Binh có thêm Nộ Khí:** nếu cả hai class cùng chỉ tiêu mana thì chúng chơi
+giống hệt nhau, chỉ khác con số hiển thị. Nộ Khí (tích khi đánh và khi bị đánh) cho Chiến
+Binh nhịp chơi riêng — vào trận yếu, càng đánh lâu càng mạnh, ngược hẳn Pháp Sư mạnh sẵn
+rồi cạn dần.
+
+### 3.2 Đổi class
+
+🔒 Đổi được, **chỉ tại các mốc level**. 💡 Chi tiết:
+
+| Mốc | Level 10 · 25 · 50 |
+|---|---|
+| Chi phí | Vàng, tăng dần theo mốc |
+| Cây Nền | **Reset toàn bộ**, hoàn lại 100% điểm kỹ năng |
+| Cây Dị Điển | **Giữ nguyên sách đã gắn**, nhưng sách không hợp class mới sẽ bị vô hiệu (hiện mờ) |
+| Chỉ số | Giữ nguyên, không reset |
+| Đặc Ân · Quốc gia | Không đổi |
+
+💡 Sách Dị Điển bị vô hiệu vẫn nằm trong ô — người chơi tự quyết định thay hay giữ (giữ
+để phòng khi đổi class về lại). Thay thì mất sách cũ theo quy tắc ở mục 3.4.
+
+### 3.3 Hai cây kỹ năng
+
+🔒 Mỗi class có 2 cây:
+
+```
+┌──────────────────────────┐   ┌──────────────────────────┐
+│      CÂY NỀN             │   │      CÂY DỊ ĐIỂN         │
+│                          │   │                          │
+│  Của class, cố định      │   │  10 ô trống              │
+│  Mở bằng level + điểm    │   │  Điền bằng SÁCH KỸ NĂNG  │
+│  kỹ năng                 │   │  rơi từ quái (5%)        │
+│                          │   │                          │
+│  → Cùng class thì giống  │   │  → Không ai giống ai     │
+│    nhau                  │   │                          │
+└──────────────────────────┘   └──────────────────────────┘
+      thứ được dạy                thứ nhặt trên xác kẻ địch
+```
+
+**Cây Nền** — bộ khung, đảm bảo class hoạt động đúng vai trò dù người chơi xui đồ.
+
+**Cây Dị Điển** — bộ nhận dạng. Tỉ lệ rơi 5% và nhiều loại sách khiến hai người cùng class
+sau 50 giờ chơi có bộ kỹ năng khác hẳn nhau. **Đây là thứ giữ chân người chơi lâu dài.**
+
+> 💡 *Dị Điển* — những trang sách rời rạc thu được từ kẻ địch đã ngã xuống, đóng lại thành
+> cuốn sách của riêng mình. Với Pháp Sư là sách phép cướp từ tà giáo; với Chiến Binh là
+> cẩm nang chiến đấu lột từ xác lính đánh thuê. Không chính thống, không ai dạy — nhưng
+> hiệu quả.
+
+### 3.4 Quy tắc ô Dị Điển
+
+🔒 Ô đã gắn **thay đổi được**, nhưng **thay thì xóa vĩnh viễn** kỹ năng đang gắn.
+
+💡 Hệ quả cần lường trước: người chơi sẽ **sợ gắn nhầm** và để trống ô, chờ sách tốt hơn.
+Cách giảm bớt: cho **xem trước đầy đủ** hiệu ứng sách trước khi gắn, và hiện cảnh báo xác
+nhận rõ ràng khi thay ô đã có.
+
+### 3.5 Phân loại kỹ năng
+
+🔒 Hai loại · 🔒 mang tối đa **10 kỹ năng** vào trận.
+
+| Loại | Cách hoạt động | Chiếm ô mang theo? |
+|---|---|---|
+| **Chủ động** | Chọn dùng trong lượt, tốn mana/nộ, có hồi chiêu | Có |
+| **Bị động (học được)** | Luôn có tác dụng | **Có** |
+| **Bị động (từ trang bị)** | Luôn có tác dụng | **Không** |
+
+💡 Lý do chia vậy: nếu đồ xịn ăn mất ô kỹ năng thì không ai dám mặc đồ xịn — vô lý. Còn nếu
+bị động học được mà miễn phí ô thì chẳng ai phải chọn lựa, cứ bật hết. Cách này bắt người
+chơi **đánh đổi thật**: thêm một bị động mạnh = bỏ một chiêu chủ động.
+
+---
+
+## 4. Trang bị
+
+🔒 **10 ô:**
+
+| # | Ô | Ghi chú |
+|---|---|---|
+| 1 | Vũ khí chính | Quyết định loại sát thương cơ bản |
+| 2 | Vũ khí phụ / Khiên | Chiến Binh cầm khiên · Pháp Sư cầm sách/ngọc |
+| 3 | Mũ | |
+| 4 | Giáp thân | Ô chỉ số lớn nhất |
+| 5 | Găng tay | |
+| 6 | Giày | Thường cho Nhanh Nhẹn |
+| 7 | Áo choàng | |
+| 8 | Dây chuyền | |
+| 9 | Nhẫn I | |
+| 10 | Nhẫn II | Hai ô nhẫn cho phép build lệch |
+
+### 4.1 Phân hạng
+
+🔒 Trang bị cao cấp có kỹ năng bị động. Năm hạng, đã dựng xong:
+
+| Hạng | Màu | Chỉ số chính | Số chỉ số | Bị động | Tỉ lệ rơi |
+|---|---|---|---|---|---|
+| Thường | Xám | ×1.00 | 1 | — | 61% |
+| Tinh Xảo | Trắng | ×1.12 | 2 | — | 28% |
+| **Hiếm** | Xanh dương | ×1.28 | 3 | **1** | 8.5% |
+| **Sử Thi** | Tím | ×1.45 | 4 | **1** | 2.4% |
+| **Truyền Thuyết** | Cam | ×1.70 | 4 | **2** | 0.3% |
+
+Ranh giới ở hạng **Hiếm** — từ đây đồ mới "có tính cách", trước đó chỉ là con số.
+
+### 4.2 Cách sinh đồ
+
+Đồ sinh theo thủ tục, không viết tay từng món: **khuôn nền + hạng + cấp**.
+
+```
+chỉ số chính = ngân sách khuôn × POWER_SCALE × hệ số hạng × (1 + 0.12 × (cấp−1))
+chỉ số phụ   = 40% chỉ số chính, CỘNG THÊM chứ không chia bớt
+```
+
+⚠️ **Hai bẫy đã vấp phải khi dựng, ghi lại để không lặp:**
+
+**1. Đồ mạnh hơn cả nhân vật.** Ngân sách ban đầu chưa quy đổi khiến một chiếc
+Giáp Tấm hạng Thường cấp 1 cho +13 Thể Chất (nhân vật gốc chỉ có 5), đẩy máu từ
+118 lên 274. Sửa bằng hằng số `POWER_SCALE = 0.28` — **một con số duy nhất chỉnh
+sức mạnh toàn bộ trang bị trong game**.
+
+**2. Đồ hạng cao yếu hơn đồ hạng thấp.** Cách chia cũ rải một cục ngân sách cho
+tất cả chỉ số, nên hạng càng cao càng nhiều chỉ số thì chỉ số chính càng loãng —
+đồ Hiếm có Thể Chất *thấp hơn* đồ Thường cùng ô. Người chơi nhặt được đồ xanh mà
+yếu hơn đồ xám thì cả hệ thống rớt đồ mất ý nghĩa. Sửa bằng cách cho chỉ số chính
+nhận trọn phần của nó, chỉ số phụ là phần cộng thêm.
+
+Kết quả sau khi sửa (mặc đủ 10 ô, cấp 1, trung bình 300 bộ):
+
+| | Máu | Sát thương | Giáp |
+|---|---|---|---|
+| Trần trụi | 118 | 23 | 6 |
+| Thường | 176 | 34 | 12 |
+| Tinh Xảo | 215 | 41 | 16 |
+| Hiếm | 253 | 45 | 19 |
+| Sử Thi | 266 | 49 | 21 |
+| Truyền Thuyết | 320 | 53 | 26 |
+
+### 4.3 Tỉ lệ rơi
+
+| Hạng quái | Cơ hội rơi đồ | Số món tối đa | Sách Dị Điển |
+|---|---|---|---|
+| Thường | 30% | 1 | 🔒 5% |
+| Tinh Anh | 65% | 2 | 15% |
+| Thủ Lĩnh | 100% | 4 | 40% |
+
+**Kinh nghiệm và vàng chia đều cho nhóm; ĐỒ thì mỗi người bốc riêng.** Nếu chia
+đều thì nhóm 5 người mỗi người được 1/5 món — tức là chẳng ai nhận được gì.
+
+Túi 40 ô. Túi đầy thì đồ rơi bị mất và **báo thẳng cho người chơi** — cố ý không
+tự bán hộ, vì tự quyết định thay người chơi với đồ của họ là điều tối kỵ.
+
+---
+
+## 5. Chiến đấu
+
+### 5.1 Hai chế độ
+
+```
+   KHÁM PHÁ (real-time)              CHIẾN ĐẤU (turn-based)
+   ─────────────────────             ──────────────────────
+   Đi lại tự do top-down     ──►     Chạm quái → vào trận
+   Quái đi lang thang, đuổi           Chọn kỹ năng theo lượt
+   theo khi tới gần                   Server chỉ tính khi có hành động
+   Server đồng bộ 15 Hz
+```
+
+### 5.1b Cách gặp quái
+
+Quái đi lang thang trên bản đồ. Chạm vào là vào trận — **cùng với những con
+đang đứng gần đó**, nên đi vào giữa bầy sói là gặp cả bầy.
+
+| Thông số | Giá trị | Lý do |
+|---|---|---|
+| Số quái trên bản đồ | 6 mỗi phòng | Đủ đông để luôn có việc làm, đủ thưa để né được |
+| Tốc độ quái | 62 px/s | Chậm hơn người chơi (150) — **phải né được thì mới có lựa chọn** |
+| Tầm phát hiện | 120 px | Trong tầm này quái đuổi theo, client vẽ dấu `!` đỏ |
+| Bán kính gom bầy | 95 px | Quái trong tầm này cùng nhảy vào trận |
+| Hồi sinh quái | 20 giây | Không hồi ngay tại chỗ vừa đánh |
+
+**Sau mỗi trận:** người chơi được miễn va chạm 3 giây **và** những con quái đang
+đứng sát bị dời đi chỗ khác. Chỉ miễn va chạm thôi thì không đủ — con quái vẫn
+đứng đó và tóm lại ngay khi hết hạn, người chơi không kịp bước đi đâu cả.
+
+### 5.2 Vòng lượt — chọn đồng thời
+
+```
+  ┌─ Bắt đầu vòng ─────────────────────────────────┐
+  │  1. Tất cả cùng chọn hành động                  │
+  │     ⏱ 20 giây · hết giờ = đánh thường           │
+  │  2. Server sắp thứ tự theo Nhanh Nhẹn           │
+  │     (cao đi trước · hòa thì random)             │
+  │  3. Thực thi lần lượt, gửi hoạt cảnh về client  │
+  │  4. Tính hiệu ứng theo lượt (độc, hồi máu...)   │
+  └─ Vòng tiếp theo ───────────────────────────────┘
+```
+
+💡 Với PvE 5 người thì lần lượt từng người cũng chấp nhận được, nhưng làm chọn đồng thời
+ngay từ đầu sẽ **không phải viết lại** khi mở PvP 10 người sau này.
+
+### 5.3 Quy mô
+
+| Chế độ | Người chơi | Quái | Trạng thái |
+|---|---|---|---|
+| **PvE** | 🔒 tối đa 5 | 💡 1–8 tùy trận | 🔒 **Làm trước** |
+| PvP | 🔒 tối đa 10 | — | 🔒 **Hoãn lại** |
+
+---
+
+## 6. Quái vật
+
+### 6.1 Chủng loại
+
+🔒 Ba nhóm:
+
+| Nhóm | Ví dụ | Đặc trưng |
+|---|---|---|
+| **Thú Vật** | Sói xám, gấu vách đá, nhện hang | Nhanh, ít máu, đi theo bầy |
+| **Con Người** | Cướp đường, lính đánh thuê, tà giáo | Có trang bị, biết dùng chiến thuật |
+| **Xác Sống** | Bộ hài cốt, thây ma, oán linh | Chậm, dai máu, gây hiệu ứng xấu |
+
+### 6.2 Phân hạng
+
+🔒 Mọi quái có đánh thường + 1 kỹ năng chủ chốt · quái cấp cao có thêm kỹ năng.
+
+| Hạng | Kỹ năng chủ chốt | Tỉ lệ rơi sách | Vai trò |
+|---|---|---|---|
+| **Thường** | 1 | 🔒 5% | Quái nền, farm hàng ngày |
+| **Tinh Anh** | 2 | 💡 15% | Rải rác, đáng để tìm |
+| **Thủ Lĩnh** | 3 + cơ chế riêng | 💡 40% | Cần đủ nhóm 5 người |
+
+💡 **Cơ chế riêng của Thủ Lĩnh** biến trận đấu thành câu chuyện chứ không phải phép tính —
+ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa cuồng, gấp đôi tốc độ"*,
+*"miễn nhiễm sát thương vật lý cho tới khi phá vỡ lá chắn phép"*.
+
+### 6.3 Sách kỹ năng
+
+🔒 Rơi từ quái, tỉ lệ gốc 5%, điền vào cây Dị Điển.
+
+💡 Bổ sung:
+- Sách **theo class** — sách Pháp Sư thì Chiến Binh không đọc được (nhưng bán/trao đổi được)
+- Sách có hạng; hạng cao rơi từ quái hạng cao
+- Gắn vào ô đã có sách → **xóa vĩnh viễn** sách cũ (🔒 mục 3.4)
+
+---
+
+## 7. Thứ tự xây dựng
+
+| GĐ | Nội dung | Trạng thái |
+|---|---|---|
+| **0** | Khung mạng, phòng, di chuyển đồng bộ | ✅ **Xong** — đang chạy |
+| **1** | Tài khoản, đăng nhập, lưu nhân vật vào MySQL | ✅ **Xong** — API đã chạy |
+| **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | 🔨 Backend xong · còn giao diện |
+| **3** | **Chiến đấu turn-based PvE** — layout, vòng lượt, 4 loại quái | ✅ **Xong** — chạy trên production |
+| **5** | Trang bị 10 ô + rơi đồ + 5 hạng + bảng nhân vật | ✅ **Xong** — chạy trên production |
+| **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động | ⏭ **Tiếp theo** |
+| **6** | Cây Dị Điển + sách kỹ năng | |
+| **7** | Quái Tinh Anh / Thủ Lĩnh + cơ chế riêng | |
+| **8** | Đổi class ở mốc level | |
+| **9** | *PvP — hoãn, làm sau cùng* | |
+
+Giai đoạn 3 là chỗ game "thành hình": trước đó chỉ là kỹ thuật, sau đó là nội dung.
+
+---
+
+## 8. Còn bỏ ngỏ
+
+Không cản trở giai đoạn 1–3, quyết sau cũng được:
+
+1. ❓ Đổi quốc gia có được không? (đề xuất: **không**)
+2. ❓ Level tối đa và tốc độ lên cấp
+3. ❓ Có giao dịch giữa người chơi không? (ảnh hưởng thiết kế Duskmoor)
+4. ❓ Bản đồ: một thế giới chung hay chia khu vực theo level?
+5. ❓ Chết thì mất gì — kinh nghiệm, vàng, hay không mất gì?

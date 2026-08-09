@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Frozen — Game 2D Online</title>
+<link rel="stylesheet" href="/css/style.css?v=8">
+<link rel="stylesheet" href="/css/battle.css?v=8">
+<link rel="stylesheet" href="/css/panel.css?v=8">
+</head>
+<body>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1>Frozen</h1>
+    <p class="sub">Bản thử nghiệm mạng — kiểm tra đồng bộ nhiều người</p>
+
+    <label for="name">Tên nhân vật</label>
+    <input id="name" maxlength="16" placeholder="Nhập tên..." autocomplete="off">
+
+    <label>Chế độ</label>
+    <div class="modes">
+      <button class="mode active" data-type="pve">PvE · tối đa 5</button>
+      <button class="mode" data-type="pvp">PvP · tối đa 10</button>
+    </div>
+
+    <button id="play">Vào chơi</button>
+    <p id="error" class="error"></p>
+  </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="stat"><span id="roomLabel">—</span></div>
+  <div class="stat"><span id="count">0</span> người</div>
+  <div class="stat">ping <span id="ping">—</span> ms</div>
+  <div class="stat">fps <span id="fps">—</span></div>
+  <button id="openPanel">Nhân vật <b>C</b></button>
+  <button id="quit">Thoát</button>
+</div>
+
+<!-- Thanh trạng thái nhân vật dưới màn hình khám phá -->
+<div id="statusBar" class="hidden">
+  <div class="sb-name"><span id="sbName">—</span> <em>Cấp <span id="sbLevel">1</span></em></div>
+  <div class="sb-exp"><i id="sbExpFill"></i><span id="sbExpText">0 / 0</span></div>
+  <div class="sb-gold">◆ <span id="sbGold">0</span></div>
+  <div class="sb-points hidden" id="sbPoints">+<span id="sbPointsN">0</span> điểm</div>
+</div>
+
+<!-- ========================== BẢNG NHÂN VẬT ========================== -->
+<div id="panel" class="hidden">
+  <div class="p-box">
+    <header class="p-head">
+      <h2>Nhân vật</h2>
+      <button id="panelClose">✕</button>
+    </header>
+
+    <div class="p-body">
+      <section class="p-col p-equip">
+        <h3>Trang bị</h3>
+        <div class="p-slots" id="pSlots"></div>
+      </section>
+
+      <section class="p-col p-stats">
+        <h3>Chỉ số</h3>
+        <div id="pStats"></div>
+        <h3 class="mt">Chiến đấu</h3>
+        <div id="pCombat"></div>
+      </section>
+
+      <section class="p-col p-bag">
+        <h3>Túi đồ <span id="pBagCount" class="dim"></span></h3>
+        <div class="p-grid" id="pBag"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="tooltip" class="tip hidden"></div>
+</div>
+
+<!-- Thông báo phần thưởng sau trận -->
+<div id="toasts"></div>
+
+<div id="hint" class="hidden">Dùng <b>WASD</b> hoặc <b>phím mũi tên</b> để di chuyển · chạm vào quái để vào trận</div>
+
+<!-- ============================ MÀN CHIẾN ĐẤU ============================ -->
+<div id="battle" class="hidden">
+
+  <header class="b-top">
+    <div class="b-round">Vòng <span id="bRound">1</span></div>
+    <div class="b-timer">
+      <div class="b-timer-fill" id="bTimerFill"></div>
+      <span class="b-timer-text" id="bTimerText">20</span>
+    </div>
+    <div class="b-phase" id="bPhase">Chọn hành động</div>
+  </header>
+
+  <section class="b-field">
+    <div class="b-side b-enemies" id="bEnemies"></div>
+
+    <div class="b-order">
+      <span class="b-order-label">Thứ tự ra tay</span>
+      <div class="b-order-list" id="bOrder"></div>
+    </div>
+
+    <div class="b-side b-allies" id="bAllies"></div>
+  </section>
+
+  <footer class="b-bottom">
+    <div class="b-prompt" id="bPrompt">Chọn một kỹ năng</div>
+    <div class="b-skills" id="bSkills"></div>
+  </footer>
+
+  <aside class="b-log" id="bLog"></aside>
+
+  <!-- Bảng kết quả cuối trận -->
+  <div id="bResult" class="b-result hidden">
+    <div class="b-result-panel">
+      <h2 id="bResultTitle">Chiến thắng</h2>
+      <div id="bResultBody"></div>
+      <button id="bResultClose">Tiếp tục</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/battle.js?v=8"></script>
+<script src="/js/panel.js?v=8"></script>
+<script src="/js/game.js?v=8"></script>
+</body>
+</html>

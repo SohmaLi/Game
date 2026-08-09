@@ -1,0 +1,425 @@
+'use strict';
+
+/**
+ * Màn chiến đấu turn-based.
+ *
+ * Client không tính một con số nào. Nó nhận trạng thái từ server để vẽ, nhận
+ * danh sách sự kiện để phát hoạt cảnh, và gửi lên đúng một thứ: "tôi chọn
+ * kỹ năng X nhắm vào Y".
+ */
+
+const Battle = (() => {
+  const $ = (id) => document.getElementById(id);
+
+  const ui = {
+    root: null, round: null, timerFill: null, timerText: null, phase: null,
+    enemies: null, allies: null, order: null, prompt: null, skills: null,
+    log: null, result: null, resultTitle: null, resultBody: null, resultClose: null,
+  };
+
+  const state = {
+    socket: null,
+    myId: null,
+    data: null,          // trạng thái trận mới nhất từ server
+    pickedSkill: null,   // kỹ năng đang chọn, chờ chọn mục tiêu
+    submitted: false,
+    timerRAF: null,
+    deadlineAt: 0,
+    playing: false,      // đang phát hoạt cảnh, khóa thao tác
+  };
+
+  /* ------------------------------------------------ khởi tạo ------------ */
+
+  function init(socket, myId) {
+    state.socket = socket;
+    state.myId = myId;
+
+    for (const key of Object.keys(ui)) {
+      const map = {
+        root: 'battle', round: 'bRound', timerFill: 'bTimerFill', timerText: 'bTimerText',
+        phase: 'bPhase', enemies: 'bEnemies', allies: 'bAllies', order: 'bOrder',
+        prompt: 'bPrompt', skills: 'bSkills', log: 'bLog', result: 'bResult',
+        resultTitle: 'bResultTitle', resultBody: 'bResultBody', resultClose: 'bResultClose',
+      };
+      ui[key] = $(map[key]);
+    }
+
+    ui.resultClose.onclick = () => {
+      ui.result.classList.add('hidden');
+      close();
+    };
+
+    socket.on('battle:state', onState);
+    socket.on('battle:resolve', onResolve);
+    socket.on('battle:end', onEnd);
+    // Server dọn trận sau vài giây, nhưng nếu bảng kết quả đang mở thì để nguyên —
+    // người chơi cần thời gian đọc phần thưởng, đóng lúc nào là quyền của họ.
+    socket.on('battle:closed', () => {
+      if (!ui.result.classList.contains('hidden')) return;
+      close();
+    });
+  }
+
+  function setMyId(id) { state.myId = id; }
+
+  function isOpen() { return state.data && !ui.root.classList.contains('hidden'); }
+
+  function open() {
+    ui.root.classList.remove('hidden');
+    ui.log.innerHTML = '';
+    log('sys', 'Trận đấu bắt đầu!');
+  }
+
+  function close() {
+    ui.root.classList.add('hidden');
+    state.data = null;
+    state.pickedSkill = null;
+    state.submitted = false;
+    cancelAnimationFrame(state.timerRAF);
+  }
+
+  /* ------------------------------------------------ nhận trạng thái ---- */
+
+  function onState(data) {
+    const first = !state.data;
+    state.data = data;
+    if (first) open();
+
+    if (data.phase === 'select') {
+      state.submitted = data.chosen.includes(state.myId);
+      state.deadlineAt = Date.now() + data.msLeft;
+      runTimer();
+    }
+    render();
+  }
+
+  function me() {
+    return state.data?.combatants.find((c) => c.id === state.myId) || null;
+  }
+
+  /* ------------------------------------------------ đồng hồ ----------- */
+
+  function runTimer() {
+    cancelAnimationFrame(state.timerRAF);
+    const tick = () => {
+      if (!state.data || state.data.phase !== 'select') return;
+      const left = Math.max(0, state.deadlineAt - Date.now());
+      const ratio = left / state.data.selectMs;
+      ui.timerFill.style.width = `${ratio * 100}%`;
+      ui.timerFill.classList.toggle('urgent', left < 6000);
+      ui.timerText.textContent = Math.ceil(left / 1000);
+      state.timerRAF = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  /* ------------------------------------------------ vẽ --------------- */
+
+  function render() {
+    const d = state.data;
+    if (!d) return;
+
+    ui.round.textContent = d.round;
+    ui.phase.textContent =
+      d.phase === 'select' ? (state.submitted ? 'Đang chờ người khác…' : 'Chọn hành động')
+        : d.phase === 'resolve' ? 'Đang xử lý…' : 'Kết thúc';
+
+    ui.enemies.innerHTML = '';
+    ui.allies.innerHTML = '';
+    for (const c of d.combatants) {
+      const el = renderUnit(c);
+      (c.side === 'enemy' ? ui.enemies : ui.allies).appendChild(el);
+    }
+
+    ui.order.innerHTML = '';
+    for (const id of d.order) {
+      const c = d.combatants.find((x) => x.id === id);
+      if (!c) continue;
+      const chip = document.createElement('span');
+      chip.className = `ord ${c.side === 'enemy' ? 'enemy' : ''} ${c.id === state.myId ? 'me' : ''}`;
+      chip.textContent = c.name;
+      ui.order.appendChild(chip);
+    }
+
+    renderSkills();
+  }
+
+  function renderUnit(c) {
+    const el = document.createElement('div');
+    el.className = `unit ${c.side} ${c.id === state.myId ? 'me' : ''} ${c.alive ? '' : 'dead'}`;
+    el.dataset.id = c.id;
+
+    const hpPct = Math.max(0, (c.hp / c.hpMax) * 100);
+    const manaPct = c.manaMax ? (c.mana / c.manaMax) * 100 : 0;
+    const ragePct = c.rageMax ? (c.rage / c.rageMax) * 100 : 0;
+
+    const effects = c.effects.map((e) =>
+      `<span class="eff ${e.type}">${effectLabel(e.type)} ${e.turns}</span>`).join('');
+
+    const ready = state.data.chosen.includes(c.id) && c.isPlayer && state.data.phase === 'select'
+      ? '<div class="unit-ready">✓</div>' : '';
+
+    el.innerHTML = `
+      ${ready}
+      <div class="unit-avatar" style="background:${c.color || (c.side === 'enemy' ? '#c05a5a' : '#4c7dff')}"></div>
+      <div class="unit-name">${escapeHtml(c.name)}</div>
+      <div class="unit-sub">Cấp ${c.level}${c.tierLabel ? ` · ${c.tierLabel}` : ''} · ⚡${c.speed}</div>
+      <div class="bar hp"><i style="width:${hpPct}%"></i></div>
+      <div class="bar-text">${c.hp} / ${c.hpMax}</div>
+      ${c.isPlayer ? `<div class="bar mana"><i style="width:${manaPct}%"></i></div>` : ''}
+      ${c.isPlayer ? `<div class="bar rage"><i style="width:${ragePct}%"></i></div>` : ''}
+      <div class="unit-effects">${effects}</div>
+    `;
+
+    if (canTarget(c)) {
+      el.classList.add('targetable');
+      el.onclick = () => chooseTarget(c);
+    }
+    return el;
+  }
+
+  function effectLabel(type) {
+    return { dot: 'Độc', slow: 'Chậm', damageReduction: 'Thủ' }[type] || type;
+  }
+
+  function renderSkills() {
+    const d = state.data;
+    const self = me();
+    ui.skills.innerHTML = '';
+
+    if (!self?.skills) {
+      ui.prompt.textContent = 'Bạn đang theo dõi trận đấu.';
+      return;
+    }
+
+    const locked = d.phase !== 'select' || state.submitted || !self.alive || state.playing;
+
+    ui.prompt.className = 'b-prompt' + (state.submitted ? ' wait' : '');
+    ui.prompt.textContent = !self.alive ? 'Bạn đã gục — chờ hết trận.'
+      : state.submitted ? 'Đã chọn xong. Đang chờ người khác…'
+        : state.pickedSkill ? `${skillById(state.pickedSkill).name} — chọn mục tiêu`
+          : 'Chọn một kỹ năng';
+
+    for (const s of self.skills) {
+      const cd = self.cooldowns[s.id] || 0;
+      const notEnoughMana = s.manaCost > self.mana;
+      const notEnoughRage = s.rage > 0 && self.rage < s.rage;
+      const disabled = locked || cd > 0 || notEnoughMana || notEnoughRage;
+
+      const btn = document.createElement('button');
+      btn.className = 'skill' + (state.pickedSkill === s.id ? ' selected' : '');
+      btn.disabled = disabled;
+      btn.title = s.desc;
+
+      const costs = [];
+      if (s.manaCost) costs.push(`<span class="mana">${s.manaCost} mana</span>`);
+      if (s.rage > 0) costs.push(`<span class="rage">${s.rage} nộ</span>`);
+      if (s.rage < 0) costs.push(`<span class="rage">+${-s.rage} nộ</span>`);
+      if (cd > 0) costs.push(`<span class="cd">chờ ${cd} vòng</span>`);
+      if (!costs.length) costs.push('miễn phí');
+
+      btn.innerHTML = `
+        <div class="skill-name">${escapeHtml(s.name)}</div>
+        <div class="skill-cost">${costs.join(' · ')}</div>`;
+      btn.onclick = () => pickSkill(s);
+      ui.skills.appendChild(btn);
+    }
+  }
+
+  function skillById(id) {
+    return me()?.skills.find((s) => s.id === id) || null;
+  }
+
+  /* ------------------------------------------------ thao tác --------- */
+
+  function pickSkill(s) {
+    // Kỹ năng không cần chọn mục tiêu thì gửi luôn
+    if (s.target === 'self' || s.target === 'allEnemies' || s.target === 'allAllies') {
+      return submit(s.id, null);
+    }
+    state.pickedSkill = state.pickedSkill === s.id ? null : s.id;
+    render();
+  }
+
+  function canTarget(c) {
+    if (!state.pickedSkill || state.submitted || state.playing) return false;
+    if (!c.alive) return false;
+    const s = skillById(state.pickedSkill);
+    if (!s) return false;
+    return s.target === 'ally' ? c.side === 'ally' : c.side === 'enemy';
+  }
+
+  function chooseTarget(c) {
+    if (!canTarget(c)) return;
+    submit(state.pickedSkill, c.id);
+  }
+
+  function submit(skillId, targetId) {
+    state.socket.emit('battle:action', { skillId, targetId }, (res) => {
+      if (res?.ok) {
+        state.submitted = true;
+        state.pickedSkill = null;
+      } else {
+        log('sys', res?.error || 'Không thực hiện được');
+      }
+      render();
+    });
+  }
+
+  /* ------------------------------------------------ hoạt cảnh -------- */
+
+  async function onResolve({ events, state: newState }) {
+    state.playing = true;
+    state.pickedSkill = null;
+    state.submitted = false;
+    ui.phase.textContent = 'Đang xử lý…';
+
+    for (const ev of events) {
+      await playEvent(ev);
+    }
+
+    state.data = newState;
+    state.playing = false;
+    render();
+  }
+
+  function playEvent(ev) {
+    return new Promise((resolve) => {
+      switch (ev.type) {
+        case 'act': {
+          animate(ev.actorId, 'acting');
+          log('', `<span class="hl">${escapeHtml(ev.actorName)}</span> dùng <b>${escapeHtml(ev.skillName)}</b>`);
+          setTimeout(() => {
+            for (const h of ev.hits) applyHit(h);
+            resolve();
+          }, 320);
+          return;
+        }
+        case 'dot':
+          float(ev.id, `-${ev.amount}`, 'dot');
+          setBar(ev.id, ev.hp);
+          break;
+        case 'regen':
+          float(ev.id, `+${ev.amount}`, 'heal');
+          setBar(ev.id, ev.hp);
+          break;
+        case 'revive':
+          log('sys', `<b>${escapeHtml(ev.name)}</b> đứng dậy nhờ Bất Diệt!`);
+          float(ev.id, 'HỒI SINH', 'heal');
+          setBar(ev.id, ev.hp);
+          break;
+        case 'death':
+          log('die', `${escapeHtml(ev.name)} đã gục.`);
+          document.querySelector(`.unit[data-id="${cssEsc(ev.id)}"]`)?.classList.add('dead');
+          break;
+        default:
+          break;
+      }
+      setTimeout(resolve, 260);
+    });
+  }
+
+  function applyHit(h) {
+    switch (h.kind) {
+      case 'damage':
+        animate(h.id, 'hurt');
+        float(h.id, `-${h.amount}`, h.crit ? 'crit' : 'damage');
+        if (h.crit) log('dmg', `Chí mạng! <b>${h.amount}</b> sát thương`);
+        setBar(h.id, h.hp);
+        break;
+      case 'heal':
+        float(h.id, `+${h.amount}`, 'heal');
+        setBar(h.id, h.hp);
+        break;
+      case 'dodge':
+        float(h.id, 'NÉ', 'dodge');
+        break;
+      case 'reflect':
+        animate(h.id, 'hurt');
+        float(h.id, `-${h.amount}`, 'damage');
+        setBar(h.id, h.hp);
+        break;
+      case 'buff':
+        float(h.id, 'THỦ', 'heal');
+        break;
+      default:
+        break;
+    }
+  }
+
+  function unitEl(id) {
+    return document.querySelector(`.unit[data-id="${cssEsc(id)}"]`);
+  }
+
+  function animate(id, cls) {
+    const el = unitEl(id);
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth; // ép trình duyệt chạy lại animation
+    el.classList.add(cls);
+    setTimeout(() => el.classList.remove(cls), 600);
+  }
+
+  function float(id, text, cls) {
+    const el = unitEl(id);
+    if (!el) return;
+    const f = document.createElement('div');
+    f.className = `float ${cls}`;
+    f.textContent = text;
+    el.appendChild(f);
+    setTimeout(() => f.remove(), 1200);
+  }
+
+  /** Cập nhật thanh máu ngay trong lúc phát hoạt cảnh, không chờ hết chuỗi sự kiện. */
+  function setBar(id, hp) {
+    const el = unitEl(id);
+    if (!el) return;
+    const c = state.data?.combatants.find((x) => x.id === id);
+    if (!c) return;
+    const pct = Math.max(0, (hp / c.hpMax) * 100);
+    el.querySelector('.bar.hp > i').style.width = `${pct}%`;
+    el.querySelector('.bar-text').textContent = `${hp} / ${c.hpMax}`;
+  }
+
+  /* ------------------------------------------------ kết thúc --------- */
+
+  function onEnd({ result, rewards }) {
+    setTimeout(() => {
+      const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại' };
+      ui.resultTitle.textContent = titles[result] || result;
+      ui.resultTitle.className = result;
+
+      if (rewards) {
+        const books = rewards.books.length
+          ? rewards.books.map((b) => `<div class="reward"><span>Sách Dị Điển</span><span>từ ${escapeHtml(b.from)}</span></div>`).join('')
+          : '';
+        ui.resultBody.innerHTML = `
+          <div class="reward"><span>Kinh nghiệm</span><span>+${rewards.exp}</span></div>
+          <div class="reward"><span>Vàng</span><span>+${rewards.gold}</span></div>
+          ${books || '<div class="reward"><span>Sách Dị Điển</span><span>không rơi</span></div>'}`;
+      } else {
+        ui.resultBody.innerHTML = '<p style="color:#8b95ab">Không nhận được phần thưởng.</p>';
+      }
+
+      ui.result.classList.remove('hidden');
+    }, 900); // chờ hoạt cảnh đòn cuối chạy xong
+  }
+
+  /* ------------------------------------------------ tiện ích --------- */
+
+  function log(cls, html) {
+    const p = document.createElement('p');
+    if (cls) p.className = cls;
+    p.innerHTML = html;
+    ui.log.appendChild(p);
+    ui.log.scrollTop = ui.log.scrollHeight;
+    while (ui.log.children.length > 80) ui.log.removeChild(ui.log.firstChild);
+  }
+
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
+    (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+  const cssEsc = (s) => (window.CSS?.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+
+  return { init, setMyId, isOpen, open, close, onState };
+})();

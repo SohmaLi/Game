@@ -1,0 +1,8 @@
+node_modules/
+npm-debug.log*
+.env
+.DS_Store
+tmp/
+
+# Quyền cục bộ của từng máy, không dùng chung
+.claude/settings.local.json

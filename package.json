@@ -1,0 +1,24 @@
+{
+  "name": "frozen-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Game 2D top-down online, phòng 5 người PvE / 10 người PvP, chiến đấu turn-based",
+  "main": "app.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "loadtest": "node tools/loadtest.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.23.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

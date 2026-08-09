@@ -1,0 +1,7 @@
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/frozento/game"
+PassengerBaseURI "/"
+PassengerNodejs "/home/frozento/nodevenv/game/20/bin/node"
+PassengerAppType node
+PassengerStartupFile app.js
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX PASSENGER CONFIGURATION END
