@@ -33,7 +33,6 @@ const Tree = (() => {
   function isOpen() { return !$('tree').classList.contains('hidden'); }
   function close() { $('tree').classList.add('hidden'); }
   function open() {
-    if (typeof closeNav === 'function') closeNav();
     Panel.close();
     $('tree').classList.remove('hidden');
     render();

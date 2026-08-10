@@ -47,7 +47,17 @@ function sendInputIfChanged() {
   state.socket?.emit('input', keys);
 }
 
+/** Đang gõ vào ô nhập liệu thì bàn phím thuộc về ô đó, không phải nhân vật. */
+function typing(e) {
+  const t = e.target;
+  return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+}
+
 window.addEventListener('keydown', (e) => {
+  // W/A/S/D và K/C là phím điều khiển, nhưng cũng là chữ cái bình thường —
+  // không loại trừ ô nhập liệu thì không ai gõ được tên đăng nhập có chữ 'a'
+  if (typing(e)) return;
+
   // Đang trong trận thì bàn phím thuộc về màn chiến đấu
   if (Battle.isOpen()) return;
 
@@ -80,6 +90,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
+  if (typing(e)) return;
   const k = KEYMAP[e.code];
   if (!k) return;
   e.preventDefault();
@@ -110,7 +121,6 @@ function connect({ token, characterId }) {
       state.me = res.you;
       state.map = res.map;
       state.character = res.character || null;
-      $('roomLabel').textContent = `${res.room.label} · ${res.room.id}`;
       enterGame();
 
       UI.init();
@@ -127,7 +137,6 @@ function connect({ token, characterId }) {
   socket.on('state', (snap) => {
     state.prev = state.curr;
     state.curr = { ...snap, recvAt: performance.now() };
-    $('count').textContent = snap.players.length;
   });
 
   socket.on('connect_error', (err) => {
@@ -149,7 +158,10 @@ function connect({ token, characterId }) {
     socket.emit('ping:probe', t0, () => {
       state.ping = Math.round(performance.now() - t0);
       $('ping').textContent = state.ping;
-      $('ping2').textContent = state.ping;
+      // Đổi màu chấm theo độ trễ để nhìn phát biết ngay, không phải đọc số
+      const dot = $('pingDot');
+      dot.classList.toggle('warn', state.ping >= 80 && state.ping < 200);
+      dot.classList.toggle('bad', state.ping >= 200);
     });
   }, 2000);
 }
@@ -169,7 +181,6 @@ function leaveGame() {
   UI.closeMenu();
   UI.closeModal();
   Hud.hide();
-  closeNav();
   $('statusBar').classList.add('hidden');
   $('navbar').classList.add('hidden');
   $('hint').classList.add('hidden');
@@ -339,19 +350,8 @@ function drawMonster(m, cam) {
   ctx.fillText(`${m.n} · ${m.lv}`, x, y + 24);
 }
 
-let frames = 0;
-let fpsAt = performance.now();
-
 function render() {
   requestAnimationFrame(render);
-
-  frames++;
-  const now = performance.now();
-  if (now - fpsAt >= 1000) {
-    $('fps').textContent = frames;
-    frames = 0;
-    fpsAt = now;
-  }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!state.map || !state.curr) return;
@@ -386,34 +386,6 @@ function render() {
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 render();
-
-/* ---------------- Navbar ---------------- */
-
-function navOpen() { return !$('navMenu').classList.contains('hidden'); }
-
-function closeNav() {
-  $('navMenu').classList.add('hidden');
-  $('navToggle').classList.remove('open');
-}
-
-function toggleNav() {
-  const willOpen = !navOpen();
-  $('navMenu').classList.toggle('hidden', !willOpen);
-  $('navToggle').classList.toggle('open', willOpen);
-}
-
-$('navToggle').addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleNav();
-});
-
-// Bấm ra ngoài hoặc Esc thì đóng
-document.addEventListener('mousedown', (e) => {
-  if (navOpen() && !$('navbar').contains(e.target)) closeNav();
-});
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && navOpen()) closeNav();
-});
 
 /* ---------------- Khởi động ---------------- */
 

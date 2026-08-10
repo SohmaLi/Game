@@ -35,12 +35,15 @@ const Panel = (() => {
 
     $('openPanel').onclick = toggle;
     $('openTree').onclick = () => Tree.open();
+    // Bấm thẳng vào thanh kinh nghiệm cũng mở bảng nhân vật — đó là thứ người
+    // chơi nhìn nhiều nhất, nên nó cũng nên là chỗ bấm vào để xem chi tiết
+    $('sbMain').onclick = toggle;
     $('panelClose').onclick = close;
     $('panel').addEventListener('click', (e) => { if (e.target.id === 'panel') close(); });
   }
 
   function isOpen() { return !$('panel').classList.contains('hidden'); }
-  function open() { closeNav(); Tree.close(); $('panel').classList.remove('hidden'); render(); }
+  function open() { Tree.close(); $('panel').classList.remove('hidden'); render(); }
   function close() { $('panel').classList.add('hidden'); hideTip(); }
   function toggle() { isOpen() ? close() : open(); }
 
@@ -68,8 +71,13 @@ const Panel = (() => {
     $('sbExpText').textContent = isFinite(data.expNeeded)
       ? `${data.exp} / ${data.expNeeded}` : 'Tối đa';
 
-    $('sbPoints').classList.toggle('hidden', !data.statPoints);
-    $('sbPointsN').textContent = data.statPoints;
+    // Hai chấm báo riêng: điểm chỉ số tiêu ở Balo, điểm kỹ năng tiêu ở cây
+    const statPts = data.statPoints || 0;
+    const skillPts = data.skillPoints || 0;
+    $('sbStatPts').classList.toggle('hidden', !statPts);
+    $('sbStatPts').textContent = statPts;
+    $('sbSkillPts').classList.toggle('hidden', !skillPts);
+    $('sbSkillPts').textContent = skillPts;
   }
 
   /* ------------------------------------------------ vẽ bảng ----------- */

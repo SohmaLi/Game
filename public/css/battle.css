@@ -367,3 +367,7 @@
 .b-flee em { font-style: normal; font-weight: 700; color: #d3b8f0; }
 /* Tỉ lệ thấp thì đổi màu cảnh báo — người chơi biết mình đang liều */
 .b-flee em.risky { color: #ff9aa8; }
+
+/* Chừa chỗ cho thanh kinh nghiệm cố định ở đáy (z-index cao hơn màn này),
+   nếu không nó che mất thanh kỹ năng */
+#battle { padding-bottom: 48px; }

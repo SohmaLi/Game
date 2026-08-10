@@ -557,11 +557,20 @@ class Room {
       // ngay cạnh kéo vào trận mới mà không kịp bước đi đâu
       p.graceUntil = Date.now() + cfg.ROAMER.graceMs;
 
-      const sock = this.io.sockets.sockets.get(p.id);
-      sock?.leave(battle.channel);
     }
 
+    /**
+     * Báo đóng TRƯỚC rồi mới cho rời kênh.
+     *
+     * Làm ngược lại thì `io.to(channel)` gửi vào một kênh đã rỗng — không ai
+     * nhận được, và màn chiến đấu ở client treo lại vĩnh viễn sau khi đánh xong.
+     */
     this.io.to(battle.channel).emit('battle:closed');
+
+    for (const c of battle.allies) {
+      this.io.sockets.sockets.get(c.id)?.leave(battle.channel);
+    }
+
     battle.destroy();
     this.battles.delete(battle.id);
 
