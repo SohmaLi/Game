@@ -298,14 +298,22 @@
 
 /* ---------------- thông báo phần thưởng ---------------- */
 
+/**
+ * Nằm NGAY TRÊN thanh kinh nghiệm, không phải sát đáy màn hình.
+ *
+ * Sát đáy thì thông báo chui xuống dưới hai nút Balo / Kỹ năng (thanh đó
+ * z-index 50, cao hơn) và không đọc được chữ nào. `--sb-h` do game.js đo bằng
+ * getBoundingClientRect rồi ghi vào, nên màn hẹp làm thanh xuống dòng cao gấp
+ * đôi thì chỗ chừa cũng tự cao theo.
+ */
 #toasts {
   position: fixed;
   right: 14px;
-  bottom: 14px;
+  bottom: calc(var(--sb-h, 48px) + 12px);
   display: flex;
   flex-direction: column;
   gap: 7px;
-  z-index: 45;
+  z-index: 55;
   pointer-events: none;
 }
 
@@ -359,6 +367,10 @@
   top: 12px;
   right: 12px;
   z-index: 36;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   pointer-events: none;   /* thuần hiển thị, không chắn thao tác phía dưới */
 }
 #navbar.hidden { display: none; }
@@ -374,6 +386,47 @@
   font-size: 12px;
   color: #cfe0ff;
   backdrop-filter: blur(6px);
+}
+
+.zone-badge {
+  padding-right: 8px;
+  border-right: 1px solid #263047;
+  color: #8b95ab;
+  font-size: 11px;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- đồng hồ Thủ Lĩnh ---------- */
+
+#bossBar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  background: rgba(13, 18, 29, .88);
+  border: 1px solid #3a3020;
+  border-radius: 9px;
+  font-size: 12px;
+  color: #a9b4c9;
+  backdrop-filter: blur(6px);
+}
+#bossBar.hidden { display: none; }
+.boss-ico { color: #6b7791; }
+
+/* Đang có Thủ Lĩnh ngoài bản đồ — đổi màu và nhấp nháy để không ai bỏ lỡ */
+#bossBar.up {
+  border-color: #7a5a1e;
+  background: rgba(38, 28, 10, .9);
+  color: #ffd166;
+  animation: bossPulse 1.8s ease-in-out infinite;
+}
+#bossBar.up .boss-ico { color: #ffd166; }
+
+@keyframes bossPulse {
+  50% { box-shadow: 0 0 14px rgba(255, 209, 102, .35); }
 }
 .ping-unit { color: #6b7791; font-size: 10px; margin-left: 2px; }
 

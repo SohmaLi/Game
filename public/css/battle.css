@@ -266,10 +266,12 @@
 
 /* ---------- nhật ký ---------- */
 
+/* Nằm dưới navbar — navbar cao bao nhiêu do game.js đo rồi ghi vào --nav-h,
+   vì thêm đồng hồ Thủ Lĩnh là nó cao gấp đôi */
 .b-log {
   position: fixed;
   right: 14px;
-  top: 66px;
+  top: calc(var(--nav-h, 42px) + 26px);
   width: 250px;
   max-height: 34vh;
   overflow-y: auto;
@@ -369,5 +371,5 @@
 .b-flee em.risky { color: #ff9aa8; }
 
 /* Chừa chỗ cho thanh kinh nghiệm cố định ở đáy (z-index cao hơn màn này),
-   nếu không nó che mất thanh kỹ năng */
-#battle { padding-bottom: 48px; }
+   nếu không nó che mất thanh kỹ năng. Chiều cao thật do game.js đo. */
+#battle { padding-bottom: var(--sb-h, 48px); }

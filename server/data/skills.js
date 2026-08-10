@@ -85,6 +85,25 @@ const SKILLS = [
     desc: 'Lời nguyền làm chậm mục tiêu.',
   },
 
+  /* -------------------------------- Thủ Lĩnh: đòn quét cả nhóm --------- */
+  /**
+   * Thủ Lĩnh đứng một mình chống cả nhóm, mỗi vòng chỉ ra tay đúng một lần.
+   * Không có đòn quét diện rộng thì năm người xúm vào là nó chết trước khi kịp
+   * gây ra thiệt hại đáng kể — cộng thêm bao nhiêu máu cũng chỉ làm trận đấu
+   * dài ra chứ không làm nó nguy hiểm hơn.
+   */
+  {
+    id: 'm_quake', name: 'Chấn Địa', class: null, monsterOnly: true,
+    kind: 'physical', power: 1.05, manaCost: 0, rage: 0, cooldown: 2, target: 'allEnemies',
+    desc: 'Giậm chân làm rung cả mặt đất, quật ngã mọi kẻ đứng quanh.',
+  },
+  {
+    id: 'm_wail', name: 'Tiếng Gào', class: null, monsterOnly: true,
+    kind: 'magic', power: 0.95, manaCost: 0, rage: 0, cooldown: 2, target: 'allEnemies',
+    effect: { type: 'slow', percent: 0.20, turns: 2 },
+    desc: 'Tiếng gào xuyên qua giáp, làm chậm cả nhóm.',
+  },
+
   /* ------------------------------------- Chiến Binh · bậc cao --------- */
   {
     id: 'taunt', name: 'Khiêu Khích', class: 'warrior',

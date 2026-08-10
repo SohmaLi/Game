@@ -19,22 +19,27 @@ class RoomManager {
     this.cleanupTimer.unref?.();
   }
 
-  /** Tìm phòng cùng loại còn chỗ, không có thì tạo mới. */
-  findOrCreate(type) {
+  /**
+   * Tìm phòng cùng loại VÀ cùng vùng còn chỗ, không có thì tạo mới.
+   *
+   * Vùng chia người chơi ra chứ không chỉ đổi cảnh: hai người ở hai vùng khác
+   * nhau không bao giờ gặp nhau, nên không thể gộp chung một phòng.
+   */
+  findOrCreate(type, zone) {
     if (!cfg.ROOM_TYPES[type]) throw new Error(`Loại phòng không hợp lệ: ${type}`);
 
     for (const room of this.rooms.values()) {
-      if (room.type === type && !room.isFull) return room;
+      if (room.type === type && room.zone.id === zone.id && !room.isFull) return room;
     }
-    const room = new Room(type, this.io);
+    const room = new Room(type, this.io, zone);
     this.rooms.set(room.id, room);
     return room;
   }
 
-  join(socket, type, name, character = null) {
+  join(socket, type, zone, name, character = null) {
     this.leave(socket); // đảm bảo một socket chỉ ở một phòng
 
-    const room = this.findOrCreate(type);
+    const room = this.findOrCreate(type, zone);
     const player = room.add(socket, name, character);
     this.playerRoom.set(socket.id, room.id);
 

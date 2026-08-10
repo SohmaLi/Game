@@ -334,14 +334,23 @@ Quái đi lang thang trên bản đồ. Chạm vào là vào trận — **cùng 
 | Thông số | Giá trị | Lý do |
 |---|---|---|
 | Số quái trên bản đồ | 6 mỗi phòng | Đủ đông để luôn có việc làm, đủ thưa để né được |
-| Tốc độ quái | 62 px/s | Chậm hơn người chơi (150) — **phải né được thì mới có lựa chọn** |
+| Tốc độ quái | 44 px/s | Chậm hơn người chơi (150) — **phải né được thì mới có lựa chọn** |
 | Tầm phát hiện | 120 px | Trong tầm này quái đuổi theo, client vẽ dấu `!` đỏ |
 | Bán kính gom bầy | 95 px | Quái trong tầm này cùng nhảy vào trận |
 | Hồi sinh quái | 20 giây | Không hồi ngay tại chỗ vừa đánh |
+| Quái mới sinh | miễn va chạm 5 giây | Vẽ mờ, đứng yên — không kéo ai vào trận |
 
-**Sau mỗi trận:** người chơi được miễn va chạm 3 giây **và** những con quái đang
-đứng sát bị dời đi chỗ khác. Chỉ miễn va chạm thôi thì không đủ — con quái vẫn
-đứng đó và tóm lại ngay khi hết hạn, người chơi không kịp bước đi đâu cả.
+**Điều kiện nổ trận là quái VỪA chạm vào, không phải đang chạm.** Mỗi người chơi
+giữ danh sách những con đang đè lên mình; chỉ con mới xuất hiện trong danh sách
+đó mới kéo họ vào trận.
+
+**Sau mỗi trận:** người chơi được miễn va chạm 5 giây, và trong khoảng đó quái
+**coi như không nhìn thấy họ** — không đuổi, không chạm. Cộng với luật "vừa chạm"
+ở trên, con quái đang đứng đè lên người vừa ra khỏi trận phải bỏ đi rồi quay lại
+mới kéo được họ vào trận mới.
+
+> Cách cũ là dạt hết quái quanh đó ra chỗ khác. Nhìn rất kỳ — cả bản đồ nhảy
+> dựng lên sau mỗi trận. Quái không cần bay đi đâu cả, chỉ cần đừng chạm vào.
 
 ### 5.2 Vòng lượt — chọn đồng thời
 
@@ -462,15 +471,45 @@ chơi trên bản đồ; lời mời hết hạn sau 30 giây.
 
 🔒 Mọi quái có đánh thường + 1 kỹ năng chủ chốt · quái cấp cao có thêm kỹ năng.
 
-| Hạng | Kỹ năng chủ chốt | Tỉ lệ rơi sách | Vai trò |
-|---|---|---|---|
-| **Thường** | 1 | 🔒 5% | Quái nền, farm hàng ngày |
-| **Tinh Anh** | 2 | 💡 15% | Rải rác, đáng để tìm |
-| **Thủ Lĩnh** | 3 + cơ chế riêng | 💡 40% | Cần đủ nhóm 5 người |
+| Hạng | Kỹ năng | Máu ×  | Sát thương × | Tỉ lệ rơi sách | Vai trò |
+|---|---|---|---|---|---|
+| **Thường** | 2 | 1.0 | 1.0 | 🔒 5% | Quái nền, farm hàng ngày |
+| **Tinh Anh** | 3 | 2.2 | 1.5 | 💡 15% | Rải rác, đáng để tìm |
+| **Thủ Lĩnh** | 3 + đòn quét cả nhóm | 16 | 2.2 | 🔒 40% | Cần cả nhóm, một mình không hạ nổi |
 
-💡 **Cơ chế riêng của Thủ Lĩnh** biến trận đấu thành câu chuyện chứ không phải phép tính —
-ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa cuồng, gấp đôi tốc độ"*,
-*"miễn nhiễm sát thương vật lý cho tới khi phá vỡ lá chắn phép"*.
+**Vì sao Thủ Lĩnh phải có đòn quét diện rộng.** Nó đứng một mình chống cả nhóm,
+mỗi vòng chỉ ra tay đúng một lần trong khi năm người ra tay năm lần. Không có
+đòn đánh cả nhóm thì cộng bao nhiêu máu cũng chỉ làm trận đấu dài ra chứ không
+làm nó nguy hiểm hơn. `m_quake` (vật lý) và `m_wail` (phép, làm chậm) là hai đòn
+đó.
+
+Chỉ số Thủ Lĩnh đặt ở **cấp gốc thấp** rồi để công thức tăng theo vùng kéo lên,
+y hệt quái thường. Viết tay bảng chỉ số ở cấp cao là sai: sức mạnh người chơi
+tăng nhanh hơn, nên Thủ Lĩnh vùng cấp 50 hoá ra lại yếu tương đối hơn Thủ Lĩnh
+vùng cấp 10.
+
+#### Luật xuất hiện của Thủ Lĩnh
+
+| Thông số | Giá trị |
+|---|---|
+| Chu kỳ | 5 phút một con, mỗi vùng một con duy nhất |
+| Tự bỏ đi | sau 3 phút nếu không ai hạ được |
+| Miễn va chạm khi hiện ra | 5 giây |
+| Trần người cùng đánh | 10 |
+
+**Trận Thủ Lĩnh KHÔNG cần nhóm.** Đây là điểm khác biệt duy nhất so với quái
+thường (🔒 mục 5.2e):
+
+- Con Thủ Lĩnh **ở lại bản đồ** trong lúc đang bị đánh — đó là cách người thứ
+  hai, thứ ba nhìn thấy trận đang diễn ra để bước vào phụ
+- Nó **đứng yên** khi đang giao chiến, không đi lôi người ngoài cuộc vào
+- **Trốn thoát chỉ rút một mình người bấm**, không kéo theo những người xa lạ
+  đang đánh cùng
+- Hạ được thì nó biến mất và đồng hồ 5 phút đếm lại; thua hoặc trốn hết thì nó
+  ở lại
+
+💡 **Còn bỏ ngỏ:** cơ chế riêng cho từng Thủ Lĩnh — *"mỗi 3 vòng triệu hồi 2 tay
+sai"*, *"dưới 30% máu thì hóa cuồng"*, *"miễn nhiễm vật lý cho tới khi phá lá chắn"*.
 
 ### 6.3 Sách kỹ năng
 
@@ -480,6 +519,57 @@ ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa
 - Sách **theo class** — sách Pháp Sư thì Chiến Binh không đọc được (nhưng bán/trao đổi được)
 - Sách có hạng; hạng cao rơi từ quái hạng cao
 - Gắn vào ô đã có sách → **xóa vĩnh viễn** sách cũ (🔒 mục 3.4)
+
+---
+
+## 6b. Vùng bản đồ
+
+🔒 **Năm vùng, mỗi vùng 10 cấp, phủ kín cấp 1 tới 50.** Người chơi chọn vùng
+ngay sau khi chọn nhân vật, trước khi vào game.
+
+| # | Vùng | Cấp | Quái | Thủ Lĩnh |
+|---|---|---|---|---|
+| 1 | **Đồng Cỏ Thanh Bình** | 1–10 | Sói Xám · Cướp Đường | Sói Đầu Đàn |
+| 2 | **Rừng Sương Mù** | 11–20 | Nhện Sương · Sói Xám · Cướp Đường | Nhện Mẫu |
+| 3 | **Hoang Mạc Xương Trắng** | 21–30 | Bộ Hài Cốt · Xạ Thủ Xương | Tướng Xương |
+| 4 | **Vực Băng Vĩnh Cửu** | 31–40 | Oán Hồn Băng · Xạ Thủ Xương | Quỷ Băng |
+| 5 | **Đỉnh Bão Tố** | 41–50 | Tín Đồ Bão · Oán Hồn Băng | Sứ Giả Bão |
+
+**Vùng chia người chơi ra, không chỉ đổi cảnh.** Mỗi vùng có phòng riêng, bản đồ
+riêng, bảng màu riêng và đồng hồ Thủ Lĩnh riêng. Hai người ở hai vùng khác nhau
+không bao giờ gặp nhau.
+
+**Điều kiện vào:** cấp ≥ `levelMin` của vùng. Vùng thấp thì luôn vào lại được —
+muốn đi dạo chỗ dễ là quyền của người chơi, chỉ có điều phần thưởng ở đó bèo bọt.
+Client chỉ khoá thẻ cho dễ nhìn; **server kiểm tra lại lúc vào phòng**, vì client
+sửa vài dòng JS là gửi lên vùng cấp 50 với nhân vật cấp 1.
+
+**Bản đồ sinh từ `seed` của vùng** nên cùng một vùng luôn ra đúng một hình dạng
+dù server khởi động lại bao nhiêu lần. Đổi `seed` là đổi bản đồ — đã có người
+chơi thì đừng đụng vào.
+
+### 6b.1 Quái tăng theo cấp vùng
+
+Cùng một bản mẫu Sói Xám ở vùng 1 và vùng 5 là hai đối thủ hoàn toàn khác nhau.
+Mỗi lần sinh ra, quái được kéo về một cấp ngẫu nhiên trong khoảng của vùng:
+
+```
+chỉ số   ×= 1 + (cấp − cấp_gốc) × 0.22
+exp/vàng ×= 1 + (cấp − cấp_gốc) × 0.55
+```
+
+`0.22` là **núm cân bằng duy nhất** cho độ khó theo vùng. Người chơi mỗi cấp vừa
+được 3 điểm chỉ số vừa thay trang bị tốt hơn, nên quái phải tăng nhanh hơn mức 3
+điểm đó khá nhiều. Đo bằng `tools/simulate.js`: một người đủ trang bị đánh 2 con
+cùng cấp thì thắng ~90% và còn khoảng nửa máu, ở cả 5 vùng.
+
+### 6b.2 Giáp phải nhẹ dần theo cấp
+
+`armorK` trong công thức giảm sát thương **tăng theo cấp của người chịu đòn**
+(`60 + 12 × (cấp − 1)`). Giữ nó cố định thì ở cấp cao mọi thứ hoá bọt biển: giáp
+cấp 50 vượt xa hằng số 60 nên chặn hơn 70% sát thương của **cả hai phe**, trận
+đấu kéo dài mấy chục vòng mà không bên nào nhích được. Cấp 1 vẫn ra đúng con số
+cũ, nên phần đầu game không đổi.
 
 ---
 

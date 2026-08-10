@@ -106,12 +106,12 @@ window.addEventListener('blur', () => {
 
 /* ---------------- Kết nối ---------------- */
 
-function connect({ token, characterId }) {
+function connect({ token, characterId, zone }) {
   const socket = io({ transports: ['websocket', 'polling'] });
   state.socket = socket;
 
   socket.on('connect', () => {
-    socket.emit('join', { token, characterId, type: 'pve' }, (res) => {
+    socket.emit('join', { token, characterId, zone, type: 'pve' }, (res) => {
       if (!res?.ok) {
         Account.showCharacters();
         alert(res?.error || 'Không vào được phòng');
@@ -120,6 +120,7 @@ function connect({ token, characterId }) {
       }
       state.me = res.you;
       state.map = res.map;
+      state.zone = res.zone || null;
       state.character = res.character || null;
       enterGame();
 
@@ -137,7 +138,15 @@ function connect({ token, characterId }) {
   socket.on('state', (snap) => {
     state.prev = state.curr;
     state.curr = { ...snap, recvAt: performance.now() };
+    renderBossBar(snap.boss);
   });
+
+  // Thủ Lĩnh là sự kiện của cả phòng — ai đang ở trong vùng cũng phải biết
+  socket.on('boss:spawn', (b) => Panel.toast?.(
+    'levelup', `◆ ${b.name} đã xuất hiện`, `Cấp ${b.level} · chạm vào để đánh, không cần lập nhóm`));
+  socket.on('boss:down', (b) => Panel.toast?.('item', `${b.name} đã bị hạ`, 'Thủ Lĩnh mới sau 5 phút'));
+  socket.on('boss:gone', (b) => Panel.toast?.('warn', `${b.name} đã bỏ đi`, 'Không ai hạ được nó kịp'));
+  socket.on('battle:joined', (p) => Panel.toast?.('item', `${p.name} nhảy vào trận`, 'Đánh Thủ Lĩnh không cần cùng nhóm'));
 
   socket.on('connect_error', (err) => {
     console.error('[net]', err.message);
@@ -171,8 +180,27 @@ function connect({ token, characterId }) {
 function enterGame() {
   $('menu').classList.add('hidden');
   $('navbar').classList.remove('hidden');
+  $('zoneBadge').textContent = state.zone
+    ? `${state.zone.name} · ${state.zone.levelMin}–${state.zone.levelMax}`
+    : '—';
   $('hint').classList.remove('hidden');
   setTimeout(() => $('hint').classList.add('hidden'), 6000);
+}
+
+/** Đồng hồ đếm ngược tới lượt Thủ Lĩnh kế tiếp, hoặc báo nó đang ở ngoài kia. */
+function renderBossBar(boss) {
+  const bar = $('bossBar');
+  if (!boss) { bar.classList.add('hidden'); return; }
+
+  bar.classList.remove('hidden');
+  bar.classList.toggle('up', !!boss.up);
+
+  if (boss.up) {
+    $('bossText').textContent = `${boss.name} · Cấp ${boss.lv}`;
+    return;
+  }
+  const s = Math.max(0, boss.in || 0);
+  $('bossText').textContent = `Thủ Lĩnh sau ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 function leaveGame() {
@@ -183,6 +211,7 @@ function leaveGame() {
   Hud.hide();
   $('statusBar').classList.add('hidden');
   $('navbar').classList.add('hidden');
+  $('bossBar').classList.add('hidden');
   $('hint').classList.add('hidden');
   state.me = null;
   state.prev = state.curr = null;
@@ -236,8 +265,12 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+/** Mỗi vùng một bảng màu — nhìn phát biết mình đang ở bản đồ nào. */
+const DEFAULT_THEME = { floorA: '#141a27', floorB: '#161c2a', wall: '#28324a', wallTop: '#35415e' };
+
 function drawMap(cam) {
   const { w, h, tile, data } = state.map;
+  const th = state.zone?.theme || DEFAULT_THEME;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
@@ -253,11 +286,11 @@ function drawMap(cam) {
       const sx = tx * tile - cam.x;
       const sy = ty * tile - cam.y;
 
-      ctx.fillStyle = wall ? '#28324a' : ((tx + ty) % 2 ? '#161c2a' : '#141a27');
+      ctx.fillStyle = wall ? th.wall : ((tx + ty) % 2 ? th.floorB : th.floorA);
       ctx.fillRect(sx, sy, tile, tile);
 
       if (wall) {
-        ctx.fillStyle = '#35415e';
+        ctx.fillStyle = th.wallTop;
         ctx.fillRect(sx, sy, tile, 3); // viền trên cho tường có chiều sâu
       }
     }
@@ -312,42 +345,68 @@ function drawPlayer(p, cam) {
 function drawMonster(m, cam) {
   const x = m.x - cam.x;
   const y = m.y - cam.y;
+  const r = m.bs ? 17 : 11;
+
+  /* Quái vừa hiện ra chưa chạm vào ai được — vẽ mờ đi để người chơi hiểu vì
+     sao đi xuyên qua nó mà không vào trận, thay vì tưởng game lỗi. */
+  ctx.save();
+  if (m.im) ctx.globalAlpha = 0.4;
 
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.beginPath();
-  ctx.ellipse(x, y + 10, 10, 4.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + r - 1, r - 1, r * 0.42, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = m.c || '#c05a5a';
   ctx.beginPath();
-  ctx.arc(x, y, 11, 0, Math.PI * 2);
+  ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 
   // Viền đỏ rực khi đang đuổi theo — người chơi cần biết mình bị bám để còn chạy
-  ctx.strokeStyle = m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)';
-  ctx.lineWidth = m.a ? 2.5 : 2;
+  ctx.strokeStyle = m.bs ? '#ffd166' : (m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)');
+  ctx.lineWidth = m.bs ? 3 : (m.a ? 2.5 : 2);
   ctx.stroke();
+
+  // Vòng hào quang cho Thủ Lĩnh — thấy từ xa là biết nên tránh hay nên rủ người
+  if (m.bs) {
+    ctx.strokeStyle = 'rgba(255,209,102,.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 6 + Math.sin(Date.now() / 300) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[m.d] || [0, 1];
   ctx.fillStyle = 'rgba(0,0,0,.6)';
   ctx.beginPath();
-  ctx.arc(x + d[0] * 5, y + d[1] * 5, 2.5, 0, Math.PI * 2);
+  ctx.arc(x + d[0] * (r * 0.45), y + d[1] * (r * 0.45), r * 0.23, 0, Math.PI * 2);
   ctx.fill();
 
   if (m.a) {
     ctx.font = '700 14px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff4d4d';
-    ctx.fillText('!', x, y - 18);
+    ctx.fillText('!', x, y - r - 7);
   }
 
-  ctx.font = '500 10px system-ui, sans-serif';
+  const label = m.bs ? `◆ ${m.n} · ${m.lv}` : `${m.n} · ${m.lv}`;
+  ctx.font = m.bs ? '700 11px system-ui, sans-serif' : '500 10px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,.75)';
-  ctx.strokeText(`${m.n} · ${m.lv}`, x, y + 24);
-  ctx.fillStyle = '#e8b3ab';
-  ctx.fillText(`${m.n} · ${m.lv}`, x, y + 24);
+  ctx.strokeText(label, x, y + r + 13);
+  ctx.fillStyle = m.bs ? '#ffd166' : '#e8b3ab';
+  ctx.fillText(label, x, y + r + 13);
+
+  // Đã có người đánh — nhảy vào là được, không cần lập nhóm
+  if (m.f) {
+    ctx.font = '600 10px system-ui, sans-serif';
+    ctx.strokeText('đang giao chiến — vào phụ', x, y + r + 25);
+    ctx.fillStyle = '#7ee89a';
+    ctx.fillText('đang giao chiến — vào phụ', x, y + r + 25);
+  }
+
+  ctx.restore();
 }
 
 function render() {
@@ -393,9 +452,39 @@ render();
  * Không vào thẳng game nữa: phải qua đăng nhập và chọn nhân vật trước.
  * Account lo ba màn đó rồi gọi lại đây kèm token và id nhân vật.
  */
-Account.start(({ token, characterId }) => {
-  connect({ token, characterId });
+Account.start(({ token, characterId, zone }) => {
+  connect({ token, characterId, zone });
 });
+
+/* ---------------- Đo chiều cao các thanh cố định ---------------- */
+
+/**
+ * Thanh kinh nghiệm ở đáy và navbar ở góc phải đều co giãn theo bề rộng màn
+ * hình — màn hẹp thì thanh đáy xuống dòng và cao gấp đôi. Đo thật rồi ghi vào
+ * biến CSS để thông báo và nhật ký trận biết chừa đúng chỗ.
+ *
+ * Đoán một con số cứng là cách cũ, và nó đã sai: thông báo phần thưởng chui
+ * xuống dưới hai nút Balo / Kỹ năng, đọc không ra chữ nào.
+ */
+function trackBars() {
+  const root = document.documentElement;
+  const sb = $('statusBar');
+  const nav = $('navbar');
+
+  const apply = () => {
+    const h = sb.classList.contains('hidden') ? 0 : sb.getBoundingClientRect().height;
+    const n = nav.classList.contains('hidden') ? 0 : nav.getBoundingClientRect().height;
+    root.style.setProperty('--sb-h', `${Math.round(h)}px`);
+    root.style.setProperty('--nav-h', `${Math.round(n)}px`);
+  };
+
+  const ro = new ResizeObserver(apply);
+  ro.observe(sb);
+  ro.observe(nav);
+  window.addEventListener('resize', apply);
+  apply();
+}
+trackBars();
 
 $('quit').addEventListener('click', () => {
   state.socket?.disconnect();

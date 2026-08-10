@@ -3,8 +3,9 @@
 /**
  * Đăng ký · đăng nhập · chọn nhân vật.
  *
- * Ba màn nối tiếp nhau trước khi vào game:
- *   auth  →  chọn nhân vật (tối đa 3)  →  tạo nhân vật (nếu chưa có)
+ * Các màn nối tiếp nhau trước khi vào game:
+ *   auth  →  chọn nhân vật (tối đa 3)  →  chọn bản đồ
+ *              ↳ tạo nhân vật (nếu chưa có)
  *
  * Token lưu trong localStorage để lần sau vào thẳng. Đây là token có hạn 14
  * ngày và thu hồi được ở phía server, không phải mật khẩu — mật khẩu không bao
@@ -76,6 +77,7 @@ const Account = (() => {
     $('charCreateBtn').onclick = () => showCreate();
     $('createBack').onclick = () => showCharacters();
     $('createSubmit').onclick = submitCreate;
+    $('mapBack').onclick = () => showCharacters();
     $('logoutBtn').onclick = () => {
       api('/logout', { method: 'POST' }).catch(() => {});
       setToken(null);
@@ -84,7 +86,7 @@ const Account = (() => {
     };
   }
 
-  const screens = ['scrAuth', 'scrChars', 'scrCreate'];
+  const screens = ['scrAuth', 'scrChars', 'scrCreate', 'scrMap'];
   function show(id) {
     for (const s of screens) $(s).classList.toggle('hidden', s !== id);
     $('menu').classList.remove('hidden');
@@ -154,7 +156,49 @@ const Account = (() => {
         <div class="ch-sub">${esc(c.nation?.name || '—')}${c.class ? ` · ${classLabel(c.class)}` : ' · chưa chọn lớp'}</div>
         <div class="ch-boon">★ ${esc(c.boon?.name || '—')} <span>${esc(c.boon?.star || '')}</span></div>
         <div class="ch-play">Vào chơi →</div>`;
-      el.onclick = () => onReady?.({ token: token(), characterId: c.id, character: c });
+      el.onclick = () => showMap(c);
+      box.appendChild(el);
+    }
+  }
+
+  /* ------------------------------------------------ chọn bản đồ ------- */
+
+  /**
+   * Năm bản đồ, mỗi bản đồ 10 cấp, phủ kín cấp 1 tới 50.
+   *
+   * Chỉ mở bản đồ mà nhân vật đủ cấp. Vẫn cho quay về bản đồ thấp — muốn đi
+   * dạo chỗ dễ là quyền của người chơi, chỉ có điều phần thưởng ở đó bèo bọt.
+   * Đây thuần là lớp hiển thị: server tự kiểm tra lại lúc vào phòng.
+   */
+  function showMap(character) {
+    show('scrMap');
+    $('mapCharName').textContent = character.name;
+    $('mapCharLevel').textContent = character.level;
+    $('mapError').textContent = '';
+
+    const box = $('zoneList');
+    box.innerHTML = '';
+
+    for (const z of meta.zones || []) {
+      const locked = character.level < z.levelMin;
+      const el = document.createElement('div');
+      el.className = `zone-card${locked ? ' locked' : ''}`;
+      el.style.setProperty('--accent', z.accent);
+      el.innerHTML = `
+        <div class="zn-top">
+          <span class="zn-name">${esc(z.name)}</span>
+          <span class="zn-range">Cấp ${z.levelMin}–${z.levelMax}</span>
+        </div>
+        <div class="zn-desc">${esc(z.desc)}</div>
+        <div class="zn-foot">${locked
+          ? `<span>🔒 Cần cấp ${z.levelMin}</span>`
+          : '<span>◆ Thủ Lĩnh xuất hiện 5 phút một lần</span><span class="zn-go">Vào →</span>'}</div>`;
+
+      if (!locked) {
+        el.onclick = () => onReady?.({
+          token: token(), characterId: character.id, zone: z.id, character,
+        });
+      }
       box.appendChild(el);
     }
   }
@@ -271,5 +315,5 @@ const Account = (() => {
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g,
     (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
-  return { start, showCharacters, token, api };
+  return { start, showCharacters, showMap, token, api };
 })();

@@ -227,6 +227,44 @@ input:focus { border-color: #4c7dff; }
 .nt-trait { font-size: 11px; color: #8b95ab; margin-top: 1px; }
 .nt-priv { font-size: 11px; color: #93e0b0; margin-top: 4px; }
 
+/* ---------- chọn bản đồ ---------- */
+
+.zone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0 6px;
+  max-height: min(58vh, 460px);
+  overflow-y: auto;
+}
+
+.zone-card {
+  padding: 12px 14px;
+  background: #0f1420;
+  border: 1px solid #2b3651;
+  border-left: 3px solid var(--accent, #4c7dff);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .12s, transform .12s, background .12s;
+}
+.zone-card:hover { background: #131b2c; transform: translateY(-2px); }
+.zone-card:hover .zn-go { color: var(--accent, #7dd3fc); }
+
+/* Chưa đủ cấp thì vẫn thấy được — biết trước mình đang tiến tới đâu */
+.zone-card.locked {
+  opacity: .45;
+  cursor: not-allowed;
+  border-left-color: #3a4358;
+}
+.zone-card.locked:hover { transform: none; background: #0f1420; }
+
+.zn-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.zn-name { font-size: 14px; font-weight: 700; color: #e6e9ef; }
+.zn-range { font-size: 11px; color: var(--accent, #7dd3fc); white-space: nowrap; }
+.zn-desc { font-size: 11px; color: #8b95ab; margin-top: 3px; }
+.zn-foot { font-size: 11px; color: #6b7791; margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; }
+.zn-go { color: #4a5568; }
+
 /* ---------- màn bốc Đặc Ân ---------- */
 
 .boon-star {

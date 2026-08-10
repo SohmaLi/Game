@@ -81,6 +81,7 @@ function monsterCombatant(def, index) {
     cooldowns: {},
     effects: [],
     rage: 0,
+    damageMult: stats.MONSTER.damageMult * (tier.damageMult || 1),
     alive: true,
   };
   c.combat = stats.derive(c);
@@ -106,11 +107,19 @@ class Battle {
    *                   false: không đặt hẹn giờ nào — dùng cho trình mô phỏng cân bằng,
    *                   nơi cần chạy hàng trăm trận trong một giây.
    */
-  constructor({ allies, monsterDefs, io, channel, onEnd, auto = true }) {
+  constructor({ allies, monsterDefs, io, channel, onEnd, onLeave, boss = false, maxAllies = 10, auto = true }) {
     this.id = `b${nextBattleId++}`;
     this.io = io;
     this.channel = channel;
     this.onEnd = onEnd;
+    this.onLeave = onLeave;
+    /**
+     * Trận Thủ Lĩnh mở cho mọi người: ai chạm vào cũng nhảy vào giữa chừng
+     * được, và ai trốn thoát thì chỉ mình người đó rút — không kéo theo những
+     * người xa lạ đang đánh cùng.
+     */
+    this.boss = boss;
+    this.maxAllies = maxAllies;
     this.auto = auto;
 
     this.combatants = [
@@ -127,6 +136,35 @@ class Battle {
     this.ended = false;
 
     this.startRound();
+  }
+
+  /* -------------------------------------------------- ra vào giữa trận -- */
+
+  /**
+   * Thêm một người chơi vào trận ĐANG diễn ra. Chỉ dùng cho trận Thủ Lĩnh.
+   *
+   * Người mới vào đúng vòng hiện tại: nếu đang ở pha chọn hành động thì họ chọn
+   * kịp, nếu đang xử lý thì họ đứng ngoài vòng này và ra tay từ vòng sau.
+   */
+  addAlly(player) {
+    if (this.ended) return null;
+    if (this.allies.length >= (this.maxAllies || 10)) return null;
+    if (this.byId(player.id)) return null;
+
+    const c = playerCombatant(player);
+    this.combatants.push(c);
+    this.broadcast();
+    return c;
+  }
+
+  /** Rút một người khỏi trận (trốn thoát khỏi trận Thủ Lĩnh, hoặc mất kết nối). */
+  removeAlly(id) {
+    const c = this.byId(id);
+    if (!c || c.side !== 'ally') return null;
+    this.combatants = this.combatants.filter((x) => x !== c);
+    this.actions.delete(id);
+    this.onLeave?.(this, c);
+    return c;
   }
 
   /* -------------------------------------------------- truy vấn ---------- */
@@ -318,8 +356,16 @@ class Battle {
         type: 'flee', actorId: actor.id, actorName: actor.name,
         success: ok, chance: Math.round(chance * 100),
       });
-      // Một người trốn thoát thì cả nhóm rút — phòng cùng vào trận thì cùng ra
-      if (ok) this.finish('fled', events);
+      if (ok) {
+        // Trận thường: cả nhóm cùng vào thì cùng ra.
+        // Trận Thủ Lĩnh: chỉ mình người đó rút — những người khác đang đánh
+        // không quen biết gì họ, không có lý do gì bị lôi ra theo.
+        if (!this.boss) this.finish('fled', events);
+        else {
+          this.removeAlly(actor.id);
+          if (!this.living('ally').length) this.finish('fled', events);
+        }
+      }
       return events;
     }
 
@@ -551,7 +597,9 @@ class Battle {
 
     let rewards = null;
     if (result === 'win') {
-      const monsterIds = this.enemies.map((m) => m.monsterId);
+      // Kèm cấp thật của từng con: cùng một bản mẫu ở vùng cấp 41-50 cho nhiều
+      // kinh nghiệm và đồ tốt hơn hẳn ở vùng cấp 1-10
+      const killed = this.enemies.map((m) => ({ id: m.monsterId, level: m.level }));
       const partySize = this.allies.length || 1;
 
       // Kinh nghiệm và vàng chia đều; ĐỒ thì mỗi người bốc riêng — nếu chia đều
@@ -566,7 +614,7 @@ class Battle {
         const nation = nations.get(ally.nation);
         const goldBonus = nation?.privilege.effect.goldPercent || 0;
 
-        const roll = loot.rollBattleLoot(monsterIds, { luck, goldBonus, partySize });
+        const roll = loot.rollBattleLoot(killed, { luck, goldBonus, partySize });
         exp = roll.exp;
         gold = Math.max(gold, roll.gold);
         perPlayer[ally.id] = { gold: roll.gold, drops: roll.drops, books: roll.books };
@@ -621,6 +669,7 @@ class Battle {
   serialize() {
     return {
       battleId: this.id,
+      boss: this.boss,
       round: this.round,
       phase: this.phase,
       msLeft: this.phase === 'select' ? Math.max(0, this.deadline - Date.now()) : 0,

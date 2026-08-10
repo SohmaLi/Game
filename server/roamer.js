@@ -1,7 +1,6 @@
 'use strict';
 
 const cfg = require('./config');
-const map = require('./map');
 const monsterData = require('./data/monsters');
 
 /**
@@ -21,13 +20,25 @@ let nextId = 1;
 const R = cfg.ROAMER;
 
 class Roamer {
-  constructor(def, pos) {
+  /**
+   * @param def  bản mẫu ĐÃ kéo về đúng cấp của vùng (monsters.scaled)
+   * @param opts.boss  Thủ Lĩnh — to hơn, chậm hơn, và ở lại bản đồ khi có người
+   *                   đang đánh nó để người khác còn nhảy vào phụ
+   */
+  constructor(def, pos, opts = {}) {
     this.id = `r${nextId++}`;
+    this.def = def;
     this.defId = def.id;
     this.name = def.name;
     this.color = def.color;
     this.family = def.family;
     this.level = def.level;
+    this.boss = !!opts.boss;
+
+    const K = this.boss ? cfg.BOSS : R;
+    this.radius = K.radius;
+    this.speed = K.speed;
+    this.aggroRadius = K.aggroRadius;
 
     this.x = pos.x;
     this.y = pos.y;
@@ -37,15 +48,39 @@ class Roamer {
     this.state = 'idle';
     this.nextThinkAt = 0;
     this.goal = null;      // đích đang đi tới khi lang thang
+
+    const now = Date.now();
+    this.spawnedAt = now;
+    /**
+     * Vừa hiện ra thì chưa chạm vào ai được. Không có khoảng này thì con quái
+     * sinh ngay cạnh người chơi kéo họ vào trận trước khi họ kịp thấy nó.
+     */
+    this.touchableAt = now + K.spawnImmuneMs;
+    this.expireAt = this.boss ? now + cfg.BOSS.despawnMs : 0;
+    this.battleId = null;  // trận đang diễn ra trên con này (chỉ Thủ Lĩnh)
   }
+
+  get immune() { return Date.now() < this.touchableAt; }
 
   /**
    * Quyết định mỗi vài giây, không phải mỗi tick.
-   * @param players danh sách người chơi còn hoạt động trong phòng
+   * @param players người chơi CÓ THỂ bị đuổi (người vừa ra khỏi trận đã bị lọc)
    */
-  think(now, players) {
+  think(now, players, map) {
+    // Chưa nhập thế giới thì đứng yên tại chỗ cho người chơi kịp nhìn thấy
+    if (this.immune) { this.state = 'idle'; this.goal = null; return; }
+
+    /**
+     * Thủ Lĩnh đang bị đánh thì đứng yên.
+     *
+     * Nó vẫn nằm trên bản đồ để người khác nhảy vào phụ, nhưng nếu vẫn đi lại
+     * thì nó tự đi chạm vào người ngoài cuộc và lôi họ vào trận Thủ Lĩnh mà họ
+     * không hề chọn. Đứng yên biến nó thành điểm hẹn: muốn vào thì tự bước tới.
+     */
+    if (this.battleId) { this.state = 'idle'; this.goal = null; this.moving = false; return; }
+
     // Có người trong tầm thì đuổi, bất kể đang làm gì
-    const prey = nearest(this, players, R.aggroRadius);
+    const prey = nearest(this, players, this.aggroRadius);
     if (prey) {
       this.state = 'chase';
       this.goal = { x: prey.x, y: prey.y };
@@ -68,14 +103,14 @@ class Roamer {
       this.goal = null;
       this.nextThinkAt = now + rand(R.wanderMinMs, R.wanderMaxMs);
     } else {
-      const spot = map.randomSpawn(R.radius);
+      const spot = map.randomSpawn(this.radius);
       this.state = 'walk';
       this.goal = spot;
       this.nextThinkAt = now + rand(R.wanderMinMs, R.wanderMaxMs);
     }
   }
 
-  move(dt) {
+  move(dt, map) {
     if (!this.goal) { this.moving = false; return; }
 
     const dx = this.goal.x - this.x;
@@ -88,7 +123,7 @@ class Roamer {
       return;
     }
 
-    const step = R.speed * dt;
+    const step = this.speed * dt;
     const ux = dx / dist;
     const uy = dy / dist;
 
@@ -98,10 +133,10 @@ class Roamer {
 
     // Tách trục để quái trượt dọc tường thay vì dính cứng vào góc
     const nx = this.x + ux * step;
-    if (!map.collides(nx, this.y, R.radius)) this.x = nx;
+    if (!map.collides(nx, this.y, this.radius)) this.x = nx;
 
     const ny = this.y + uy * step;
-    if (!map.collides(this.x, ny, R.radius)) this.y = ny;
+    if (!map.collides(this.x, ny, this.radius)) this.y = ny;
 
     this.moving = true;
   }
@@ -117,6 +152,9 @@ class Roamer {
       m: this.moving,
       lv: this.level,
       a: this.state === 'chase', // đang đuổi — client vẽ dấu cảnh báo
+      bs: this.boss || undefined,
+      im: this.immune || undefined,   // đang miễn va chạm — client vẽ mờ
+      f: this.battleId ? true : undefined, // có người đang đánh, vào phụ được
     };
   }
 }
@@ -136,14 +174,32 @@ function nearest(from, list, radius) {
   return best;
 }
 
-/** Sinh một quái mới ở chỗ trống, tránh xa người chơi để không đè lên đầu họ. */
-function spawn(players = []) {
-  const def = monsterData.randomCommon();
+/** Tìm chỗ trống xa người chơi để không đè lên đầu họ. */
+function findSpot(map, players, radius, keepAway) {
   for (let i = 0; i < 30; i++) {
-    const pos = map.randomSpawn(R.radius);
-    if (!nearest(pos, players, R.aggroRadius * 1.5)) return new Roamer(def, pos);
+    const pos = map.randomSpawn(radius);
+    if (!nearest(pos, players, keepAway)) return pos;
   }
-  return new Roamer(def, map.randomSpawn(R.radius));
+  return map.randomSpawn(radius);
 }
 
-module.exports = { Roamer, spawn, nearest };
+/** Sinh một quái thường của vùng, cấp bốc ngẫu nhiên trong khoảng của vùng. */
+function spawn(zone, map, players = []) {
+  // Chỉ hạng Thường mới đi lang thang. Tinh Anh và Thủ Lĩnh có luật xuất hiện
+  // riêng — thả chúng vào đây là người chơi vấp phải một con Tinh Anh giữa
+  // đường mà không hề được báo trước.
+  const base = monsterData.randomFrom(zone.monsters, 'common');
+  const level = zone.levelMin + Math.floor(Math.random() * (zone.levelMax - zone.levelMin + 1));
+  const pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
+  return new Roamer(monsterData.scaled(base, level), pos);
+}
+
+/** Sinh Thủ Lĩnh của vùng — luôn ở cấp trần của vùng. */
+function spawnBoss(zone, map, players = []) {
+  const base = monsterData.get(zone.boss);
+  if (!base) return null;
+  const pos = findSpot(map, players, cfg.BOSS.radius, cfg.BOSS.aggroRadius * 1.2);
+  return new Roamer(monsterData.scaled(base, zone.levelMax), pos, { boss: true });
+}
+
+module.exports = { Roamer, spawn, spawnBoss, nearest };

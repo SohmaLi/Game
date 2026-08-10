@@ -5,6 +5,7 @@ const auth = require('./auth');
 const characters = require('./characters');
 const boons = require('./data/boons');
 const nations = require('./data/nations');
+const zones = require('./data/zones');
 
 /**
  * REST API cho phần ngoài trận: đăng ký, đăng nhập, chọn nhân vật.
@@ -40,6 +41,7 @@ function build() {
         id: n.id, name: n.name, trait: n.trait, magic: n.magic,
         privilege: { name: n.privilege.name, desc: n.privilege.desc },
       })),
+      zones: zones.publicList(),
       maxCharacters: characters.MAX_CHARACTERS,
       maxRerolls: boons.MAX_REROLLS,
     });

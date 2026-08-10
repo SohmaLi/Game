@@ -32,12 +32,14 @@ const ITEM_DROP_MAX = {
 /**
  * Tính chiến lợi phẩm cho một trận đã thắng.
  *
- * @param monsterIds  danh sách quái đã hạ
+ * @param killed  danh sách quái đã hạ: `{ id, level }` hoặc chuỗi id.
+ *                Cấp là cấp THẬT trong vùng, không phải cấp gốc của bản mẫu —
+ *                cùng con Sói Xám ở vùng 41-50 rơi đồ cấp 50.
  * @param opts.luck   hệ số Duyên Kho Báu (1 = không có)
  * @param opts.goldBonus  đặc quyền Duskmoor (0.1 = +10%)
  * @param opts.partySize  chia đều phần thưởng cho cả nhóm
  */
-function rollBattleLoot(monsterIds, opts = {}) {
+function rollBattleLoot(killed, opts = {}) {
   const luck = opts.luck || 1;
   const goldBonus = opts.goldBonus || 0;
   const partySize = Math.max(1, opts.partySize || 1);
@@ -47,9 +49,10 @@ function rollBattleLoot(monsterIds, opts = {}) {
   const drops = [];
   const books = [];
 
-  for (const id of monsterIds) {
-    const def = monsterData.get(id);
-    if (!def) continue;
+  for (const entry of killed) {
+    const base = monsterData.get(typeof entry === 'string' ? entry : entry.id);
+    if (!base) continue;
+    const def = monsterData.scaled(base, entry.level || base.level);
 
     exp += def.exp;
     gold += def.gold;

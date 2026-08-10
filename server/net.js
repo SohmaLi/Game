@@ -1,7 +1,7 @@
 'use strict';
 
 const cfg = require('./config');
-const map = require('./map');
+const zones = require('./data/zones');
 const RoomManager = require('./roomManager');
 const auth = require('./auth');
 const characters = require('./characters');
@@ -49,15 +49,30 @@ function attach(io) {
           character = characters.present(row);
         }
 
+        /**
+         * Vùng do người chơi chọn, nhưng CHỈ server quyết định có được vào hay
+         * không — client sửa vài dòng JS là gửi lên vùng cấp 50 với nhân vật
+         * cấp 1, và chỗ chặn duy nhất đáng tin là ở đây.
+         */
+        const level = character?.level || 1;
+        const zone = zones.get(payload.zone) || zones.defaultFor(level);
+        if (!zones.canEnter(zone, level)) {
+          return reply({ ok: false, error: `${zone.name} yêu cầu cấp ${zone.levelMin} trở lên.` });
+        }
+
         const name = character ? character.name : sanitizeName(payload.name);
-        const { room, player } = manager.join(socket, type, name, character);
+        const { room, player } = manager.join(socket, type, zone, name, character);
 
         // Bản đồ gửi đúng một lần lúc vào phòng, không lặp lại mỗi tick
         reply({
           ok: true,
           you: player.id,
           room: room.info(),
-          map: map.serialize(),
+          map: room.map.serialize(),
+          zone: {
+            id: zone.id, name: zone.name, desc: zone.desc,
+            levelMin: zone.levelMin, levelMax: zone.levelMax, theme: zone.theme,
+          },
           tickHz: cfg.TICK_HZ,
           character,
           // Người mới vào phòng luôn ở chế độ khám phá — không bị kéo vào trận

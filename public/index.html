@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/css/style.css?v=17">
-<link rel="stylesheet" href="/css/battle.css?v=17">
-<link rel="stylesheet" href="/css/panel.css?v=17">
-<link rel="stylesheet" href="/css/hud.css?v=17">
-<link rel="stylesheet" href="/css/ui.css?v=17">
-<link rel="stylesheet" href="/css/tree.css?v=17">
+<link rel="stylesheet" href="/css/style.css?v=18">
+<link rel="stylesheet" href="/css/battle.css?v=18">
+<link rel="stylesheet" href="/css/panel.css?v=18">
+<link rel="stylesheet" href="/css/hud.css?v=18">
+<link rel="stylesheet" href="/css/ui.css?v=18">
+<link rel="stylesheet" href="/css/tree.css?v=18">
 </head>
 <body>
 
@@ -60,6 +60,17 @@
     <button class="link-btn" id="createBack">← Quay lại</button>
     <p id="createError" class="error"></p>
   </div>
+
+  <!-- ---------- màn chọn bản đồ ---------- -->
+  <div class="panel wide hidden" id="scrMap">
+    <h1>Chọn bản đồ</h1>
+    <p class="sub"><b id="mapCharName">—</b> · Cấp <span id="mapCharLevel">1</span> — mỗi bản đồ trải 10 cấp</p>
+
+    <div id="zoneList" class="zone-list"></div>
+
+    <button class="link-btn" id="mapBack">← Đổi nhân vật</button>
+    <p id="mapError" class="error"></p>
+  </div>
 </div>
 
 <canvas id="game"></canvas>
@@ -68,8 +79,15 @@
      Mọi chức năng đã dời xuống thanh kinh nghiệm ở đáy màn hình. -->
 <div id="navbar" class="hidden">
   <div id="pingBadge">
+    <span class="zone-badge" id="zoneBadge">—</span>
     <span class="ping-dot" id="pingDot"></span>
     <span id="ping">—</span><span class="ping-unit">ms</span>
+  </div>
+
+  <!-- Đồng hồ Thủ Lĩnh — 5 phút một lần, ai cũng vào đánh chung được -->
+  <div id="bossBar" class="hidden">
+    <span class="boss-ico">◆</span>
+    <span id="bossText">—</span>
   </div>
 </div>
 
@@ -225,12 +243,12 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/ui.js?v=17"></script>
-<script src="/js/account.js?v=17"></script>
-<script src="/js/hud.js?v=17"></script>
-<script src="/js/battle.js?v=17"></script>
-<script src="/js/panel.js?v=17"></script>
-<script src="/js/tree.js?v=17"></script>
-<script src="/js/game.js?v=17"></script>
+<script src="/js/ui.js?v=18"></script>
+<script src="/js/account.js?v=18"></script>
+<script src="/js/hud.js?v=18"></script>
+<script src="/js/battle.js?v=18"></script>
+<script src="/js/panel.js?v=18"></script>
+<script src="/js/tree.js?v=18"></script>
+<script src="/js/game.js?v=18"></script>
 </body>
 </html>

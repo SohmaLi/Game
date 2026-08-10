@@ -22,6 +22,7 @@ const BASE = {
   // Giáp giảm sát thương theo tỉ lệ chứ không trừ thẳng — trừ thẳng sẽ khiến
   // đòn yếu bị vô hiệu hoàn toàn còn đòn mạnh gần như không bị ảnh hưởng.
   armorK: 60,
+  armorKPerLevel: 12,
 };
 
 /**
@@ -126,9 +127,18 @@ function derive(char) {
   return out;
 }
 
-/** Giáp/kháng giảm sát thương theo đường cong, không bao giờ về 0. */
-function mitigate(raw, defense) {
-  return raw * (BASE.armorK / (BASE.armorK + Math.max(0, defense)));
+/**
+ * Giáp/kháng giảm sát thương theo đường cong, không bao giờ về 0.
+ *
+ * `armorK` phải LỚN DẦN THEO CẤP. Giữ nó cố định thì ở cấp cao mọi thứ đều hoá
+ * bọt biển: giáp cấp 50 vượt xa hằng số 60 nên chặn tới hơn 70% sát thương của
+ * cả hai phe, trận đấu kéo dài mấy chục vòng mà không bên nào nhích được.
+ * Cộng thêm theo cấp giữ cho tỉ lệ "giáp so với đòn đánh" đứng yên qua các cấp,
+ * và cấp 1 vẫn ra đúng con số cũ nên phần đầu game không đổi.
+ */
+function mitigate(raw, defense, level = 1) {
+  const k = BASE.armorK + BASE.armorKPerLevel * (Math.max(1, level) - 1);
+  return raw * (k / (k + Math.max(0, defense)));
 }
 
 /**
@@ -151,7 +161,8 @@ function computeDamage(attacker, defender, skill) {
 
   const isMagic = skill.kind === 'magic';
   let raw = (isMagic ? A.atkMagic : A.atkPhys) * skill.power;
-  if (attacker.isPlayer === false) raw *= MONSTER.damageMult;
+  // Hạng quái tự mang hệ số riêng (xem TIER trong data/monsters.js)
+  if (attacker.isPlayer === false) raw *= attacker.damageMult ?? MONSTER.damageMult;
 
   // Cuồng Nộ — máu càng thấp sát thương càng cao
   const boon = boons.get(attacker.boonId);
@@ -176,7 +187,7 @@ function computeDamage(attacker, defender, skill) {
   const crit = Math.random() < A.critChance;
   if (crit) raw *= A.critDamage;
 
-  let dmg = mitigate(raw, isMagic ? D.resist : D.armor);
+  let dmg = mitigate(raw, isMagic ? D.resist : D.armor, defender.level);
 
   // Kiên Định / Hộ Tâm
   const dBoon = boons.get(defender.boonId);
