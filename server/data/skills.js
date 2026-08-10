@@ -19,14 +19,14 @@ const SKILLS = [
   /* ---------------------------------------------------- chung ------------ */
   {
     id: 'attack', name: 'Đánh Thường', class: null,
-    kind: 'physical', power: 1.0, manaCost: 0, rage: -8, cooldown: 0, target: 'enemy',
-    desc: 'Đòn đánh cơ bản. Không tốn mana, tích 8 Nộ Khí.',
+    kind: 'physical', power: 1.0, manaCost: 0, rage: -16, cooldown: 0, target: 'enemy',
+    desc: 'Đòn đánh cơ bản. Không tốn mana, tích 16 Nộ Khí.',
   },
   {
     id: 'defend', name: 'Phòng Thủ', class: null,
-    kind: 'buff', power: 0, manaCost: 0, rage: -5, cooldown: 0, target: 'self',
+    kind: 'buff', power: 0, manaCost: 0, rage: -10, cooldown: 0, target: 'self',
     effect: { type: 'damageReduction', percent: 0.45, turns: 1 },
-    desc: 'Giảm 45% sát thương nhận vào trong vòng này. Tích 5 Nộ Khí.',
+    desc: 'Giảm 45% sát thương nhận vào trong vòng này. Tích 10 Nộ Khí.',
   },
 
   /* ---------------------------------------------------- Chiến Binh ------- */
@@ -84,24 +84,104 @@ const SKILLS = [
     effect: { type: 'slow', percent: 0.25, turns: 2 },
     desc: 'Lời nguyền làm chậm mục tiêu.',
   },
+
+  /* ------------------------------------- Chiến Binh · bậc cao --------- */
+  {
+    id: 'taunt', name: 'Khiêu Khích', class: 'warrior',
+    kind: 'buff', power: 0, manaCost: 0, rage: 15, cooldown: 3, target: 'self',
+    effect: { type: 'taunt', turns: 2 },
+    effect2: { type: 'damageReduction', percent: 0.20, turns: 2 },
+    desc: 'Ép toàn bộ kẻ địch nhắm vào mình trong 2 vòng, đồng thời giảm 20% sát thương nhận vào.',
+  },
+  {
+    id: 'execute', name: 'Kết Liễu', class: 'warrior',
+    kind: 'physical', power: 1.5, manaCost: 0, rage: 30, cooldown: 2, target: 'enemy',
+    execute: { threshold: 0.35, bonus: 1.4 },
+    desc: 'Sát thương tăng mạnh nếu mục tiêu còn dưới 35% máu.',
+  },
+  {
+    id: 'berserk', name: 'Cuồng Chiến', class: 'warrior',
+    kind: 'buff', power: 0, manaCost: 0, rage: 50, cooldown: 5, target: 'self',
+    effect: { type: 'damageBuff', percent: 0.45, turns: 3 },
+    desc: 'Tăng 45% sát thương gây ra trong 3 vòng. Tốn 50 Nộ Khí.',
+  },
+
+  /* ------------------------------------- Pháp Sư · bậc cao ------------ */
+  {
+    id: 'barrier', name: 'Khiên Phép', class: 'mage',
+    kind: 'buff', power: 0, manaCost: 16, rage: 0, cooldown: 3, target: 'ally',
+    effect: { type: 'damageReduction', percent: 0.40, turns: 2 },
+    desc: 'Dựng khiên cho một đồng đội, giảm 40% sát thương trong 2 vòng.',
+  },
+  {
+    id: 'meteor', name: 'Thiên Thạch', class: 'mage',
+    kind: 'magic', power: 1.25, manaCost: 26, rage: 0, cooldown: 3, target: 'allEnemies',
+    desc: 'Thiên thạch rơi xuống toàn bộ kẻ địch.',
+  },
+  {
+    id: 'arcane_surge', name: 'Bùng Nổ Ma Lực', class: 'mage',
+    kind: 'magic', power: 2.6, manaCost: 34, rage: 0, cooldown: 4, target: 'enemy',
+    desc: 'Dồn toàn bộ ma lực vào một đòn duy nhất.',
+  },
+
+  /* ------------------------------------- Dị Điển (rơi từ quái) -------- */
+  {
+    id: 'd_venom', name: 'Nọc Độc', class: null, codex: true,
+    kind: 'physical', power: 0.9, manaCost: 0, rage: 0, cooldown: 2, target: 'enemy',
+    effect: { type: 'dot', amount: 6, turns: 3, maxStacks: 3 },
+    desc: 'Học từ nhện hang. Gieo độc cộng dồn lên mục tiêu.',
+  },
+  {
+    id: 'd_howl', name: 'Tiếng Hú', class: null, codex: true,
+    kind: 'buff', power: 0, manaCost: 0, rage: 0, cooldown: 4, target: 'allEnemies',
+    effect: { type: 'slow', percent: 0.25, turns: 2 },
+    desc: 'Học từ sói đầu đàn. Làm chậm toàn bộ kẻ địch.',
+  },
+  {
+    id: 'd_drain', name: 'Hút Sinh Lực', class: null, codex: true,
+    kind: 'magic', power: 1.1, manaCost: 8, rage: 0, cooldown: 2, target: 'enemy',
+    drain: 0.5,
+    desc: 'Học từ oán linh. Hồi máu bằng 50% sát thương gây ra.',
+  },
+  {
+    id: 'd_bonewall', name: 'Tường Xương', class: null, codex: true,
+    kind: 'buff', power: 0, manaCost: 6, rage: 0, cooldown: 4, target: 'allAllies',
+    effect: { type: 'damageReduction', percent: 0.22, turns: 2 },
+    desc: 'Học từ bộ hài cốt. Giảm sát thương cho cả đội.',
+  },
+  {
+    id: 'd_ambush', name: 'Đâm Lén', class: null, codex: true,
+    kind: 'physical', power: 1.85, manaCost: 0, rage: 0, cooldown: 3, target: 'enemy',
+    desc: 'Học từ cướp đường. Nhát đâm hiểm từ góc khuất.',
+  },
 ];
 
 const BY_ID = new Map(SKILLS.map((s) => [s.id, s]));
 
-/** Bộ kỹ năng mặc định khi nhân vật chưa chọn class — đủ để đánh thử. */
-const DEFAULT_LOADOUT = ['attack', 'defend'];
+/**
+ * Đánh Thường và Phòng Thủ là **bẩm sinh** — ai cũng có, không nằm trong cây
+ * kỹ năng và không chiếm ô mang theo. Nếu bắt học mới có thì người chơi cấp 1
+ * chưa cộng điểm sẽ không làm được gì trong trận đầu tiên.
+ */
+const INNATE = ['attack', 'defend'];
 
-const LOADOUT_BY_CLASS = {
-  warrior: ['attack', 'defend', 'heavy_slash', 'whirlwind', 'iron_skin'],
-  mage: ['attack', 'defend', 'fireball', 'frost_spear', 'mend'],
-};
+/** Số kỹ năng học được tối đa mang vào trận (DESIGN.md §3.5). */
+const MAX_LOADOUT = 10;
+
+/** Danh sách kỹ năng Dị Điển có thể rơi ra từ sách. */
+const CODEX_SKILLS = SKILLS.filter((s) => s.codex).map((s) => s.id);
 
 function get(id) {
   return BY_ID.get(id) || null;
 }
 
-function loadoutFor(className) {
-  return LOADOUT_BY_CLASS[className] || DEFAULT_LOADOUT;
+/**
+ * Bộ kỹ năng mang vào trận = bẩm sinh + những gì người chơi đã chọn mang theo.
+ * Lọc lại theo danh sách đã học để không ai mang chiêu chưa mở.
+ */
+function loadoutFor(className, carried = [], learned = []) {
+  const valid = carried.filter((id) => learned.includes(id) && get(id));
+  return [...INNATE, ...valid.slice(0, MAX_LOADOUT)];
 }
 
 /** Bản gửi client — có đủ thông tin để vẽ nút bấm. */
@@ -114,4 +194,4 @@ function publicView(id) {
   };
 }
 
-module.exports = { SKILLS, get, loadoutFor, publicView, DEFAULT_LOADOUT, LOADOUT_BY_CLASS };
+module.exports = { SKILLS, get, loadoutFor, publicView, INNATE, MAX_LOADOUT, CODEX_SKILLS };

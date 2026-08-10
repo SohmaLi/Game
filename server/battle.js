@@ -46,7 +46,7 @@ function playerCombatant(player) {
     className: player.className || null,
     stats: player.stats || { str: 5, int: 5, vit: 5, agi: 5, wil: 5 },
     equip: player.equip || null,
-    skills: skillData.loadoutFor(player.className),
+    skills: skillData.loadoutFor(player.className, player.carried, player.unlocked),
     cooldowns: {},
     effects: [],
     rage: player.rage || 0,
@@ -252,8 +252,15 @@ class Battle {
       ? usable[Math.floor(Math.random() * usable.length)]
       : skillData.get('attack');
 
-    const targets = this.living('ally');
-    if (!targets.length) return null;
+    const alive = this.living('ally');
+    if (!alive.length) return null;
+
+    // Khiêu Khích ép quái phải đánh người đang giữ hiệu ứng taunt. Không có
+    // cơ chế này thì Chiến Binh không thể bảo vệ được Pháp Sư — vai trò
+    // "chịu đòn" chỉ có ý nghĩa khi kéo được đòn về phía mình.
+    const taunters = alive.filter((a) => a.effects.some((e) => e.type === 'taunt'));
+    const targets = taunters.length ? taunters : alive;
+
     const target = targets[Math.floor(Math.random() * targets.length)];
     return { skillId: skill.id, targetId: target.id };
   }
@@ -337,6 +344,7 @@ class Battle {
 
       if (skill.kind === 'buff') {
         if (skill.effect) this.applyEffect(target, skill.effect);
+        if (skill.effect2) this.applyEffect(target, skill.effect2);
         hits.push({ id: target.id, kind: 'buff', effect: skill.effect?.type });
         continue;
       }
@@ -374,9 +382,10 @@ class Battle {
 
       hits.push({ id: target.id, kind: 'damage', amount: result.amount, crit: result.crit, hp: target.hp });
 
-      // Hút Máu từ trang bị
-      if (actor.combat.lifesteal > 0 && actor.alive) {
-        const healed = Math.max(1, Math.round(result.amount * actor.combat.lifesteal));
+      // Hút máu: từ trang bị (bị động) và từ chính chiêu vừa dùng
+      const drainPct = (actor.combat.lifesteal || 0) + (skill.drain || 0);
+      if (drainPct > 0 && actor.alive) {
+        const healed = Math.max(1, Math.round(result.amount * drainPct));
         const before = actor.hp;
         actor.hp = Math.min(actor.hpMax, actor.hp + healed);
         if (actor.hp > before) {
@@ -479,16 +488,20 @@ class Battle {
       }
 
       // Nộ và Karma tan dần mỗi vòng — không tiêu thì mất, ép hai lối chơi này
-      // phải giữ nhịp thay vì tích đầy rồi ngồi chờ
+      // phải giữ nhịp thay vì tích đầy rồi ngồi chờ.
+      // Bị động trong cây (Cuồng Huyết) cộng lại một phần, nên người đầu tư
+      // vào nhánh đó giữ được đà tốt hơn.
       if (c.isPlayer) {
-        c.rage = Math.max(0, c.rage - classData.DECAY.rage.perRound);
+        const gain = c.combat.ragePerRound || 0;
+        c.rage = Math.max(0, Math.min(RAGE_MAX, c.rage - classData.DECAY.rage.perRound + gain));
         c.karma = Math.max(0, (c.karma || 0) - classData.DECAY.karma.perRound);
       }
 
       // Hồi mana theo Ý Chí, cộng thêm phần từ trang bị
       if (c.alive) {
         c.mana = Math.min(c.manaMax,
-          c.mana + Math.round(1 + c.stats.wil * 0.4) + (c.combat.manaRegen || 0));
+          c.mana + Math.round(1 + c.stats.wil * 0.4)
+          + (c.combat.manaRegen || 0) + (c.combat.manaPerRound || 0));
 
         if (c.combat.regenPercent > 0) {
           const heal = Math.round(c.hpMax * c.combat.regenPercent);

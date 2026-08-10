@@ -177,6 +177,38 @@ sau 50 giờ chơi có bộ kỹ năng khác hẳn nhau. **Đây là thứ giữ
 > cẩm nang chiến đấu lột từ xác lính đánh thuê. Không chính thống, không ai dạy — nhưng
 > hiệu quả.
 
+### 3.3b Cấu trúc Cây Nền (đã dựng)
+
+Mỗi class 9 nút, chia hai nhánh song song, tổng 15 điểm — đủ mở hết ở cấp 16
+(1 điểm mỗi cấp). Hai nhánh **cố ý không loại trừ nhau**: cây mà ép chọn một
+nhánh sẽ khiến người chơi tra "build chuẩn" trên mạng rồi làm theo, thay vì tự thử.
+
+```
+       nhánh TẤN CÔNG          nhánh PHÒNG THỦ
+ T1    Chiêu mở màn            Bị động nền
+ T4    Chiêu diện rộng         Chiêu tự vệ
+ T8    Bị động tăng lực        Chiêu khống chế
+ T12   Chiêu kết liễu          Bị động sinh tồn
+ T16          └── chiêu tối thượng ──┘
+```
+
+| | Chiến Binh | Pháp Sư |
+|---|---|---|
+| T1 | Chém Mạnh · Da Thịt Chai Sạn | Hỏa Cầu · Tinh Thần Tập Trung |
+| T4 | Xoáy Lốc · Gồng Mình | Băng Thương · Hồi Phục |
+| T8 | Cuồng Huyết · Khiêu Khích | Thấu Hiểu Ma Thuật · Khiên Phép |
+| T12 | Kết Liễu · Thành Lũy | Thiên Thạch · Suối Nguồn Vô Tận |
+| T16 | **Cuồng Chiến** | **Bùng Nổ Ma Lực** |
+
+**Khiêu Khích** là nút quan trọng nhất về mặt thiết kế: nó ép quái phải đánh
+Chiến Binh. Không có cơ chế đó thì vai trò "chịu đòn" chỉ là chữ trên giấy —
+Chiến Binh không cách nào bảo vệ được Pháp Sư.
+
+⚠️ **Bẫy đã vấp:** Nộ ban đầu tích 8/vòng và tan 6/vòng, tức tăng ròng chỉ 8.
+Chém Mạnh giá 25 phải đợi tới vòng 4, mà trận với quái thường chỉ kéo dài 3–5
+vòng — chiêu đặc trưng của Chiến Binh gần như không bao giờ dùng được. Đã chỉnh
+lên tích 16/đòn, tan 4/vòng: dùng được từ vòng 2.
+
 ### 3.4 Quy tắc ô Dị Điển
 
 🔒 Ô đã gắn **thay đổi được**, nhưng **thay thì xóa vĩnh viễn** kỹ năng đang gắn.
@@ -440,8 +472,8 @@ ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa
 | **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | 🔨 Backend xong · còn giao diện |
 | **3** | **Chiến đấu turn-based PvE** — layout, vòng lượt, 4 loại quái | ✅ **Xong** — chạy trên production |
 | **5** | Trang bị 10 ô + rơi đồ + 5 hạng + bảng nhân vật | ✅ **Xong** — chạy trên production |
-| **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động | ⏭ **Tiếp theo** |
-| **6** | Cây Dị Điển + sách kỹ năng | |
+| **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động | ✅ **Xong** |
+| **6** | Cây Dị Điển + sách kỹ năng | ✅ **Xong** — 10 ô, sách có kỹ năng thật |
 | **7** | Quái Tinh Anh / Thủ Lĩnh + cơ chế riêng | |
 | **8** | Đổi class ở mốc level | |
 | **9** | *PvP — hoãn, làm sau cùng* | |

@@ -7,6 +7,9 @@ const auth = require('./auth');
 const characters = require('./characters');
 const inventory = require('./inventory');
 const progression = require('./progression');
+const tree = require('./data/skilltree');
+const classData = require('./data/classes');
+const skillData = require('./data/skills');
 
 /** Làm sạch tên người chơi trước khi cho vào hệ thống. */
 function sanitizeName(raw) {
@@ -106,6 +109,63 @@ function attach(io) {
     socket.on('stat:spend', invAction((p, d) => {
       const res = progression.spendStatPoint(p, d.stat);
       return res ? { ok: true, ...res } : { ok: false, error: 'Không còn điểm để cộng.' };
+    }));
+
+    /* ------------------------------------------------ cây kỹ năng ------ */
+
+    socket.on('class:choose', invAction((p, d) => {
+      if (p.className) return { ok: false, error: 'Đã chọn lớp rồi. Chỉ đổi được ở mốc cấp 10, 25, 50.' };
+      if (!classData.get(d.classId)) return { ok: false, error: 'Lớp không hợp lệ.' };
+      p.className = d.classId;
+      return { ok: true };
+    }));
+
+    socket.on('tree:learn', invAction((p, d) => {
+      if (!p.className) return { ok: false, error: 'Phải chọn lớp trước.' };
+      const why = tree.blockedReason(p.className, d.nodeId, p);
+      if (why) return { ok: false, error: why };
+
+      p.learned.push(d.nodeId);
+
+      // Học được chiêu chủ động mà còn chỗ trống thì tự mang theo luôn —
+      // không ai học xong lại muốn để nó nằm không
+      const node = tree.node(p.className, d.nodeId);
+      if (node?.type === 'active' && node.skillId && p.carried.length < skillData.MAX_LOADOUT) {
+        p.carried.push(node.skillId);
+      }
+      return { ok: true };
+    }));
+
+    socket.on('loadout:set', invAction((p, d) => {
+      const unlocked = tree.unlockedSkills(p.className, p.learned, p.codex);
+      const list = (Array.isArray(d.skills) ? d.skills : [])
+        .filter((id) => unlocked.includes(id));
+
+      if (list.length > skillData.MAX_LOADOUT) {
+        return { ok: false, error: `Chỉ mang được tối đa ${skillData.MAX_LOADOUT} kỹ năng.` };
+      }
+      p.carried = [...new Set(list)];
+      return { ok: true };
+    }));
+
+    /**
+     * Gắn sách vào ô Dị Điển. Ô đã có sách thì sách cũ bị **xoá vĩnh viễn**
+     * (DESIGN.md §3.4) — client phải hỏi lại trước khi gọi.
+     */
+    socket.on('codex:socket', invAction((p, d) => {
+      const slot = parseInt(d.slot, 10);
+      if (!(slot >= 0 && slot < tree.CODEX_SLOTS)) return { ok: false, error: 'Ô không hợp lệ.' };
+
+      const book = (p.books || []).find((b) => b.uid === d.uid);
+      if (!book) return { ok: false, error: 'Không tìm thấy sách.' };
+
+      const old = p.codex[slot];
+      p.codex[slot] = book;
+      p.books = p.books.filter((b) => b.uid !== d.uid);
+
+      // Sách cũ biến mất, và chiêu của nó cũng rời khỏi bộ mang theo
+      if (old?.skillId) p.carried = p.carried.filter((id) => id !== old.skillId);
+      return { ok: true, replaced: old?.name || null };
     }));
 
     socket.on('character:get', (payload, ack) => {

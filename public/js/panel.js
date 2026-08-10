@@ -30,16 +30,17 @@ const Panel = (() => {
   function init(sock) {
     socket = sock;
 
-    socket.on('character', (c) => update(c));
+    socket.on('character', (c) => { update(c); Tree.update(c); });
     socket.on('reward', (r) => showRewards(r));
 
     $('openPanel').onclick = toggle;
+    $('openTree').onclick = () => Tree.open();
     $('panelClose').onclick = close;
     $('panel').addEventListener('click', (e) => { if (e.target.id === 'panel') close(); });
   }
 
   function isOpen() { return !$('panel').classList.contains('hidden'); }
-  function open() { closeNav(); $('panel').classList.remove('hidden'); render(); }
+  function open() { closeNav(); Tree.close(); $('panel').classList.remove('hidden'); render(); }
   function close() { $('panel').classList.add('hidden'); hideTip(); }
   function toggle() { isOpen() ? close() : open(); }
 

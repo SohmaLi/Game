@@ -99,22 +99,28 @@ function derive(char) {
     dodge: Math.min(BASE.dodgeMax, agi * BASE.dodgePerAgi),
     critChance: BASE.critChance + (boon?.effect.type === 'crit' ? boon.effect.chance : 0),
     critDamage: BASE.critDamage + (boon?.effect.type === 'crit' ? boon.effect.damage : 0),
-    // Hiệu ứng chỉ đến từ trang bị
+    // Hiệu ứng đến từ trang bị và bị động trong cây kỹ năng
     regenPercent: 0, manaRegen: 0, reflect: 0, lifesteal: 0,
+    ragePerRound: 0, manaPerRound: 0,
   };
 
   if (e) {
-    out.hpMax = Math.round(out.hpMax * (1 + e.hpPercent));
-    out.armor *= 1 + e.armorPercent;
-    out.resist *= 1 + e.resistPercent;
-    out.critChance += e.critChance;
-    out.critDamage += e.critDamage;
+    out.hpMax = Math.round(out.hpMax * (1 + (e.hpPercent || 0)));
+    out.manaMax = Math.round(out.manaMax * (1 + (e.manaPercent || 0)));
+    out.atkPhys *= 1 + (e.physicalPercent || 0);
+    out.atkMagic *= 1 + (e.magicPercent || 0);
+    out.armor *= 1 + (e.armorPercent || 0);
+    out.resist *= 1 + (e.resistPercent || 0);
+    out.critChance += e.critChance || 0;
+    out.critDamage += e.critDamage || 0;
     // Né vẫn bị chặn trần — nếu không, nhồi đủ đồ né là bất tử
-    out.dodge = Math.min(BASE.dodgeMax + 0.15, out.dodge + e.dodge);
-    out.regenPercent = e.regenPercent;
-    out.manaRegen = e.manaRegen;
-    out.reflect = e.reflect;
-    out.lifesteal = e.lifesteal;
+    out.dodge = Math.min(BASE.dodgeMax + 0.15, out.dodge + (e.dodge || 0));
+    out.regenPercent = e.regenPercent || 0;
+    out.manaRegen = e.manaRegen || 0;
+    out.reflect = e.reflect || 0;
+    out.lifesteal = e.lifesteal || 0;
+    out.ragePerRound = e.ragePerRound || 0;
+    out.manaPerRound = e.manaPerRound || 0;
   }
 
   return out;
@@ -157,6 +163,16 @@ function computeDamage(attacker, defender, skill) {
     }
   }
 
+  // Buff tăng sát thương tạm thời (Cuồng Chiến)
+  for (const ef of attacker.effects || []) {
+    if (ef.type === 'damageBuff') raw *= 1 + ef.percent;
+  }
+
+  // Chiêu kết liễu: mục tiêu càng thoi thóp càng đau
+  if (skill.execute && defender.hp / defender.hpMax <= skill.execute.threshold) {
+    raw *= 1 + skill.execute.bonus;
+  }
+
   const crit = Math.random() < A.critChance;
   if (crit) raw *= A.critDamage;
 
@@ -188,4 +204,21 @@ function manaCost(caster, skill) {
 
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
-module.exports = { BASE, MONSTER, derive, mitigate, computeDamage, manaCost };
+/**
+ * Gộp nhiều bảng cộng thêm (trang bị, cây kỹ năng) thành một.
+ *
+ * Nếu để `derive` nhận nhiều nguồn riêng thì mỗi lần thêm nguồn mới lại phải
+ * sửa công thức. Gộp trước rồi truyền một bảng duy nhất thì công thức đứng yên.
+ */
+function mergeMods(...sources) {
+  const out = { stats: { str: 0, int: 0, vit: 0, agi: 0, wil: 0 }, combat: {} };
+  for (const src of sources) {
+    if (!src) continue;
+    for (const [k, v] of Object.entries(src.stats || {})) out.stats[k] += v;
+    for (const [k, v] of Object.entries(src.combat || {})) out.combat[k] = (out.combat[k] || 0) + v;
+    for (const [k, v] of Object.entries(src.resource || {})) out.combat[k] = (out.combat[k] || 0) + v;
+  }
+  return out;
+}
+
+module.exports = { BASE, MONSTER, derive, mitigate, computeDamage, manaCost, mergeMods };

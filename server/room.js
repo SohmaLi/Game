@@ -9,6 +9,9 @@ const inventory = require('./inventory');
 const progression = require('./progression');
 const itemData = require('./data/items');
 const classData = require('./data/classes');
+const tree = require('./data/skilltree');
+const skillData = require('./data/skills');
+const statsLib = require('./stats');
 
 let nextRoomId = 1;
 
@@ -71,6 +74,12 @@ class Room {
       inv: inventory.create(),
       rage: 0,
       karma: 0,
+
+      // Cây kỹ năng
+      learned: [],                                   // nút đã mở trong Cây Nền
+      carried: [],                                   // chiêu chọn mang vào trận
+      codex: Array(tree.CODEX_SLOTS).fill(null),     // 10 ô Dị Điển
+      books: [],                                     // sách chưa gắn
     };
     this.players.set(socket.id, player);
     socket.join(this.id);
@@ -301,7 +310,9 @@ class Room {
     const allies = [...this.players.values()].map((p) => ({
       id: p.id, socketId: p.id, name: p.name, level: p.level,
       nation: p.nation, boonId: p.boonId, className: p.className, stats: p.stats,
-      equip: inventory.bonuses(p.inv),
+      equip: this.modsOf(p),
+      carried: p.carried,
+      unlocked: tree.unlockedSkills(p.className, p.learned, p.codex),
       rage: p.rage,
       karma: p.karma,
     }));
@@ -357,10 +368,18 @@ class Room {
     }
   }
 
+  /** Gộp bị động từ trang bị và từ Cây Nền thành một bảng cộng thêm duy nhất. */
+  modsOf(p) {
+    return statsLib.mergeMods(
+      inventory.bonuses(p.inv),
+      tree.bonuses(p.className, p.learned)
+    );
+  }
+
   /** Toàn bộ dữ liệu bảng nhân vật của một người. */
   characterState(p) {
-    const bonus = inventory.bonuses(p.inv);
-    const combat = require('./stats').derive({
+    const bonus = this.modsOf(p);
+    const combat = statsLib.derive({
       stats: p.stats, equip: bonus, level: p.level,
       boonId: p.boonId, nation: p.nation, isPlayer: true,
     });
@@ -391,10 +410,25 @@ class Room {
         dodge: Math.round(combat.dodge * 100),
       },
       passives: inventory.activePassives(p.inv),
+
+      // Cây kỹ năng
+      classes: classData.all().map((c) => ({ id: c.id, name: c.name, role: c.role, desc: c.desc })),
+      tree: p.className ? tree.publicTree(p.className, p) : [],
+      skillPoints: p.className ? tree.pointsLeft(p.className, p.level, p.learned) : tree.pointsEarned(p.level),
+      learned: p.learned,
+      carried: p.carried,
+      maxLoadout: skillData.MAX_LOADOUT,
+      unlocked: tree.unlockedSkills(p.className, p.learned, p.codex)
+        .map(skillData.publicView).filter(Boolean),
+      innate: skillData.INNATE.map(skillData.publicView),
+      codex: p.codex,
+      codexSlots: tree.CODEX_SLOTS,
+
       equipped: p.inv.equipped,
       bag: p.inv.bag,
       bagSize: inventory.BAG_SIZE,
       books: p.books || [],
+      unspentBooks: (p.books || []).length,
       slots: itemData.SLOTS,
     };
   }

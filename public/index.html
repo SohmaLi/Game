@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/css/style.css?v=13">
-<link rel="stylesheet" href="/css/battle.css?v=13">
-<link rel="stylesheet" href="/css/panel.css?v=13">
-<link rel="stylesheet" href="/css/hud.css?v=13">
-<link rel="stylesheet" href="/css/ui.css?v=13">
+<link rel="stylesheet" href="/css/style.css?v=15">
+<link rel="stylesheet" href="/css/battle.css?v=15">
+<link rel="stylesheet" href="/css/panel.css?v=15">
+<link rel="stylesheet" href="/css/hud.css?v=15">
+<link rel="stylesheet" href="/css/ui.css?v=15">
+<link rel="stylesheet" href="/css/tree.css?v=15">
 </head>
 <body>
 
@@ -50,6 +51,7 @@
     </div>
     <div class="nav-actions">
       <button id="openPanel">Nhân vật <b>C</b></button>
+      <button id="openTree">Kỹ năng <b>K</b></button>
       <button id="quit">Thoát</button>
     </div>
   </div>
@@ -117,6 +119,30 @@
   <div id="tooltip" class="tip hidden"></div>
 </div>
 
+
+<!-- ========================== CÂY KỸ NĂNG ========================== -->
+<div id="tree" class="hidden">
+  <div class="t-box">
+    <header class="t-head">
+      <h2>Kỹ năng — <span id="treeClass">—</span></h2>
+      <span class="t-points" id="treePoints">0 điểm</span>
+      <button class="t-close" id="treeClose">✕</button>
+    </header>
+
+    <div class="t-tabs">
+      <button class="t-tab active" data-tab="tree">Cây Nền</button>
+      <button class="t-tab" data-tab="loadout">Mang theo</button>
+      <button class="t-tab" data-tab="codex">Dị Điển</button>
+    </div>
+
+    <div class="t-body">
+      <div class="t-pane active" data-pane="tree" id="paneTree"></div>
+      <div class="t-pane" data-pane="loadout" id="paneLoadout"></div>
+      <div class="t-pane" data-pane="codex" id="paneCodex"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Thông báo phần thưởng sau trận -->
 <div id="toasts"></div>
 
@@ -169,10 +195,11 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/ui.js?v=13"></script>
-<script src="/js/hud.js?v=13"></script>
-<script src="/js/battle.js?v=13"></script>
-<script src="/js/panel.js?v=13"></script>
-<script src="/js/game.js?v=13"></script>
+<script src="/js/ui.js?v=15"></script>
+<script src="/js/hud.js?v=15"></script>
+<script src="/js/battle.js?v=15"></script>
+<script src="/js/panel.js?v=15"></script>
+<script src="/js/tree.js?v=15"></script>
+<script src="/js/game.js?v=15"></script>
 </body>
 </html>

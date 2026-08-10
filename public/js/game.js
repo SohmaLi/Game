@@ -51,7 +51,17 @@ window.addEventListener('keydown', (e) => {
   // Đang trong trận thì bàn phím thuộc về màn chiến đấu
   if (Battle.isOpen()) return;
 
-  if (e.code === 'Escape' && Panel.isOpen()) { Panel.close(); return; }
+  if (e.code === 'Escape') {
+    if (Tree.isOpen()) { Tree.close(); return; }
+    if (Panel.isOpen()) { Panel.close(); return; }
+  }
+  if (e.code === 'KeyK' && state.me) {
+    e.preventDefault();
+    Tree.toggle();
+    for (const key of Object.keys(keys)) keys[key] = false;
+    sendInputIfChanged();
+    return;
+  }
   if (e.code === 'KeyC' && state.me) {
     e.preventDefault();
     Panel.toggle();
@@ -60,7 +70,7 @@ window.addEventListener('keydown', (e) => {
     sendInputIfChanged();
     return;
   }
-  if (Panel.isOpen()) return; // bảng đang mở thì không điều khiển nhân vật
+  if (Panel.isOpen() || Tree.isOpen()) return; // đang mở bảng thì không điều khiển nhân vật
 
   const k = KEYMAP[e.code];
   if (!k) return;
@@ -106,7 +116,8 @@ function connect(name, type) {
       Hud.init(socket);
       Battle.init(socket, res.you);
       Panel.init(socket);
-      if (res.characterState) Panel.update(res.characterState);
+      Tree.init(socket);
+      if (res.characterState) { Panel.update(res.characterState); Tree.update(res.characterState); }
       // Vào phòng đúng lúc cả nhóm đang đánh nhau thì hiện luôn màn chiến đấu
       if (res.battle) Battle.onState(res.battle);
     });
@@ -151,6 +162,7 @@ function enterGame() {
 
 function leaveGame() {
   Panel.close();
+  Tree.close();
   UI.closeMenu();
   UI.closeModal();
   Hud.hide();

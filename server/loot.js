@@ -2,6 +2,7 @@
 
 const items = require('./data/items');
 const monsterData = require('./data/monsters');
+const skills = require('./data/skills');
 
 /**
  * Cơ chế rớt đồ.
@@ -65,12 +66,16 @@ function rollBattleLoot(monsterIds, opts = {}) {
 
     // --- sách Dị Điển ---
     if (Math.random() < tier.bookDropRate * luck) {
+      const pool = skills.CODEX_SKILLS;
+      const skillId = pool[Math.floor(Math.random() * pool.length)];
+      const skill = skills.get(skillId);
       books.push({
-        uid: `bk${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        uid: `bk${Date.now()}${Math.floor(Math.random() * 100000)}`,
         from: def.name,
         tier: def.tier,
-        // Kỹ năng cụ thể trong sách sẽ gán khi làm cây Dị Điển (Giai đoạn 6)
-        skillId: null,
+        skillId,
+        name: `Dị Điển: ${skill.name}`,
+        desc: skill.desc,
       });
     }
   }

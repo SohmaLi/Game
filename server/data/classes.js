@@ -36,8 +36,17 @@ const KARMA_MAX = 100;
  */
 const DECAY = {
   rage: {
-    perRound: 6,      // mỗi vòng trong trận
-    perSecond: 4,     // mỗi giây khi đang khám phá
+    /**
+     * Trong trận chỉ tan nhẹ. Đo thực tế cho thấy tan 6/vòng khiến Nộ chỉ
+     * tăng ròng 8 mỗi vòng — Chém Mạnh giá 25 phải đợi tới vòng 4, mà trận
+     * với quái thường chỉ kéo dài 3–5 vòng, nên chiêu đặc trưng của Chiến
+     * Binh gần như không bao giờ dùng được.
+     *
+     * Ngoài trận thì tan nhanh, để Nộ không mang được từ trận này sang trận
+     * khác mà không phải đánh gì.
+     */
+    perRound: 4,
+    perSecond: 6,
   },
   karma: {
     // Karma tan chậm hơn Nộ: nó đổi bằng mạng sống của kẻ địch, mất quá nhanh
@@ -49,8 +58,8 @@ const DECAY = {
 
 /** Nộ tích khi đánh và khi bị đánh. */
 const RAGE_GAIN = {
-  onHitDealt: 8,     // cộng khi ra đòn thường (đã khai báo trên từng kỹ năng)
-  onDamageTaken: 6,  // cộng khi ăn đòn
+  onHitDealt: 16,    // cộng khi ra đòn thường (khai báo trên từng kỹ năng)
+  onDamageTaken: 8,  // cộng khi ăn đòn — càng bị dồn ép càng nổi giận
 };
 
 /** Karma chỉ tích khi hạ gục — không tích từ sát thương. */
