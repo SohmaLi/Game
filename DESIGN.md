@@ -417,6 +417,26 @@ mức trận nào khó cũng bấm thoát, nhưng cũng không được vô vọ
 - **Một người thoát được thì cả nhóm rút** — phòng cùng vào trận thì cùng ra
 - Không có phần thưởng, nhưng cũng không mất gì
 
+### 5.2e Nhóm quyết định ai cùng vào trận
+
+🔒 **Chỉ người chạm phải quái và ĐỒNG ĐỘI của họ vào trận.**
+
+⚠️ **Lỗi kiến trúc đã sửa:** trước đây cả phòng cùng vào một trận. Phòng chỉ là
+một khoảng không gian chung, không phải một đội — người mới vào phòng bị kéo
+thẳng vào trận của người lạ. Nay mỗi nhóm có trận riêng, chạy song song trong
+cùng phòng; ai không ở trong trận vẫn đi lại bình thường trên bản đồ.
+
+| | Cùng nhóm | Khác nhóm |
+|---|---|---|
+| Một người chạm quái | **cả nhóm cùng vào trận** | chỉ người đó vào |
+| Trong lúc trận diễn ra | cùng đánh một màn | người kia đi lại bình thường, không thấy trận |
+
+Mỗi trận có một kênh socket riêng, nên người ngoài trận không nhận gói tin của
+trận đó — vừa đúng luật chơi vừa đỡ băng thông.
+
+Nhóm tối đa **5 người**, trùng với giới hạn PvE. Mời qua chuột phải vào người
+chơi trên bản đồ; lời mời hết hạn sau 30 giây.
+
 ### 5.3 Quy mô
 
 | Chế độ | Người chơi | Quái | Trạng thái |
@@ -468,8 +488,8 @@ ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa
 | GĐ | Nội dung | Trạng thái |
 |---|---|---|
 | **0** | Khung mạng, phòng, di chuyển đồng bộ | ✅ **Xong** — đang chạy |
-| **1** | Tài khoản, đăng nhập, lưu nhân vật vào MySQL | ✅ **Xong** — API đã chạy |
-| **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | 🔨 Backend xong · còn giao diện |
+| **1** | Tài khoản, đăng nhập, lưu nhân vật vào MySQL | ✅ **Xong** — cả giao diện lẫn lưu tiến trình |
+| **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | ✅ **Xong** — tối đa 3 nhân vật/tài khoản |
 | **3** | **Chiến đấu turn-based PvE** — layout, vòng lượt, 4 loại quái | ✅ **Xong** — chạy trên production |
 | **5** | Trang bị 10 ô + rơi đồ + 5 hạng + bảng nhân vật | ✅ **Xong** — chạy trên production |
 | **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động | ✅ **Xong** |
@@ -477,6 +497,11 @@ ví dụ *"mỗi 3 vòng triệu hồi 2 tay sai"*, *"dưới 30% máu thì hóa
 | **7** | Quái Tinh Anh / Thủ Lĩnh + cơ chế riêng | |
 | **8** | Đổi class ở mốc level | |
 | **9** | *PvP — hoãn, làm sau cùng* | |
+
+**Đã lưu xuống database:** cấp, kinh nghiệm, vàng, 5 chỉ số + điểm chưa tiêu,
+lớp, Cây Nền đã học, bộ chiêu mang theo, 10 ô Dị Điển, sách chưa gắn, 10 ô trang
+bị, túi đồ, vị trí trên bản đồ. Ghi sau mỗi trận và sau mỗi thao tác túi đồ —
+chỉ lưu lúc thoát là không đủ, mất kết nối đột ngột sẽ nuốt cả buổi chơi.
 
 Giai đoạn 3 là chỗ game "thành hình": trước đó chỉ là kỹ thuật, sau đó là nội dung.
 

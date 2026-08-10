@@ -95,14 +95,15 @@ window.addEventListener('blur', () => {
 
 /* ---------------- Kết nối ---------------- */
 
-function connect(name, type) {
+function connect({ token, characterId }) {
   const socket = io({ transports: ['websocket', 'polling'] });
   state.socket = socket;
 
   socket.on('connect', () => {
-    socket.emit('join', { name, type }, (res) => {
+    socket.emit('join', { token, characterId, type: 'pve' }, (res) => {
       if (!res?.ok) {
-        showError(res?.error || 'Không vào được phòng');
+        Account.showCharacters();
+        alert(res?.error || 'Không vào được phòng');
         socket.disconnect();
         return;
       }
@@ -129,10 +130,17 @@ function connect(name, type) {
     $('count').textContent = snap.players.length;
   });
 
-  socket.on('connect_error', (err) => showError(`Lỗi kết nối: ${err.message}`));
+  socket.on('connect_error', (err) => {
+    console.error('[net]', err.message);
+    Account.showCharacters();
+  });
   socket.on('disconnect', (reason) => {
-    if (reason !== 'io client disconnect') showError('Mất kết nối tới server');
     leaveGame();
+    // Tự ngắt (bấm Thoát) thì màn chọn nhân vật đã hiện rồi, không hiện đè
+    if (reason !== 'io client disconnect') {
+      Account.showCharacters();
+      Panel.toast?.('warn', 'Mất kết nối', 'Tiến trình đã được lưu tới lần cuối');
+    }
   });
 
   // Đo ping thật bằng round-trip, không dựa vào con số nội bộ của socket.io
@@ -147,11 +155,6 @@ function connect(name, type) {
 }
 
 /* ---------------- Chuyển màn ---------------- */
-
-function showError(msg) {
-  $('error').textContent = msg;
-  $('play').disabled = false;
-}
 
 function enterGame() {
   $('menu').classList.add('hidden');
@@ -168,10 +171,8 @@ function leaveGame() {
   Hud.hide();
   closeNav();
   $('statusBar').classList.add('hidden');
-  $('menu').classList.remove('hidden');
   $('navbar').classList.add('hidden');
   $('hint').classList.add('hidden');
-  $('play').disabled = false;
   state.me = null;
   state.prev = state.curr = null;
 }
@@ -414,27 +415,18 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && navOpen()) closeNav();
 });
 
-/* ---------------- Menu ---------------- */
+/* ---------------- Khởi động ---------------- */
 
-document.querySelectorAll('.mode').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.roomType = btn.dataset.type;
-  });
-});
-
-$('play').addEventListener('click', () => {
-  $('play').disabled = true;
-  $('error').textContent = '';
-  connect($('name').value.trim(), state.roomType);
-});
-
-$('name').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') $('play').click();
+/**
+ * Không vào thẳng game nữa: phải qua đăng nhập và chọn nhân vật trước.
+ * Account lo ba màn đó rồi gọi lại đây kèm token và id nhân vật.
+ */
+Account.start(({ token, characterId }) => {
+  connect({ token, characterId });
 });
 
 $('quit').addEventListener('click', () => {
   state.socket?.disconnect();
   leaveGame();
+  Account.showCharacters();
 });

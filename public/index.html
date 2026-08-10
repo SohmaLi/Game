@@ -4,31 +4,61 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/css/style.css?v=15">
-<link rel="stylesheet" href="/css/battle.css?v=15">
-<link rel="stylesheet" href="/css/panel.css?v=15">
-<link rel="stylesheet" href="/css/hud.css?v=15">
-<link rel="stylesheet" href="/css/ui.css?v=15">
-<link rel="stylesheet" href="/css/tree.css?v=15">
+<link rel="stylesheet" href="/css/style.css?v=16">
+<link rel="stylesheet" href="/css/battle.css?v=16">
+<link rel="stylesheet" href="/css/panel.css?v=16">
+<link rel="stylesheet" href="/css/hud.css?v=16">
+<link rel="stylesheet" href="/css/ui.css?v=16">
+<link rel="stylesheet" href="/css/tree.css?v=16">
 </head>
 <body>
 
 <div id="menu" class="overlay">
-  <div class="panel">
+
+  <!-- ---------- màn đăng nhập / đăng ký ---------- -->
+  <div class="panel" id="scrAuth">
     <h1>Frozen</h1>
-    <p class="sub">Bản thử nghiệm mạng — kiểm tra đồng bộ nhiều người</p>
+    <p class="sub" id="authTitle">Đăng nhập</p>
 
-    <label for="name">Tên nhân vật</label>
-    <input id="name" maxlength="16" placeholder="Nhập tên..." autocomplete="off">
+    <div id="authMode" data-mode="login"></div>
 
-    <label>Chế độ</label>
-    <div class="modes">
-      <button class="mode active" data-type="pve">PvE · tối đa 5</button>
-      <button class="mode" data-type="pvp">PvP · tối đa 10</button>
-    </div>
+    <label for="authUser">Tên đăng nhập</label>
+    <input id="authUser" maxlength="32" autocomplete="username" placeholder="tên đăng nhập">
 
-    <button id="play">Vào chơi</button>
-    <p id="error" class="error"></p>
+    <label for="authPass">Mật khẩu</label>
+    <input id="authPass" type="password" maxlength="200" autocomplete="current-password" placeholder="mật khẩu">
+
+    <p class="hint-sm" id="authHint"></p>
+    <button id="authSubmit">Đăng nhập</button>
+    <button class="link-btn" id="authToggle">Chưa có tài khoản? Đăng ký</button>
+    <p id="authError" class="error"></p>
+  </div>
+
+  <!-- ---------- màn chọn nhân vật ---------- -->
+  <div class="panel wide hidden" id="scrChars">
+    <h1>Chọn nhân vật</h1>
+    <p class="sub">Mỗi tài khoản tối đa <span id="charCount">0/3</span> nhân vật</p>
+
+    <div id="charList" class="ch-list"></div>
+
+    <button id="charCreateBtn">+ Tạo nhân vật mới</button>
+    <button class="link-btn" id="logoutBtn">Đăng xuất</button>
+  </div>
+
+  <!-- ---------- màn tạo nhân vật ---------- -->
+  <div class="panel wide hidden" id="scrCreate">
+    <h1>Nhân vật mới</h1>
+    <p class="sub">Quốc gia là gốc gác — chọn rồi không đổi được</p>
+
+    <label for="createName">Tên nhân vật</label>
+    <input id="createName" maxlength="16" placeholder="3–16 ký tự" autocomplete="off">
+
+    <label>Quốc gia</label>
+    <div id="nationList" class="nation-list"></div>
+
+    <button id="createSubmit">Tạo nhân vật</button>
+    <button class="link-btn" id="createBack">← Quay lại</button>
+    <p id="createError" class="error"></p>
   </div>
 </div>
 
@@ -195,11 +225,12 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/ui.js?v=15"></script>
-<script src="/js/hud.js?v=15"></script>
-<script src="/js/battle.js?v=15"></script>
-<script src="/js/panel.js?v=15"></script>
-<script src="/js/tree.js?v=15"></script>
-<script src="/js/game.js?v=15"></script>
+<script src="/js/ui.js?v=16"></script>
+<script src="/js/account.js?v=16"></script>
+<script src="/js/hud.js?v=16"></script>
+<script src="/js/battle.js?v=16"></script>
+<script src="/js/panel.js?v=16"></script>
+<script src="/js/tree.js?v=16"></script>
+<script src="/js/game.js?v=16"></script>
 </body>
 </html>

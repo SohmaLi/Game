@@ -12,6 +12,8 @@ const classData = require('./data/classes');
 const tree = require('./data/skilltree');
 const skillData = require('./data/skills');
 const statsLib = require('./stats');
+const { PartyManager } = require('./party');
+const charactersRepo = require('./characters');
 
 let nextRoomId = 1;
 
@@ -37,7 +39,13 @@ class Room {
     this.timer = null;
     this.emptySince = null;
     this.lastTickAt = 0;
-    this.battle = null;         // trận đang diễn ra, null khi đang ở chế độ khám phá
+    /**
+     * Nhiều trận có thể diễn ra song song trong cùng một phòng — mỗi nhóm một
+     * trận riêng. Người không cùng nhóm vẫn đi lại bình thường trên bản đồ
+     * trong lúc nhóm khác đang đánh nhau.
+     */
+    this.battles = new Map();   // battleId -> Battle
+    this.party = new PartyManager();
     this.roamers = new Map();   // quái đang đi lang thang trên bản đồ
   }
 
@@ -75,12 +83,29 @@ class Room {
       rage: 0,
       karma: 0,
 
-      // Cây kỹ năng
-      learned: [],                                   // nút đã mở trong Cây Nền
-      carried: [],                                   // chiêu chọn mang vào trận
-      codex: Array(tree.CODEX_SLOTS).fill(null),     // 10 ô Dị Điển
-      books: [],                                     // sách chưa gắn
+      // Cây kỹ năng — nạp lại từ bản lưu nếu có
+      learned: character?.learned || [],
+      carried: character?.carried || [],
+      codex: character?.codex?.length === tree.CODEX_SLOTS
+        ? character.codex
+        : Array(tree.CODEX_SLOTS).fill(null),
+      books: character?.books || [],
+
+      partyId: null,   // nhóm đang tham gia
+      battleId: null,  // trận đang đánh, null khi đang khám phá
     };
+    // Khôi phục túi đồ và vị trí đã lưu
+    if (character?.equipped) {
+      for (const slot of itemData.SLOT_IDS) {
+        if (character.equipped[slot]) player.inv.equipped[slot] = character.equipped[slot];
+      }
+    }
+    if (character?.bag?.length) player.inv.bag = character.bag;
+    if (character?.pos && character.pos.x > 0) {
+      player.x = character.pos.x;
+      player.y = character.pos.y;
+    }
+
     this.players.set(socket.id, player);
     socket.join(this.id);
     this.emptySince = null;
@@ -90,17 +115,29 @@ class Room {
   }
 
   remove(socketId) {
+    const p = this.players.get(socketId);
+    if (p) {
+      this.saveProgress(p);
+      this.party.leave(p);
+
+      // Rời giữa trận: nếu là người cuối cùng của trận đó thì hủy luôn trận
+      const b = p.battleId ? this.battles.get(p.battleId) : null;
+      if (b && !this.battleHasOtherPlayers(b, socketId)) this.dropBattle(b);
+    }
+
     this.players.delete(socketId);
+
     if (this.players.size === 0) {
       this.stopLoop();
-      // Người cuối cùng thoát giữa trận thì hủy luôn, không để trận đấu chạy không
-      if (this.battle) {
-        this.battle.destroy();
-        this.battle = null;
-      }
+      for (const b of this.battles.values()) b.destroy();
+      this.battles.clear();
       this.roamers.clear();
       this.emptySince = Date.now();
     }
+  }
+
+  battleHasOtherPlayers(battle, exceptId) {
+    return battle.allies.some((c) => c.id !== exceptId && this.players.has(c.id));
   }
 
   setInput(socketId, input) {
@@ -114,7 +151,9 @@ class Room {
   }
 
   startLoop() {
-    if (this.timer || this.battle) return; // đang đánh nhau thì không chạy vòng lặp khám phá
+    // Vòng lặp khám phá vẫn chạy kể cả khi có trận đang diễn ra — người không
+    // ở trong trận đó vẫn phải đi lại được
+    if (this.timer) return;
     this.lastTickAt = Date.now();
     this.timer = setInterval(() => this.tick(), 1000 / cfg.TICK_HZ);
   }
@@ -130,17 +169,21 @@ class Room {
     const dt = Math.min((now - this.lastTickAt) / 1000, 0.25); // chặn dt nhảy vọt khi server khựng
     this.lastTickAt = now;
 
-    for (const p of this.players.values()) {
+    // Người đang trong trận thì đứng yên trên bản đồ: không di chuyển, không
+    // tan tài nguyên (trận đấu tự lo phần đó theo vòng)
+    const free = [...this.players.values()].filter((p) => !p.battleId);
+    for (const p of free) {
       this.movePlayer(p, dt);
       this.decayResources(p, dt);
     }
 
-    const players = [...this.players.values()];
+    const players = free;
     for (const r of this.roamers.values()) {
       r.think(now, players);
       r.move(dt);
     }
 
+    this.party.sweep();
     this.checkEncounters(now, players);
     this.broadcast();
   }
@@ -182,8 +225,8 @@ class Room {
    * Dời những con quái đang đứng sát người chơi ra chỗ khác trên bản đồ.
    * Gọi sau mỗi trận để người chơi có khoảng thở, không bị tóm lại tại chỗ.
    */
-  scatterNearbyRoamers() {
-    const players = [...this.players.values()];
+  scatterNearbyRoamers(only = null) {
+    const players = only || [...this.players.values()];
     if (!players.length) return;
 
     const safeDist = cfg.ROAMER.aggroRadius * 1.4;
@@ -206,11 +249,10 @@ class Room {
    * đứng gần đó, nên đi vào giữa bầy sói là gặp cả bầy.
    */
   checkEncounters(now, players) {
-    if (this.battle) return;
-
     const touchDist = cfg.PLAYER_RADIUS + cfg.ROAMER.radius;
 
     for (const p of players) {
+      if (p.battleId) continue;
       if (now < (p.graceUntil || 0)) continue; // vừa ra khỏi trận, chưa bị kéo lại
 
       for (const r of this.roamers.values()) {
@@ -221,8 +263,8 @@ class Room {
           (o) => Math.hypot(o.x - r.x, o.y - r.y) <= cfg.ROAMER.groupRadius
         ).slice(0, 8);
 
-        this.startBattle(group);
-        return;
+        this.startBattle(group, p);
+        break; // người này đã vào trận, xét tiếp người khác
       }
     }
   }
@@ -270,6 +312,8 @@ class Room {
         d: p.dir,
         m: p.moving,
         hp: p.hp,
+        b: !!p.battleId,      // đang trong trận — client vẽ mờ đi
+        pt: p.partyId || null, // để client tô màu đồng đội
       });
     }
     const monsters = [];
@@ -294,8 +338,8 @@ class Room {
    * @param group danh sách Roamer đã chạm phải. Chúng bị nhấc khỏi bản đồ và
    *              dựng thành combatant trong trận.
    */
-  startBattle(group) {
-    if (this.battle || this.players.size === 0) return null;
+  startBattle(group, initiator) {
+    if (!initiator || initiator.battleId) return null;
 
     const roamers = group?.length ? group : [roamer.spawn([])];
     const monsterDefs = roamers
@@ -304,10 +348,23 @@ class Room {
       .slice(0, 8);
     if (!monsterDefs.length) return null;
 
-    // Nhấc khỏi bản đồ ngay, nếu không người chơi khác lại chạm vào chính con đó
+    /**
+     * CHỈ người chạm phải quái và ĐỒNG ĐỘI của họ vào trận.
+     *
+     * Người trong cùng phòng nhưng khác nhóm vẫn đi lại bình thường — phòng
+     * chỉ là khoảng không gian chung, không phải một đội. Đồng đội thì bị kéo
+     * vào cùng dù đang đứng ở đâu trên bản đồ: đã là nhóm thì cùng đánh.
+     */
+    const participants = this.party.membersOf(initiator)
+      .map((id) => this.players.get(id))
+      .filter((p) => p && !p.battleId);
+
+    if (!participants.length) return null;
+
+    // Nhấc quái khỏi bản đồ ngay, nếu không người khác lại chạm vào chính con đó
     for (const r of roamers) this.roamers.delete(r.id);
 
-    const allies = [...this.players.values()].map((p) => ({
+    const allies = participants.map((p) => ({
       id: p.id, socketId: p.id, name: p.name, level: p.level,
       nation: p.nation, boonId: p.boonId, className: p.className, stats: p.stats,
       equip: this.modsOf(p),
@@ -317,29 +374,57 @@ class Room {
       karma: p.karma,
     }));
 
-    this.stopLoop();
-    this.battle = new Battle({
+    // Mỗi trận một kênh socket riêng — người ngoài trận không nhận được gói tin
+    // của trận đó, vừa đúng luật chơi vừa đỡ băng thông
+    const channel = `${this.id}#b${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    const battle = new Battle({
       allies,
       monsterDefs,
       io: this.io,
-      channel: this.id,
+      channel,
       onEnd: (b, result, rewards) => {
-        this.applyRewards(result, rewards);
-        setTimeout(() => this.endBattle(), 4000);
+        this.applyRewards(b, result, rewards);
+        setTimeout(() => this.endBattle(b), 4000);
       },
     });
 
-    return this.battle;
+    battle.channel = channel;
+    battle.roomRef = this;
+    this.battles.set(battle.id, battle);
+
+    for (const p of participants) {
+      p.battleId = battle.id;
+      p.input = { up: false, down: false, left: false, right: false };
+      const sock = this.io.sockets.sockets.get(p.id);
+      sock?.join(channel);
+    }
+
+    // Gửi trạng thái ban đầu sau khi mọi người đã vào kênh
+    battle.broadcast();
+    return battle;
+  }
+
+  /** Hủy một trận không qua luồng kết thúc bình thường (người cuối cùng thoát). */
+  dropBattle(battle) {
+    battle.destroy();
+    this.battles.delete(battle.id);
+    for (const c of battle.allies) {
+      const p = this.players.get(c.id);
+      if (p) p.battleId = null;
+    }
   }
 
   /**
    * Ghi phần thưởng vào từng người chơi. Gọi ngay khi trận kết thúc, trước khi
    * dọn trận — nếu chờ tới lúc dọn thì người thoát sớm sẽ mất phần của mình.
    */
-  applyRewards(result, rewards) {
+  applyRewards(battle, result, rewards) {
     if (result !== 'win' || !rewards) return;
 
-    for (const p of this.players.values()) {
+    for (const c of battle.allies) {
+      const p = this.players.get(c.id);
+      if (!p) continue;
       const mine = rewards.perPlayer?.[p.id];
       if (!mine) continue;
 
@@ -366,6 +451,19 @@ class Room {
 
       this.sendCharacter(p);
     }
+  }
+
+  /**
+   * Ghi tiến trình xuống database.
+   *
+   * Gọi sau mỗi trận và khi người chơi rời đi. Chỉ lưu lúc thoát là không đủ —
+   * mất kết nối đột ngột hoặc server restart sẽ nuốt mất cả buổi chơi.
+   * Khách chưa đăng nhập (characterId null) thì bỏ qua, không có gì để lưu.
+   */
+  saveProgress(p) {
+    if (!p?.characterId) return;
+    charactersRepo.saveProgress(p.characterId, p)
+      .catch((err) => console.error('[room] lưu tiến trình lỗi:', err.message));
   }
 
   /** Gộp bị động từ trang bị và từ Cây Nền thành một bảng cộng thêm duy nhất. */
@@ -412,6 +510,13 @@ class Room {
       passives: inventory.activePassives(p.inv),
 
       // Cây kỹ năng
+      partyId: p.partyId,
+      party: p.partyId
+        ? (this.party.get(p.partyId)?.members || []).map((id) => {
+            const m = this.players.get(id);
+            return m && { id: m.id, name: m.name, level: m.level, leader: this.party.get(p.partyId).leaderId === id };
+          }).filter(Boolean)
+        : [],
       classes: classData.all().map((c) => ({ id: c.id, name: c.name, role: c.role, desc: c.desc })),
       tree: p.className ? tree.publicTree(p.className, p) : [],
       skillPoints: p.className ? tree.pointsLeft(p.className, p.level, p.learned) : tree.pointsEarned(p.level),
@@ -437,45 +542,42 @@ class Room {
     this.io.to(p.id).emit('character', this.characterState(p));
   }
 
-  endBattle() {
-    if (!this.battle) return;
+  endBattle(battle) {
+    if (!battle || !this.battles.has(battle.id)) return;
 
-    // Cả Nộ lẫn Karma đều theo người chơi ra khỏi trận — rồi tiếp tục tan dần
-    // ngoài bản đồ theo DECAY.perSecond. Không cắt về 0 ở đây, vì đánh xong
-    // trận này chạy sang trận kế bên cạnh thì đáng được giữ lại đà đang có.
-    for (const c of this.battle.allies) {
+    // Nộ và Karma theo người chơi ra khỏi trận, rồi tiếp tục tan ngoài bản đồ
+    for (const c of battle.allies) {
       const p = this.players.get(c.id);
       if (!p) continue;
       p.rage = c.rage || 0;
       p.karma = c.karma || 0;
+      p.battleId = null;
+
+      // Miễn va chạm một lúc, nếu không người vừa thắng lại bị con quái đứng
+      // ngay cạnh kéo vào trận mới mà không kịp bước đi đâu
+      p.graceUntil = Date.now() + cfg.ROAMER.graceMs;
+
+      const sock = this.io.sockets.sockets.get(p.id);
+      sock?.leave(battle.channel);
     }
 
-    this.battle.destroy();
-    this.battle = null;
+    this.io.to(battle.channel).emit('battle:closed');
+    battle.destroy();
+    this.battles.delete(battle.id);
 
-    // Miễn va chạm một lúc, nếu không người chơi vừa thắng xong lại bị con quái
-    // đứng ngay cạnh kéo vào trận mới mà không kịp bước đi đâu cả
-    const until = Date.now() + cfg.ROAMER.graceMs;
-    for (const p of this.players.values()) p.graceUntil = until;
+    // Chỉ dạt những con đang đứng sát người vừa ra khỏi trận
+    this.scatterNearbyRoamers(battle.allies.map((c) => this.players.get(c.id)).filter(Boolean));
 
-    // Chỉ miễn va chạm thôi thì chưa đủ: con quái vẫn đứng đó và tóm lại ngay
-    // khi hết hạn. Phải đẩy hẳn những con đang bám sát ra chỗ khác — coi như
-    // chúng dạt ra sau khi thấy đồng bọn bị hạ.
-    this.scatterNearbyRoamers();
+    for (const c of battle.allies) {
+      const p = this.players.get(c.id);
+      if (!p) continue;
+      this.sendCharacter(p);
+      this.saveProgress(p);
+    }
 
-    this.io.to(this.id).emit('battle:closed');
-
-    // Gửi lại bảng nhân vật cho mọi người, kể cả khi trận không có phần thưởng
-    // (trốn thoát, thua). Không gửi thì HUD giữ nguyên máu và tài nguyên của
-    // lúc đang đánh, hiện sai cho tới trận sau.
-    for (const p of this.players.values()) this.sendCharacter(p);
-
-    // Quái bị tiêu diệt sẽ được bù lại sau một lúc, không hồi ngay tại chỗ
     setTimeout(() => {
-      if (this.players.size > 0 && !this.battle) this.fillRoamers();
+      if (this.players.size > 0) this.fillRoamers();
     }, cfg.ROAMER.respawnMs);
-
-    if (this.players.size > 0) this.startLoop();
   }
 
   info() {
@@ -485,7 +587,7 @@ class Room {
       label: cfg.ROOM_TYPES[this.type].label,
       players: this.players.size,
       max: this.maxPlayers,
-      inBattle: !!this.battle,
+      battles: this.battles.size,
     };
   }
 }

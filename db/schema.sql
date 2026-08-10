@@ -81,3 +81,20 @@ CREATE TABLE IF NOT EXISTS sessions (
   CONSTRAINT fk_sessions_account
     FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------- lưu tiến trình
+-- Thêm sau, dùng ADD COLUMN IF NOT EXISTS (MariaDB 10.2+) nên chạy lại an toàn.
+--
+-- Dùng JSON cho những thứ có cấu trúc thay đổi liên tục trong lúc phát triển
+-- (túi đồ, cây kỹ năng). Tách thành bảng riêng thì mỗi lần đổi thiết kế lại
+-- phải migrate, mà giai đoạn này thiết kế còn đổi nhiều. Khi nào ổn định và
+-- cần truy vấn theo món đồ thì tách sau.
+
+ALTER TABLE characters
+  ADD COLUMN IF NOT EXISTS learned    JSON NULL COMMENT 'nút Cây Nền đã mở',
+  ADD COLUMN IF NOT EXISTS carried    JSON NULL COMMENT 'kỹ năng mang vào trận',
+  ADD COLUMN IF NOT EXISTS codex      JSON NULL COMMENT '10 ô Dị Điển',
+  ADD COLUMN IF NOT EXISTS books      JSON NULL COMMENT 'sách chưa gắn',
+  ADD COLUMN IF NOT EXISTS equipped   JSON NULL COMMENT '10 ô trang bị',
+  ADD COLUMN IF NOT EXISTS bag        JSON NULL COMMENT 'túi đồ',
+  ADD COLUMN IF NOT EXISTS played_at  TIMESTAMP NULL DEFAULT NULL COMMENT 'lần chơi gần nhất';

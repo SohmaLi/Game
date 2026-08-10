@@ -227,18 +227,101 @@ const Tree = (() => {
         }).join('')}
       </div>` : '<p class="books-empty">Chưa mở kỹ năng chủ động nào. Vào tab Cây Nền để học.</p>'}`;
 
+    // Đang mang: bấm để tháo, chuột phải để xem thêm
     pane.querySelectorAll('[data-remove]').forEach((el) => {
+      const s = byId.get(el.dataset.remove);
       el.onclick = () => setLoadout(carried.filter((id) => id !== el.dataset.remove));
+      el.oncontextmenu = (e) => skillMenu(e, s, true, carried, max);
     });
+
+    // Trong danh sách đã mở: bấm để mang, chuột phải để xem thêm
     pane.querySelectorAll('[data-add]').forEach((el) => {
       const id = el.dataset.add;
+      const s = byId.get(id);
+      el.oncontextmenu = (e) => skillMenu(e, s, carried.includes(id), carried, max);
       if (carried.includes(id)) return;
       el.onclick = () => {
         if (carried.length >= max) return Panel.toast('warn', 'Đã đầy', `Tối đa ${max} kỹ năng`);
         setLoadout([...carried, id]);
       };
     });
+
+    // Kỹ năng bẩm sinh chỉ xem được, không tháo được
+    pane.querySelectorAll('.load-slot.innate').forEach((el, i) => {
+      const s = (data.innate || [])[i];
+      el.oncontextmenu = (e) => {
+        e.preventDefault();
+        UI.menu(e, {
+          title: s.name,
+          subtitle: 'Bẩm sinh — không chiếm ô',
+          items: [{ icon: '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(s, 'Bẩm sinh') }],
+        });
+      };
+    });
   }
+
+  /**
+   * Menu chuột phải cho kỹ năng — cùng bộ thao tác với vật phẩm để người chơi
+   * không phải nhớ hai kiểu tương tác khác nhau.
+   */
+  function skillMenu(e, skill, carried_, list, max) {
+    e.preventDefault();
+    if (!skill) return;
+
+    UI.menu(e, {
+      title: skill.name,
+      subtitle: carried_ ? 'Đang mang vào trận' : 'Đã mở, chưa mang',
+      color: '#7dd3fc',
+      items: [
+        { icon: '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(skill) },
+        carried_
+          ? { icon: '↩', label: 'Tháo khỏi bộ mang theo',
+              onClick: () => setLoadout(list.filter((id) => id !== skill.id)) }
+          : { icon: '⬆', label: 'Mang vào trận',
+              disabled: list.length >= max,
+              onClick: () => setLoadout([...list, skill.id]) },
+      ],
+    });
+  }
+
+  /** Cửa sổ chi tiết kỹ năng, dựng theo cùng khuôn với chi tiết vật phẩm. */
+  function skillDetail(skill, note = null) {
+    const rows = [];
+    if (skill.manaCost) rows.push(['Tiêu hao', `${skill.manaCost} mana`]);
+    if (skill.rage > 0) rows.push(['Tiêu hao', `${skill.rage} Nộ Khí`]);
+    if (skill.rage < 0) rows.push(['Sinh ra', `${-skill.rage} Nộ Khí`]);
+    rows.push(['Hồi chiêu', skill.cooldown ? `${skill.cooldown} vòng` : 'không']);
+    rows.push(['Mục tiêu', targetLabel(skill.target)]);
+    rows.push(['Loại', kindLabel(skill.kind)]);
+
+    UI.itemDetail({
+      name: skill.name,
+      rarityName: note || kindLabel(skill.kind),
+      level: '—',
+      slot: 'skill',
+      stats: {},
+      passives: [{ name: 'Mô tả', desc: skill.desc || '' }],
+      _rows: rows,
+    }, '#7dd3fc');
+
+    // Chèn bảng thông số vào cửa sổ vừa mở
+    const box = document.querySelector('.modal-box');
+    if (!box) return;
+    const block = document.createElement('div');
+    block.className = 'detail-block';
+    block.innerHTML = '<h4>Thông số</h4>' + rows.map(([k, v]) =>
+      `<div class="detail-line"><span>${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
+    box.insertBefore(block, box.querySelector('.modal-actions'));
+  }
+
+  const targetLabel = (t) => ({
+    enemy: 'Một kẻ địch', ally: 'Một đồng đội', self: 'Bản thân',
+    allEnemies: 'Toàn bộ kẻ địch', allAllies: 'Toàn đội',
+  }[t] || t);
+
+  const kindLabel = (k) => ({
+    physical: 'Vật lý', magic: 'Phép thuật', heal: 'Hồi máu', buff: 'Tăng ích',
+  }[k] || k);
 
   function setLoadout(list) {
     socket.emit('loadout:set', { skills: list }, (res) => {

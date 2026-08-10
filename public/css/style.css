@@ -155,3 +155,95 @@ input:focus { border-color: #4c7dff; }
 @media (max-width: 900px) {
   #hint { display: none; }
 }
+
+/* ============ MÀN TÀI KHOẢN ============ */
+
+.panel.wide { width: min(520px, calc(100vw - 32px)); }
+.panel.hidden { display: none; }
+
+.hint-sm { font-size: 11px; color: #6b7791; line-height: 1.6; margin-top: 10px; }
+
+.link-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  background: transparent;
+  border: 0;
+  color: #8b95ab;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-btn:hover { color: #cfe0ff; }
+
+/* ---------- danh sách nhân vật ---------- */
+
+.ch-list { display: flex; flex-direction: column; gap: 9px; margin: 18px 0 6px; }
+
+.ch-card {
+  padding: 13px 15px;
+  background: #0f1420;
+  border: 1px solid #2b3651;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .12s, transform .12s;
+}
+.ch-card:hover { border-color: #4c7dff; transform: translateY(-2px); }
+.ch-card:hover .ch-play { color: #7dd3fc; }
+
+.ch-top { display: flex; align-items: baseline; justify-content: space-between; }
+.ch-name { font-size: 15px; font-weight: 700; color: #e6e9ef; }
+.ch-lv { font-size: 11px; color: #7dd3fc; }
+.ch-sub { font-size: 11px; color: #8b95ab; margin-top: 2px; }
+.ch-boon { font-size: 12px; color: #d3b8f0; margin-top: 7px; }
+.ch-boon span { color: #6b7791; font-size: 10px; }
+.ch-play { font-size: 11px; color: #4a5568; margin-top: 9px; text-align: right; }
+
+.ch-empty {
+  padding: 22px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7791;
+  border: 1px dashed #2b3651;
+  border-radius: 10px;
+}
+
+/* ---------- chọn quốc gia ---------- */
+
+.nation-list { display: flex; flex-direction: column; gap: 7px; }
+
+.nation-card {
+  padding: 10px 13px;
+  background: #0f1420;
+  border: 1px solid #2b3651;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color .12s;
+}
+.nation-card:hover { border-color: #4c7dff; }
+.nation-card.picked { border-color: #4c7dff; background: #16223d; }
+
+.nt-name { font-size: 13px; font-weight: 600; color: #e6e9ef; }
+.nt-trait { font-size: 11px; color: #8b95ab; margin-top: 1px; }
+.nt-priv { font-size: 11px; color: #93e0b0; margin-top: 4px; }
+
+/* ---------- màn bốc Đặc Ân ---------- */
+
+.boon-star {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6b7791;
+}
+.boon-name {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 5px;
+  background: linear-gradient(90deg, #7dd3fc, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

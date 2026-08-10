@@ -60,8 +60,9 @@ function attach(io) {
           map: map.serialize(),
           tickHz: cfg.TICK_HZ,
           character,
-          // Vào giữa lúc cả phòng đang đánh nhau thì xem luôn, không phải chờ
-          battle: room.battle ? room.battle.serialize() : null,
+          // Người mới vào phòng luôn ở chế độ khám phá — không bị kéo vào trận
+          // của người lạ nữa
+          battle: null,
           characterState: room.characterState(player),
         });
       } catch (err) {
@@ -72,9 +73,17 @@ function attach(io) {
 
     socket.on('input', (input) => {
       const room = manager.roomOf(socket);
+      const p = room?.players.get(socket.id);
       // Đang trong trận thì bỏ qua phím di chuyển
-      if (room && !room.battle) room.setInput(socket.id, input || {});
+      if (p && !p.battleId) room.setInput(socket.id, input || {});
     });
+
+    /** Trận mà người này đang tham gia, null nếu đang khám phá. */
+    const myBattle = () => {
+      const room = manager.roomOf(socket);
+      const p = room?.players.get(socket.id);
+      return p?.battleId ? room.battles.get(p.battleId) : null;
+    };
 
     /* ------------------------------------------------ chiến đấu -------- */
 
@@ -93,10 +102,13 @@ function attach(io) {
       const room = manager.roomOf(socket);
       const p = room?.players.get(socket.id);
       if (!p) return ack?.({ ok: false, error: 'Chưa ở trong phòng nào.' });
-      if (room.battle) return ack?.({ ok: false, error: 'Không đổi trang bị giữa trận.' });
+      if (p.battleId) return ack?.({ ok: false, error: 'Không đổi trang bị giữa trận.' });
 
       const res = fn(p, payload);
-      if (res?.ok) room.sendCharacter(p);
+      if (res?.ok) {
+        room.sendCharacter(p);
+        room.saveProgress(p);
+      }
       ack?.(res);
     };
 
@@ -176,11 +188,76 @@ function attach(io) {
     });
 
     socket.on('battle:action', (payload = {}, ack) => {
-      const room = manager.roomOf(socket);
-      if (!room?.battle) return ack?.({ ok: false, error: 'Không có trận nào.' });
+      const battle = myBattle();
+      if (!battle) return ack?.({ ok: false, error: 'Không có trận nào.' });
 
-      const ok = room.battle.submit(socket.id, payload.skillId, payload.targetId);
+      const ok = battle.submit(socket.id, payload.skillId, payload.targetId);
       ack?.({ ok, error: ok ? null : 'Lựa chọn không hợp lệ.' });
+    });
+
+    /* ------------------------------------------------ nhóm ------------- */
+
+    /**
+     * Nhóm quyết định ai cùng vào một trận. Không cùng nhóm thì dù đứng cạnh
+     * nhau vẫn đánh trận riêng.
+     */
+    socket.on('party:invite', (payload = {}, ack) => {
+      const room = manager.roomOf(socket);
+      const from = room?.players.get(socket.id);
+      const to = room?.players.get(payload.targetId);
+      if (!from || !to) return ack?.({ ok: false, error: 'Không tìm thấy người chơi.' });
+      if (from.battleId || to.battleId) return ack?.({ ok: false, error: 'Không mời được khi đang trong trận.' });
+
+      const res = room.party.invite(from, to);
+      if (res.ok) {
+        io.to(to.id).emit('party:invited', { fromId: from.id, fromName: from.name });
+      }
+      ack?.(res);
+    });
+
+    socket.on('party:respond', (payload = {}, ack) => {
+      const room = manager.roomOf(socket);
+      const me = room?.players.get(socket.id);
+      const from = room?.players.get(payload.fromId);
+      if (!me || !from) return ack?.({ ok: false, error: 'Người mời đã rời đi.' });
+
+      if (!payload.accept) {
+        room.party.decline(me, from);
+        io.to(from.id).emit('party:declined', { name: me.name });
+        return ack?.({ ok: true, joined: false });
+      }
+
+      const res = room.party.accept(me, from);
+      if (res.ok) {
+        for (const id of res.party.members) {
+          const m = room.players.get(id);
+          if (m) room.sendCharacter(m);
+        }
+        io.to(res.party.members).emit('party:changed', { joined: me.name });
+      }
+      ack?.({ ...res, joined: !!res.ok });
+    });
+
+    socket.on('party:leave', (payload, ack) => {
+      const room = manager.roomOf(socket);
+      const me = room?.players.get(socket.id);
+      if (!me) return ack?.({ ok: false });
+
+      const res = room.party.leave(me);
+      room.sendCharacter(me);
+      if (res?.party) {
+        for (const id of res.party.members) {
+          const m = room.players.get(id);
+          if (m) room.sendCharacter(m);
+        }
+        io.to(res.party.members).emit('party:changed', { left: me.name });
+      }
+      // Nhóm tan thì người còn lại cũng phải được cập nhật
+      if (res?.orphan) {
+        const o = room.players.get(res.orphan);
+        if (o) { o.partyId = null; room.sendCharacter(o); }
+      }
+      ack?.({ ok: true });
     });
 
     // Client dùng để đo độ trễ thật (round-trip)

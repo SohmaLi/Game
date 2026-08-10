@@ -16,7 +16,7 @@ const nations = require('./data/nations');
  * gọi lại hàm bốc trong console cho tới khi ra đặc ân mình thích.
  */
 
-const MAX_CHARACTERS = 4;
+const MAX_CHARACTERS = 3;
 // Cho phép chữ có dấu tiếng Việt, chữ số và khoảng trắng đơn ở giữa
 const NAME_RE = /^[\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u;
 
@@ -52,7 +52,31 @@ function present(row) {
     hp: row.hp,
     mana: row.mana,
     pos: { x: row.pos_x, y: row.pos_y },
+
+    // Tiến trình lưu dưới dạng JSON — xem ghi chú trong db/schema.sql
+    learned: parseJson(row.learned, []),
+    carried: parseJson(row.carried, []),
+    codex: parseJson(row.codex, null),
+    books: parseJson(row.books, []),
+    equipped: parseJson(row.equipped, null),
+    bag: parseJson(row.bag, []),
+    playedAt: row.played_at,
   };
+}
+
+/**
+ * Cột JSON của MariaDB thực chất là LONGTEXT, driver trả về chuỗi. Dữ liệu hỏng
+ * (do đổi định dạng giữa các phiên bản) thì rơi về mặc định thay vì làm sập cả
+ * lượt đăng nhập — mất một phần tiến trình vẫn hơn là không vào được game.
+ */
+function parseJson(value, fallback) {
+  if (value == null) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 
 async function list(accountId) {
@@ -145,6 +169,41 @@ async function savePosition(characterId, x, y) {
     [Number(x) || 0, Number(y) || 0, characterId]);
 }
 
+/**
+ * Ghi toàn bộ tiến trình của một nhân vật xuống database.
+ *
+ * Gọi ở ba thời điểm: sau mỗi trận, khi người chơi thoát, và định kỳ. Chỉ lưu
+ * lúc thoát là không đủ — mất kết nối đột ngột hoặc server restart sẽ nuốt mất
+ * cả buổi chơi.
+ */
+async function saveProgress(characterId, p) {
+  if (!characterId) return false;
+
+  await db.query(
+    `UPDATE characters SET
+       class = ?, level = ?, exp = ?, gold = ?,
+       stat_str = ?, stat_int = ?, stat_vit = ?, stat_agi = ?, stat_wil = ?, stat_points = ?,
+       pos_x = ?, pos_y = ?,
+       learned = ?, carried = ?, codex = ?, books = ?, equipped = ?, bag = ?,
+       played_at = NOW()
+     WHERE id = ?`,
+    [
+      p.className || null, p.level, p.exp, p.gold,
+      p.stats.str, p.stats.int, p.stats.vit, p.stats.agi, p.stats.wil, p.statPoints,
+      Math.round(p.x), Math.round(p.y),
+      JSON.stringify(p.learned || []),
+      JSON.stringify(p.carried || []),
+      JSON.stringify(p.codex || []),
+      JSON.stringify(p.books || []),
+      JSON.stringify(p.inv?.equipped || {}),
+      JSON.stringify(p.inv?.bag || []),
+      characterId,
+    ]
+  );
+  return true;
+}
+
 module.exports = {
-  MAX_CHARACTERS, list, create, rerollBoon, lockBoon, savePosition, getOwned, present, validateName,
+  MAX_CHARACTERS, list, create, rerollBoon, lockBoon, savePosition, saveProgress,
+  getOwned, present, validateName,
 };
