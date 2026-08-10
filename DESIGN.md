@@ -123,15 +123,16 @@ không thành "cứ nhồi Nhanh Nhẹn là vô đối".
 
 🔒 Ra mắt 2 class, thêm sau:
 
-| Class | Vai trò | Tài nguyên | Lối chơi |
-|---|---|---|---|
-| **Chiến Binh** | Cận chiến, chịu đòn | Mana + **Nộ Khí** | Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh |
-| **Pháp Sư** | Sát thương phép | Mana | Bùng nổ sớm, mỏng manh, phải tính toán mana |
+| Class | Nhánh | Vai trò | Tài nguyên | Lối chơi |
+|---|---|---|---|---|
+| **Chiến Binh** | sức lực | Cận chiến, chịu đòn | HP + **Nộ Khí** | Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh |
+| **Pháp Sư** | phép thuật | Sát thương phép | HP + **Mana** | Bùng nổ sớm, mỏng manh, phải tính toán mana |
+| *(chưa có)* | bóng tối | — | HP + **Karma** | Tích Karma bằng cách giết |
 
-💡 **Vì sao Chiến Binh có thêm Nộ Khí:** nếu cả hai class cùng chỉ tiêu mana thì chúng chơi
-giống hệt nhau, chỉ khác con số hiển thị. Nộ Khí (tích khi đánh và khi bị đánh) cho Chiến
-Binh nhịp chơi riêng — vào trận yếu, càng đánh lâu càng mạnh, ngược hẳn Pháp Sư mạnh sẵn
-rồi cạn dần.
+💡 **Mỗi class chỉ dùng đúng một thanh tài nguyên ngoài HP.** Chiến Binh không có mana,
+Pháp Sư không có Nộ. Nếu để một class nhìn hai thanh mà chỉ dùng một thì thanh còn lại
+chỉ gây rối. Chiêu của class nào thì tiêu tài nguyên của class đó — *Gồng Mình* của
+Chiến Binh tiêu Nộ, không tiêu mana.
 
 ### 3.2 Đổi class
 

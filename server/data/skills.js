@@ -42,9 +42,11 @@ const SKILLS = [
   },
   {
     id: 'iron_skin', name: 'Gồng Mình', class: 'warrior',
-    kind: 'buff', power: 0, manaCost: 6, rage: 0, cooldown: 3, target: 'self',
+    // Tiêu Nộ chứ không tiêu mana: Chiến Binh không có thanh mana, để chiêu
+    // của họ đòi mana là bắt người chơi nhìn một thanh mà class mình không dùng
+    kind: 'buff', power: 0, manaCost: 0, rage: 20, cooldown: 3, target: 'self',
     effect: { type: 'damageReduction', percent: 0.30, turns: 3 },
-    desc: 'Giảm 30% sát thương nhận vào trong 3 vòng.',
+    desc: 'Giảm 30% sát thương nhận vào trong 3 vòng. Tốn 20 Nộ Khí.',
   },
 
   /* ---------------------------------------------------- Pháp Sư ---------- */
