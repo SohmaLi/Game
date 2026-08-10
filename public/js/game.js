@@ -130,6 +130,7 @@ function connect(name, type) {
     socket.emit('ping:probe', t0, () => {
       state.ping = Math.round(performance.now() - t0);
       $('ping').textContent = state.ping;
+      $('ping2').textContent = state.ping;
     });
   }, 2000);
 }
@@ -143,7 +144,7 @@ function showError(msg) {
 
 function enterGame() {
   $('menu').classList.add('hidden');
-  $('hud').classList.remove('hidden');
+  $('navbar').classList.remove('hidden');
   $('hint').classList.remove('hidden');
   setTimeout(() => $('hint').classList.add('hidden'), 6000);
 }
@@ -153,9 +154,10 @@ function leaveGame() {
   UI.closeMenu();
   UI.closeModal();
   Hud.hide();
+  closeNav();
   $('statusBar').classList.add('hidden');
   $('menu').classList.remove('hidden');
-  $('hud').classList.add('hidden');
+  $('navbar').classList.add('hidden');
   $('hint').classList.add('hidden');
   $('play').disabled = false;
   state.me = null;
@@ -371,6 +373,34 @@ function render() {
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 render();
+
+/* ---------------- Navbar ---------------- */
+
+function navOpen() { return !$('navMenu').classList.contains('hidden'); }
+
+function closeNav() {
+  $('navMenu').classList.add('hidden');
+  $('navToggle').classList.remove('open');
+}
+
+function toggleNav() {
+  const willOpen = !navOpen();
+  $('navMenu').classList.toggle('hidden', !willOpen);
+  $('navToggle').classList.toggle('open', willOpen);
+}
+
+$('navToggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleNav();
+});
+
+// Bấm ra ngoài hoặc Esc thì đóng
+document.addEventListener('mousedown', (e) => {
+  if (navOpen() && !$('navbar').contains(e.target)) closeNav();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && navOpen()) closeNav();
+});
 
 /* ---------------- Menu ---------------- */
 

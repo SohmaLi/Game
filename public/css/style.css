@@ -132,9 +132,14 @@ input:focus { border-color: #4c7dff; }
 
 #hint {
   position: fixed;
-  bottom: 16px;
+  /* Đặt ở giữa trên — khoảng trống duy nhất còn lại giữa HUD (trái) và navbar
+     (phải). Để ở đáy thì đè lên thanh trạng thái, và trên màn hình hẹp thanh
+     đó xuống dòng cao gấp ba nên chừa bao nhiêu cũng không đủ. */
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
+  max-width: calc(100vw - 500px);
+  text-align: center;
   padding: 8px 16px;
   background: rgba(15, 20, 32, .82);
   border: 1px solid #263047;
@@ -144,3 +149,9 @@ input:focus { border-color: #4c7dff; }
   z-index: 10;
 }
 #hint b { color: #cfe0ff; }
+
+/* Dưới 900px thì giữa trên không còn chỗ (HUD 232px + navbar) — ẩn gợi ý,
+   người chơi vẫn tự hiểu qua thao tác */
+@media (max-width: 900px) {
+  #hint { display: none; }
+}

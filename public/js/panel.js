@@ -39,7 +39,7 @@ const Panel = (() => {
   }
 
   function isOpen() { return !$('panel').classList.contains('hidden'); }
-  function open() { $('panel').classList.remove('hidden'); render(); }
+  function open() { closeNav(); $('panel').classList.remove('hidden'); render(); }
   function close() { $('panel').classList.add('hidden'); hideTip(); }
   function toggle() { isOpen() ? close() : open(); }
 
