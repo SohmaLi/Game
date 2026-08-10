@@ -103,7 +103,7 @@ function connect(name, type) {
       enterGame();
 
       UI.init();
-      Hud.init();
+      Hud.init(socket);
       Battle.init(socket, res.you);
       Panel.init(socket);
       if (res.characterState) Panel.update(res.characterState);

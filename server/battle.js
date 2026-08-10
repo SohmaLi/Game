@@ -26,6 +26,9 @@ const RESOLVE_MS = 2200;   // thời gian client phát hoạt cảnh trước kh
 const MAX_ROUNDS = 50;     // chặn trận đánh kéo dài vô tận
 const RAGE_MAX = 100;
 
+/** Mã hành động trốn thoát — không phải kỹ năng nên để riêng, tránh lẫn với skills.js */
+const FLEE = '__flee';
+
 let nextBattleId = 1;
 
 /* ------------------------------------------------------ tạo combatant ---- */
@@ -46,7 +49,7 @@ function playerCombatant(player) {
     skills: skillData.loadoutFor(player.className),
     cooldowns: {},
     effects: [],
-    rage: 0,
+    rage: player.rage || 0,
     karma: player.karma || 0,
     resources: classData.resourcesFor(player.className),
     reviveUsed: false,
@@ -88,9 +91,10 @@ function monsterCombatant(def, index) {
   return c;
 }
 
-/** Karma chỉ tích cho người chơi — quái không có thanh này. */
+/** Karma chỉ dành cho class nhánh bóng tối; class khác không có thanh này. */
 function gainKarma(c, amount) {
   if (!c?.isPlayer || !c.alive) return;
+  if (!classData.uses(c.className, 'karma')) return;
   c.karma = Math.min(classData.KARMA_MAX, c.karma + amount);
 }
 
@@ -164,6 +168,15 @@ class Battle {
 
     const actor = this.byId(combatantId);
     if (!actor || !actor.alive || !actor.isPlayer) return false;
+
+    // Trốn thoát: tiêu trọn lượt, thành hay bại tính lúc tới lượt
+    if (skillId === FLEE) {
+      this.actions.set(combatantId, { skillId: FLEE, targetId: null });
+      this.broadcast();
+      this.maybeResolveEarly();
+      return true;
+    }
+
     if (!actor.skills.includes(skillId)) return false;
 
     const skill = skillData.get(skillId);
@@ -178,13 +191,32 @@ class Battle {
     this.actions.set(combatantId, { skillId, targetId: target });
     this.broadcast();
 
-    // Tất cả người chơi còn sống đã chọn xong thì xử lý luôn, không bắt chờ hết 20 giây
+    this.maybeResolveEarly();
+    return true;
+  }
+
+  /** Tất cả người chơi còn sống đã chọn xong thì xử lý luôn, không chờ hết 20 giây. */
+  maybeResolveEarly() {
     const pending = this.living('ally').filter((a) => a.isPlayer && !this.actions.has(a.id));
     if (pending.length === 0 && this.auto) {
       clearTimeout(this.timer);
       setTimeout(() => this.resolveRound(), 250);
     }
-    return true;
+  }
+
+  /**
+   * Tỉ lệ trốn thoát, dựa trên Nhanh Nhẹn của người trốn so với trung bình của
+   * kẻ địch. Ngang tốc độ thì khoảng 60% — trốn phải là lựa chọn thật, không
+   * phải nút thoát hiểm chắc ăn, nhưng cũng không được vô vọng đến mức không
+   * ai bấm.
+   */
+  fleeChance(actor) {
+    const foes = this.living('enemy');
+    if (!foes.length) return 1;
+    const avg = foes.reduce((s2, f) => s2 + this.effectiveSpeed(f), 0) / foes.length;
+    const mine = this.effectiveSpeed(actor);
+    const ratio = mine / (mine + avg); // 0.5 khi ngang nhau
+    return Math.max(0.15, Math.min(0.90, ratio * 1.2));
   }
 
   /** Kiểm tra mục tiêu người chơi chọn có hợp lệ với loại kỹ năng không. */
@@ -271,6 +303,19 @@ class Battle {
 
   execute(actor, action) {
     const events = [];
+
+    if (action.skillId === FLEE) {
+      const chance = this.fleeChance(actor);
+      const ok = Math.random() < chance;
+      events.push({
+        type: 'flee', actorId: actor.id, actorName: actor.name,
+        success: ok, chance: Math.round(chance * 100),
+      });
+      // Một người trốn thoát thì cả nhóm rút — phòng cùng vào trận thì cùng ra
+      if (ok) this.finish('fled', events);
+      return events;
+    }
+
     const skill = skillData.get(action.skillId) || skillData.get('attack');
 
     // Kiểm tra lại tài nguyên tại thời điểm thực thi — trạng thái có thể đã đổi
@@ -322,17 +367,12 @@ class Battle {
         });
       }
 
-      // Chống đỡ bằng Nộ Khí: bị đánh cũng tích nộ
-      if (target.isPlayer) target.rage = Math.min(RAGE_MAX, target.rage + 6);
+      // Bị đánh cũng tích Nộ — chỉ với class dùng Nộ
+      if (target.isPlayer && classData.uses(target.className, 'rage')) {
+        target.rage = Math.min(RAGE_MAX, target.rage + classData.RAGE_GAIN.onDamageTaken);
+      }
 
       hits.push({ id: target.id, kind: 'damage', amount: result.amount, crit: result.crit, hp: target.hp });
-
-      // Karma tích theo tỉ lệ sát thương so với máu tối đa, không theo con số
-      // tuyệt đối — nếu theo số tuyệt đối thì đánh quái máu trâu sẽ tích đầy
-      // ngay còn đánh quái giấy thì mãi không đầy
-      const G = classData.KARMA_GAIN;
-      gainKarma(actor, (result.amount / target.hpMax) * 100 * G.onDamageDealt);
-      gainKarma(target, (result.amount / target.hpMax) * 100 * G.onDamageTaken);
 
       // Hút Máu từ trang bị
       if (actor.combat.lifesteal > 0 && actor.alive) {
@@ -340,7 +380,7 @@ class Battle {
         const before = actor.hp;
         actor.hp = Math.min(actor.hpMax, actor.hp + healed);
         if (actor.hp > before) {
-          hits.push({ id: actor.id, kind: 'heal', amount: actor.hp - before, hp: actor.hp });
+          hits.push({ id: actor.id, kind: 'heal', amount: actor.hp - before, hp: actor.hp, via: 'Hút Máu' });
         }
       }
 
@@ -351,7 +391,10 @@ class Battle {
       if (reflectPct > 0 && actor.alive && result.amount > 0) {
         const back = Math.max(1, Math.round(result.amount * reflectPct));
         actor.hp = Math.max(0, actor.hp - back);
-        hits.push({ id: actor.id, kind: 'reflect', amount: back, hp: actor.hp });
+        hits.push({
+          id: actor.id, kind: 'reflect', amount: back, hp: actor.hp,
+          via: tBoon?.effect.type === 'reflect' ? 'Phản Phệ' : 'Gai Nhọn',
+        });
         this.checkDeath(actor, events);
       }
 
@@ -404,8 +447,11 @@ class Battle {
       }
       c.alive = false;
       c.effects = [];
+      // Karma chỉ đến từ việc GIẾT, không đến từ sát thương gây ra
       if (c.side === 'enemy') {
-        for (const a of this.living('ally')) gainKarma(a, classData.KARMA_GAIN.onKill);
+        for (const a of this.living('ally')) gainKarma(a, classData.KARMA_GAIN.onKillMonster);
+      } else {
+        for (const e of this.living('enemy')) gainKarma(e, classData.KARMA_GAIN.onKillPlayer);
       }
       events.push({ type: 'death', id: c.id, name: c.name, side: c.side });
     }
@@ -432,7 +478,12 @@ class Battle {
         c.cooldowns[id] = Math.max(0, c.cooldowns[id] - 1);
       }
 
-      gainKarma(c, classData.KARMA_GAIN.perRound);
+      // Nộ và Karma tan dần mỗi vòng — không tiêu thì mất, ép hai lối chơi này
+      // phải giữ nhịp thay vì tích đầy rồi ngồi chờ
+      if (c.isPlayer) {
+        c.rage = Math.max(0, c.rage - classData.DECAY.rage.perRound);
+        c.karma = Math.max(0, (c.karma || 0) - classData.DECAY.karma.perRound);
+      }
 
       // Hồi mana theo Ý Chí, cộng thêm phần từ trang bị
       if (c.alive) {
@@ -443,7 +494,7 @@ class Battle {
           const heal = Math.round(c.hpMax * c.combat.regenPercent);
           const before = c.hp;
           c.hp = Math.min(c.hpMax, c.hp + heal);
-          if (c.hp > before) events.push({ type: 'regen', id: c.id, amount: c.hp - before, hp: c.hp });
+          if (c.hp > before) events.push({ type: 'regen', id: c.id, amount: c.hp - before, hp: c.hp, via: 'Hồi Sinh' });
         }
       }
     }
@@ -550,6 +601,7 @@ class Battle {
       cooldowns: c.cooldowns,
       // Chỉ chủ nhân mới cần biết mình có những chiêu gì
       skills: c.isPlayer ? c.skills.map(skillData.publicView) : null,
+      fleeChance: c.isPlayer && c.alive ? Math.round(this.fleeChance(c) * 100) : null,
     };
   }
 
@@ -575,4 +627,4 @@ class Battle {
   }
 }
 
-module.exports = { Battle, SELECT_MS, RESOLVE_MS, RAGE_MAX };
+module.exports = { Battle, SELECT_MS, RESOLVE_MS, RAGE_MAX, FLEE };

@@ -154,3 +154,11 @@
 @media (max-width: 700px) {
   #playerHud { width: 180px; padding: 8px 10px; }
 }
+
+/* Ô chờ sẵn khi chưa có trạng thái nào — giữ khung HUD đứng yên, và cho người
+   chơi biết trước chỗ nào sẽ báo hiệu ứng */
+.st.empty-slot {
+  background: #10151f;
+  border-style: dashed;
+  border-color: #202940;
+}

@@ -3,70 +3,91 @@
 /**
  * Lớp nhân vật và tài nguyên.
  *
- * Bốn thanh (theo yêu cầu thiết kế):
- *   HP     — mọi class
- *   Mana   — class dùng phép
- *   Nộ Khí — class dùng lực
- *   Karma  — mọi class
+ * Bốn thanh, chỉ HP là chung cho mọi class — ba thanh còn lại gắn với hướng
+ * sức mạnh của class:
  *
- * Mana và Nộ là cặp phụ thuộc class: Pháp Sư tiêu mana, Chiến Binh tích nộ.
- * Class lai sau này có thể bật cả hai.
+ *   HP     · mọi class
+ *   Mana   · class phép thuật   — hồi đều theo Ý Chí, tiêu khi tung chiêu
+ *   Nộ Khí · class sức lực      — tích khi đánh và khi bị đánh, TỰ NGUỘI DẦN
+ *   Karma  · class bóng tối     — tích khi GIẾT, TỰ TAN DẦN
+ *
+ * Nộ và Karma khác Mana ở chỗ chúng **không giữ được**. Mana đầy thì cứ nằm đó
+ * chờ dùng; Nộ và Karma thì tụt liên tục, nên người chơi phải tiêu ngay hoặc
+ * mất — điều này ép hai lối chơi đó phải hung hăng và giữ nhịp, thay vì tích
+ * đầy rồi ngồi chờ thời cơ như Pháp Sư.
  */
 
 const RESOURCE = {
-  hp: { id: 'hp', name: 'Máu', color: '#46c46b' },
-  mana: { id: 'mana', name: 'Mana', color: '#3f7fd8' },
-  rage: { id: 'rage', name: 'Nộ Khí', color: '#d8642f' },
-  karma: { id: 'karma', name: 'Karma', color: '#b18cff' },
+  hp: { id: 'hp', name: 'Máu', short: 'HP', color: '#46c46b' },
+  mana: { id: 'mana', name: 'Mana', short: 'MP', color: '#3f7fd8' },
+  rage: { id: 'rage', name: 'Nộ Khí', short: 'NỘ', color: '#d8642f' },
+  karma: { id: 'karma', name: 'Karma', short: 'KARMA', color: '#b18cff' },
 };
 
 const RAGE_MAX = 100;
 const KARMA_MAX = 100;
 
 /**
- * KARMA — 💡 đề xuất, chờ duyệt.
+ * Tốc độ tan của Nộ và Karma.
  *
- * Karma tích qua mọi hành động trong trận: gây sát thương, chịu sát thương,
- * hạ gục kẻ địch. Đầy 100 thì mở khoá **Thiên Ân** — một đòn đặc biệt gắn với
- * chính Đặc Ân mà vì sao đã ban cho nhân vật (Thập Nhị Thần Tọa, DESIGN.md §1.2).
- *
- * Vì sao chọn hướng này thay vì làm Karma thành "mana thứ hai":
- *   - Đặc Ân hiện chỉ là hiệu ứng chạy ngầm, người chơi không "cảm" thấy nó.
- *     Cho nó một đòn bấm được sẽ biến thứ ngẫu nhiên lúc tạo nhân vật thành
- *     bản sắc mà người chơi chủ động dùng.
- *   - 12 Đặc Ân → 12 Thiên Ân khác nhau, tự nó tạo ra 12 lối chơi.
- *   - Không phụ thuộc class nên không phá cân bằng giữa Pháp Sư và Chiến Binh.
- *
- * Nếu bạn có ý khác cho Karma, chỉ cần sửa phần này — hạ tầng thanh Karma và
- * cách tích đã chạy sẵn.
+ * Trong trận tính theo VÒNG, ngoài trận tính theo GIÂY. Hai đơn vị khác nhau
+ * vì "thời gian" ở hai chế độ là hai thứ khác nhau — một vòng turn-based có
+ * thể kéo dài 20 giây thực nhưng chỉ là một nhịp trong trận.
  */
+const DECAY = {
+  rage: {
+    perRound: 6,      // mỗi vòng trong trận
+    perSecond: 4,     // mỗi giây khi đang khám phá
+  },
+  karma: {
+    // Karma tan chậm hơn Nộ: nó đổi bằng mạng sống của kẻ địch, mất quá nhanh
+    // thì công sức săn giết thành vô nghĩa
+    perRound: 3,
+    perSecond: 1.5,
+  },
+};
+
+/** Nộ tích khi đánh và khi bị đánh. */
+const RAGE_GAIN = {
+  onHitDealt: 8,     // cộng khi ra đòn thường (đã khai báo trên từng kỹ năng)
+  onDamageTaken: 6,  // cộng khi ăn đòn
+};
+
+/** Karma chỉ tích khi hạ gục — không tích từ sát thương. */
 const KARMA_GAIN = {
-  onDamageDealt: 0.12,   // % Karma trên mỗi 1% máu tối đa của địch bị trừ
-  onDamageTaken: 0.18,   // chịu đòn tích nhanh hơn — kẻ bị dồn ép có cửa lật
-  onKill: 12,            // cộng thẳng khi hạ gục
-  perRound: 3,           // cộng đều mỗi vòng để trận dài luôn dùng được
+  onKillMonster: 25,
+  onKillPlayer: 40,  // PvP sau này
 };
 
 const CLASSES = {
   warrior: {
     id: 'warrior',
     name: 'Chiến Binh',
+    archetype: 'might',
     role: 'Cận chiến, chịu đòn',
-    resources: ['hp', 'rage', 'karma'],
+    resources: ['hp', 'rage'],
     primary: 'str',
-    desc: 'Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh. Vào trận yếu, càng đánh lâu càng mạnh.',
+    desc: 'Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh. Nộ nguội dần nên phải đánh liên tục.',
   },
   mage: {
     id: 'mage',
     name: 'Pháp Sư',
+    archetype: 'arcane',
     role: 'Sát thương phép tầm xa',
-    resources: ['hp', 'mana', 'karma'],
+    resources: ['hp', 'mana'],
     primary: 'int',
     desc: 'Bùng nổ sát thương sớm, mỏng manh, phải tính toán mana.',
   },
 };
 
-/** Chưa chọn class thì hiện cả bốn thanh — người chơi thấy được mình đang thiếu gì. */
+/**
+ * Chưa có class nào dùng Karma — nó dành cho nhánh **bóng tối** sẽ thêm sau
+ * (ví dụ Ám Sát Giả, Tử Linh Sư). Toàn bộ cơ chế tích và tan của Karma đã
+ * chạy sẵn, thêm class chỉ cần khai `resources: ['hp', 'karma']`.
+ */
+const ARCHETYPE_RESOURCE = { might: 'rage', arcane: 'mana', dark: 'karma' };
+
+/** Chưa chọn class thì hiện cả bốn thanh — người chơi thấy được hệ thống có gì. */
 const DEFAULT_RESOURCES = ['hp', 'mana', 'rage', 'karma'];
 
 function get(id) {
@@ -77,8 +98,13 @@ function resourcesFor(classId) {
   return get(classId)?.resources || DEFAULT_RESOURCES;
 }
 
+function uses(classId, resource) {
+  return resourcesFor(classId).includes(resource);
+}
+
 module.exports = {
-  CLASSES, RESOURCE, RAGE_MAX, KARMA_MAX, KARMA_GAIN, DEFAULT_RESOURCES,
-  get, resourcesFor,
+  CLASSES, RESOURCE, RAGE_MAX, KARMA_MAX, DECAY, RAGE_GAIN, KARMA_GAIN,
+  ARCHETYPE_RESOURCE, DEFAULT_RESOURCES,
+  get, resourcesFor, uses,
   all: () => Object.values(CLASSES),
 };

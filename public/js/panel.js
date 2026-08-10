@@ -77,7 +77,32 @@ const Panel = (() => {
     if (!data) return;
     renderSlots();
     renderStats();
+    renderPassives();
     renderBag();
+  }
+
+  /**
+   * Bị động nằm rải trên 10 món trang bị. Không có chỗ liệt kê gộp thì người
+   * chơi phải mở từng món ra mới biết mình đang thật sự được hưởng những gì.
+   */
+  function renderPassives() {
+    const box = $('pPassives');
+    const list = data.passives || [];
+
+    if (!list.length) {
+      box.innerHTML = `<p class="passive-empty">Chưa có bị động nào.<br>
+        Trang bị từ hạng <b style="color:${RARITY_COLOR.rare}">Hiếm</b> trở lên mới mang bị động.</p>`;
+      return;
+    }
+
+    box.innerHTML = list.map((p) => `
+      <div class="passive-row" title="${esc(p.desc)}">
+        <span>
+          <span class="passive-name">${esc(p.name)}${p.stacks > 1 ? ` ×${p.stacks}` : ''}</span>
+          <span class="passive-from">${esc(p.sources.join(', '))}</span>
+        </span>
+        <span class="passive-val">${esc(p.value)}</span>
+      </div>`).join('');
   }
 
   function renderSlots() {

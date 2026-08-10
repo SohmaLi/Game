@@ -33,9 +33,17 @@ const Hud = (() => {
   let expanded = false;
   let data = null;
 
-  function init() {
+  function init(socket) {
     $('stMore')?.addEventListener('click', () => {
       expanded = !expanded;
+      render();
+    });
+
+    // Nộ và Karma tan dần ngoài trận; server chỉ báo khi qua mốc tròn
+    socket?.on('resources', (r) => {
+      if (!data) return;
+      data.rage = r.rage;
+      data.karma = r.karma;
       render();
     });
   }
@@ -101,20 +109,27 @@ const Hud = (() => {
       }
     }
 
-    row.classList.toggle('empty', grouped.length === 0);
-    if (!grouped.length) {
-      extra.classList.remove('open');
-      return;
-    }
+    // Hàng trạng thái LUÔN hiện, kể cả khi trống — có ô chờ sẵn thì người chơi
+    // biết chỗ nào sẽ báo hiệu ứng, và khung HUD không nhảy cao thấp mỗi lần
+    // dính hay hết một trạng thái
+    row.classList.remove('empty');
 
     const visible = grouped.slice(0, MAX_VISIBLE_STATUS);
     const hidden = grouped.slice(MAX_VISIBLE_STATUS);
 
-    row.querySelectorAll('.st').forEach((n) => n.remove());
+    row.querySelectorAll(':scope > .st').forEach((n) => n.remove());
     extra.innerHTML = '';
 
     for (const g of visible) row.insertBefore(chip(g), more);
     for (const g of hidden) extra.appendChild(chip(g));
+
+    // Lấp nốt bằng ô trống cho đủ 5 chỗ
+    for (let i = visible.length; i < MAX_VISIBLE_STATUS; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'st empty-slot';
+      slot.title = 'Chưa có trạng thái';
+      row.insertBefore(slot, more);
+    }
 
     more.classList.toggle('hidden', hidden.length === 0);
     more.style.display = hidden.length ? 'grid' : 'none';
@@ -136,7 +151,10 @@ const Hud = (() => {
     return { warrior: 'Chiến Binh', mage: 'Pháp Sư' }[id] || id;
   }
 
-  /** Ngoài trận: lấy từ bảng nhân vật, Nộ về 0 vì đó là tài nguyên trong trận. */
+  /**
+   * Ngoài trận: lấy từ bảng nhân vật. Nộ và Karma vẫn còn lại sau trận và tiếp
+   * tục tan dần, nên không đặt về 0 ở đây — server là nơi giữ con số thật.
+   */
   function fromCharacter(c) {
     if (!c) return;
     set({
@@ -145,7 +163,7 @@ const Hud = (() => {
       className: c.className,
       hp: c.combat.hpMax, hpMax: c.combat.hpMax,
       mana: c.combat.manaMax, manaMax: c.combat.manaMax,
-      rage: 0, rageMax: 100,
+      rage: c.rage || 0, rageMax: c.rageMax || 100,
       karma: c.karma || 0, karmaMax: c.karmaMax || 100,
       resources: c.resources,
       effects: [],

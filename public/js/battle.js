@@ -11,10 +11,14 @@
 const Battle = (() => {
   const $ = (id) => document.getElementById(id);
 
+  /** Phải khớp với hằng số cùng tên ở server/battle.js */
+  const FLEE = '__flee';
+
   const ui = {
     root: null, round: null, timerFill: null, timerText: null, phase: null,
     enemies: null, allies: null, order: null, prompt: null, skills: null,
     log: null, result: null, resultTitle: null, resultBody: null, resultClose: null,
+    flee: null, fleeChance: null,
   };
 
   const state = {
@@ -40,6 +44,7 @@ const Battle = (() => {
         phase: 'bPhase', enemies: 'bEnemies', allies: 'bAllies', order: 'bOrder',
         prompt: 'bPrompt', skills: 'bSkills', log: 'bLog', result: 'bResult',
         resultTitle: 'bResultTitle', resultBody: 'bResultBody', resultClose: 'bResultClose',
+        flee: 'bFlee', fleeChance: 'bFleeChance',
       };
       ui[key] = $(map[key]);
     }
@@ -47,6 +52,24 @@ const Battle = (() => {
     ui.resultClose.onclick = () => {
       ui.result.classList.add('hidden');
       close();
+    };
+
+    ui.flee.onclick = async () => {
+      const self = me();
+      const chance = self?.fleeChance ?? 0;
+      // Tỉ lệ thấp thì hỏi lại — trốn hụt là mất trắng một lượt, đủ để thua
+      // một trận đang cân bằng
+      if (chance < 50) {
+        const ok = await UI.confirm({
+          title: 'Trốn thoát?',
+          message: `Tỉ lệ thành công chỉ <b class="warn">${chance}%</b>.<br><br>
+            Trốn hụt thì mất trọn lượt này, kẻ địch vẫn ra đòn bình thường.`,
+          confirmLabel: 'Cứ thử',
+          danger: true,
+        });
+        if (!ok) return;
+      }
+      submit(FLEE, null);
     };
 
     socket.on('battle:state', onState);
@@ -201,6 +224,13 @@ const Battle = (() => {
         : state.pickedSkill ? `${skillById(state.pickedSkill).name} — chọn mục tiêu`
           : 'Chọn một kỹ năng';
 
+    // Nút trốn thoát: tỉ lệ do server tính từ Nhanh Nhẹn so với kẻ địch
+    const chance = self.fleeChance ?? 0;
+    ui.flee.disabled = locked;
+    ui.fleeChance.textContent = `${chance}%`;
+    ui.fleeChance.classList.toggle('risky', chance < 50);
+    ui.flee.title = `Tỉ lệ ${chance}% — tính từ Nhanh Nhẹn của bạn so với kẻ địch. Trốn hụt là mất lượt.`;
+
     for (const s of self.skills) {
       const cd = self.cooldowns[s.id] || 0;
       const notEnoughMana = s.manaCost > self.mana;
@@ -303,12 +333,22 @@ const Battle = (() => {
           break;
         case 'regen':
           float(ev.id, `+${ev.amount}`, 'heal');
+          if (ev.via) log('heal', `<b>${escapeHtml(ev.via)}</b> hồi ${ev.amount} máu`);
           setBar(ev.id, ev.hp);
           break;
         case 'revive':
           log('sys', `<b>${escapeHtml(ev.name)}</b> đứng dậy nhờ Bất Diệt!`);
           float(ev.id, 'HỒI SINH', 'heal');
           setBar(ev.id, ev.hp);
+          break;
+        case 'flee':
+          if (ev.success) {
+            log('sys', `<b>${escapeHtml(ev.actorName)}</b> trốn thoát thành công!`);
+            float(ev.actorId, 'THOÁT', 'dodge');
+          } else {
+            log('sys', `${escapeHtml(ev.actorName)} trốn hụt (${ev.chance}%) — mất lượt`);
+            float(ev.actorId, 'HỤT', 'dodge');
+          }
           break;
         case 'death':
           log('die', `${escapeHtml(ev.name)} đã gục.`);
@@ -331,6 +371,7 @@ const Battle = (() => {
         break;
       case 'heal':
         float(h.id, `+${h.amount}`, 'heal');
+        if (h.via) log('heal', `<b>${escapeHtml(h.via)}</b> hồi ${h.amount} máu`);
         setBar(h.id, h.hp);
         break;
       case 'dodge':
@@ -339,6 +380,7 @@ const Battle = (() => {
       case 'reflect':
         animate(h.id, 'hurt');
         float(h.id, `-${h.amount}`, 'damage');
+        if (h.via) log('dmg', `<b>${escapeHtml(h.via)}</b> dội lại ${h.amount} sát thương`);
         setBar(h.id, h.hp);
         break;
       case 'buff':
@@ -387,9 +429,9 @@ const Battle = (() => {
 
   function onEnd({ result, rewards }) {
     setTimeout(() => {
-      const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại' };
+      const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại', fled: 'Đã trốn thoát' };
       ui.resultTitle.textContent = titles[result] || result;
-      ui.resultTitle.className = result;
+      ui.resultTitle.className = result === 'fled' ? 'draw' : result;
 
       if (rewards) {
         const books = rewards.books.length
@@ -399,6 +441,8 @@ const Battle = (() => {
           <div class="reward"><span>Kinh nghiệm</span><span>+${rewards.exp}</span></div>
           <div class="reward"><span>Vàng</span><span>+${rewards.gold}</span></div>
           ${books || '<div class="reward"><span>Sách Dị Điển</span><span>không rơi</span></div>'}`;
+      } else if (result === 'fled') {
+        ui.resultBody.innerHTML = '<p style="color:#8b95ab">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì.</p>';
       } else {
         ui.resultBody.innerHTML = '<p style="color:#8b95ab">Không nhận được phần thưởng.</p>';
       }

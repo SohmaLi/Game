@@ -288,3 +288,20 @@
   #statusBar { width: calc(100vw - 24px); flex-wrap: wrap; justify-content: center; }
   .sb-exp { width: 100%; }
 }
+
+/* ---------- bị động đang có hiệu lực ---------- */
+
+.passive-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #1c2436;
+  font-size: 12px;
+}
+.passive-row:last-child { border-bottom: 0; }
+.passive-name { color: #d3b8f0; font-weight: 600; }
+.passive-from { font-size: 10px; color: #6b7791; }
+.passive-val { color: #7ee89a; font-weight: 600; white-space: nowrap; }
+.passive-empty { font-size: 12px; color: #6b7791; line-height: 1.6; }

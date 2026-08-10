@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/css/style.css?v=9">
-<link rel="stylesheet" href="/css/battle.css?v=9">
-<link rel="stylesheet" href="/css/panel.css?v=9">
-<link rel="stylesheet" href="/css/hud.css?v=9">
-<link rel="stylesheet" href="/css/ui.css?v=9">
+<link rel="stylesheet" href="/css/style.css?v=11">
+<link rel="stylesheet" href="/css/battle.css?v=11">
+<link rel="stylesheet" href="/css/panel.css?v=11">
+<link rel="stylesheet" href="/css/hud.css?v=11">
+<link rel="stylesheet" href="/css/ui.css?v=11">
 </head>
 <body>
 
@@ -90,6 +90,8 @@
         <div id="pStats"></div>
         <h3 class="mt">Chiến đấu</h3>
         <div id="pCombat"></div>
+        <h3 class="mt">Bị động đang có hiệu lực</h3>
+        <div id="pPassives"></div>
       </section>
 
       <section class="p-col p-bag">
@@ -133,6 +135,12 @@
   <footer class="b-bottom">
     <div class="b-prompt" id="bPrompt">Chọn một kỹ năng</div>
     <div class="b-skills" id="bSkills"></div>
+    <div class="b-extra">
+      <button id="bFlee" class="b-flee">
+        <span>🏃 Trốn thoát</span>
+        <em id="bFleeChance">—%</em>
+      </button>
+    </div>
   </footer>
 
   <aside class="b-log" id="bLog"></aside>
@@ -148,10 +156,10 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/ui.js?v=9"></script>
-<script src="/js/hud.js?v=9"></script>
-<script src="/js/battle.js?v=9"></script>
-<script src="/js/panel.js?v=9"></script>
-<script src="/js/game.js?v=9"></script>
+<script src="/js/ui.js?v=11"></script>
+<script src="/js/hud.js?v=11"></script>
+<script src="/js/battle.js?v=11"></script>
+<script src="/js/panel.js?v=11"></script>
+<script src="/js/game.js?v=11"></script>
 </body>
 </html>

@@ -109,6 +109,42 @@ function bonuses(inv) {
   return { stats, combat };
 }
 
+/**
+ * Liệt kê mọi bị động đang có hiệu lực, kèm món đồ đã mang lại nó.
+ *
+ * Cần thiết vì bị động nằm rải trên 10 món — người chơi không có cách nào biết
+ * mình đang thật sự được hưởng những gì nếu phải mở từng món ra xem. Trùng tên
+ * thì cộng dồn giá trị và ghi nhiều nguồn.
+ */
+function activePassives(inv) {
+  const byName = new Map();
+
+  for (const slotId of items.SLOT_IDS) {
+    const item = inv.equipped[slotId];
+    if (!item) continue;
+
+    for (const p of item.passives || []) {
+      const entry = byName.get(p.name) || { name: p.name, desc: p.desc, sources: [], effect: {} };
+      entry.sources.push(item.name);
+      for (const [k, v] of Object.entries(p.effect || {})) {
+        entry.effect[k] = (entry.effect[k] || 0) + v;
+      }
+      byName.set(p.name, entry);
+    }
+  }
+
+  return [...byName.values()].map((e) => ({
+    name: e.name,
+    desc: e.desc,
+    sources: e.sources,
+    stacks: e.sources.length,
+    // Quy đổi thành chuỗi đọc được: hầu hết bị động là phần trăm
+    value: Object.entries(e.effect)
+      .map(([k, v]) => (k === 'manaRegen' ? `+${v}` : `+${Math.round(v * 100)}%`))
+      .join(' · '),
+  }));
+}
+
 /** Điểm sức mạnh thô, chỉ để so sánh nhanh hai món trong giao diện. */
 function itemScore(item) {
   if (!item) return 0;
@@ -117,5 +153,6 @@ function itemScore(item) {
 }
 
 module.exports = {
-  BAG_SIZE, create, addItem, equip, unequip, discard, findInBag, bonuses, itemScore, bagFull,
+  BAG_SIZE, create, addItem, equip, unequip, discard, findInBag, bonuses, activePassives,
+  itemScore, bagFull,
 };

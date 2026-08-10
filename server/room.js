@@ -69,6 +69,7 @@ class Room {
       gold: character?.gold || 0,
       statPoints: character?.stats?.points || 0,
       inv: inventory.create(),
+      rage: 0,
       karma: 0,
     };
     this.players.set(socket.id, player);
@@ -122,6 +123,7 @@ class Room {
 
     for (const p of this.players.values()) {
       this.movePlayer(p, dt);
+      this.decayResources(p, dt);
     }
 
     const players = [...this.players.values()];
@@ -132,6 +134,28 @@ class Room {
 
     this.checkEncounters(now, players);
     this.broadcast();
+  }
+
+  /**
+   * Nộ và Karma tan dần khi đang khám phá.
+   *
+   * Không gửi thông báo mỗi tick — client tự nội suy thanh xuống cho mượt và
+   * chỉ đồng bộ lại con số thật khi có sự kiện. Bắn 15 gói mỗi giây chỉ để
+   * hiển thị một thanh đang tụt là lãng phí băng thông vô ích.
+   */
+  decayResources(p, dt) {
+    const before = { rage: p.rage || 0, karma: p.karma || 0 };
+    p.rage = Math.max(0, before.rage - classData.DECAY.rage.perSecond * dt);
+    p.karma = Math.max(0, before.karma - classData.DECAY.karma.perSecond * dt);
+
+    // Chỉ báo cho client khi vượt qua một mốc tròn, đủ để thanh không lệch xa
+    if (Math.floor(before.karma / 5) !== Math.floor(p.karma / 5)
+      || Math.floor(before.rage / 5) !== Math.floor(p.rage / 5)) {
+      this.io.to(p.id).emit('resources', {
+        rage: Math.round(p.rage),
+        karma: Math.round(p.karma),
+      });
+    }
   }
 
   /* -------------------------------------------------- quái lang thang --- */
@@ -278,6 +302,7 @@ class Room {
       id: p.id, socketId: p.id, name: p.name, level: p.level,
       nation: p.nation, boonId: p.boonId, className: p.className, stats: p.stats,
       equip: inventory.bonuses(p.inv),
+      rage: p.rage,
       karma: p.karma,
     }));
 
@@ -351,7 +376,9 @@ class Room {
       boonId: p.boonId,
       stats: p.stats,
       statPoints: p.statPoints,
-      karma: p.karma || 0,
+      rage: Math.round(p.rage || 0),
+      rageMax: classData.RAGE_MAX,
+      karma: Math.round(p.karma || 0),
       karmaMax: classData.KARMA_MAX,
       resources: classData.resourcesFor(p.className),
       equipBonus: bonus.stats,
@@ -363,6 +390,7 @@ class Room {
         crit: Math.round(combat.critChance * 100),
         dodge: Math.round(combat.dodge * 100),
       },
+      passives: inventory.activePassives(p.inv),
       equipped: p.inv.equipped,
       bag: p.inv.bag,
       bagSize: inventory.BAG_SIZE,
@@ -378,11 +406,14 @@ class Room {
   endBattle() {
     if (!this.battle) return;
 
-    // Karma theo người chơi ra khỏi trận. Nộ Khí thì không — nộ là thứ tích
-    // trong lúc đánh và nguội đi khi trận kết thúc, còn Karma là tích luỹ dài hạn.
+    // Cả Nộ lẫn Karma đều theo người chơi ra khỏi trận — rồi tiếp tục tan dần
+    // ngoài bản đồ theo DECAY.perSecond. Không cắt về 0 ở đây, vì đánh xong
+    // trận này chạy sang trận kế bên cạnh thì đáng được giữ lại đà đang có.
     for (const c of this.battle.allies) {
       const p = this.players.get(c.id);
-      if (p) p.karma = c.karma || 0;
+      if (!p) continue;
+      p.rage = c.rage || 0;
+      p.karma = c.karma || 0;
     }
 
     this.battle.destroy();
@@ -399,6 +430,11 @@ class Room {
     this.scatterNearbyRoamers();
 
     this.io.to(this.id).emit('battle:closed');
+
+    // Gửi lại bảng nhân vật cho mọi người, kể cả khi trận không có phần thưởng
+    // (trốn thoát, thua). Không gửi thì HUD giữ nguyên máu và tài nguyên của
+    // lúc đang đánh, hiện sai cho tới trận sau.
+    for (const p of this.players.values()) this.sendCharacter(p);
 
     // Quái bị tiêu diệt sẽ được bù lại sau một lúc, không hồi ngay tại chỗ
     setTimeout(() => {

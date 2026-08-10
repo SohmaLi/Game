@@ -344,3 +344,26 @@
   .unit-avatar { width: 36px; height: 36px; }
   .skill { min-width: 88px; }
 }
+
+/* ---------- nút trốn thoát ---------- */
+
+.b-extra { display: flex; justify-content: center; margin-top: 10px; }
+
+.b-flee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  background: #1c1622;
+  border: 1px solid #453458;
+  border-radius: 9px;
+  color: #c9b3e0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.b-flee:hover:not(:disabled) { border-color: #a97bff; background: #251c30; }
+.b-flee:disabled { opacity: .3; cursor: not-allowed; }
+.b-flee em { font-style: normal; font-weight: 700; color: #d3b8f0; }
+/* Tỉ lệ thấp thì đổi màu cảnh báo — người chơi biết mình đang liều */
+.b-flee em.risky { color: #ff9aa8; }

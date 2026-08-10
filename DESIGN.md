@@ -340,14 +340,25 @@ ngay từ đầu sẽ **không phải viết lại** khi mở PvP 10 người sa
 Class không dùng thanh nào thì thanh đó **mờ đi chứ không biến mất** — người chơi
 vẫn thấy hệ thống có thanh đó, chỉ là mình không dùng.
 
-💡 **Karma — đề xuất, chờ duyệt.** Tích qua mọi hành động trong trận (gây sát thương,
-chịu sát thương, hạ gục, và cộng đều mỗi vòng). Đầy 100 thì mở khoá **Thiên Ân** —
-một đòn đặc biệt gắn với chính Đặc Ân mà vì sao đã ban cho nhân vật.
+🔒 **Karma là tài nguyên của nhánh class bóng tối.** Tích khi **giết** quái hoặc
+người chơi (không tích từ sát thương gây ra), và **tự tan dần theo thời gian**.
 
-Vì sao chọn hướng này: Đặc Ân hiện chỉ là hiệu ứng chạy ngầm, người chơi không "cảm"
-thấy nó. Cho nó một đòn bấm được sẽ biến thứ ngẫu nhiên lúc tạo nhân vật thành bản
-sắc mà người chơi chủ động dùng — và 12 Đặc Ân thành 12 Thiên Ân, tự nó tạo ra 12
-lối chơi. Karma **theo người chơi ra khỏi trận**; Nộ Khí thì nguội đi khi trận kết thúc.
+🔒 **Nộ Khí cũng tự tan dần.** Đây là điểm phân biệt hai thanh này với Mana: Mana đầy
+thì cứ nằm đó chờ dùng, còn Nộ và Karma tụt liên tục nên phải tiêu ngay hoặc mất.
+Điều đó ép hai lối chơi này phải hung hăng và giữ nhịp, thay vì tích đầy rồi ngồi
+chờ thời cơ như Pháp Sư.
+
+| | Tích khi | Tan trong trận | Tan ngoài trận |
+|---|---|---|---|
+| Nộ Khí | đánh (+8) · bị đánh (+6) | −6 mỗi vòng | −4 mỗi giây |
+| Karma | giết quái (+25) · giết người (+40) | −3 mỗi vòng | −1.5 mỗi giây |
+
+Karma tan chậm hơn Nộ vì nó đổi bằng mạng sống của kẻ địch — mất quá nhanh thì công
+sức săn giết thành vô nghĩa.
+
+⚠️ **Chưa class nào dùng Karma.** Nó dành cho nhánh bóng tối sẽ thêm sau (Ám Sát Giả,
+Tử Linh Sư…). Toàn bộ cơ chế tích và tan đã chạy sẵn, thêm class chỉ cần khai
+`resources: ['hp', 'karma']` trong `server/data/classes.js`.
 
 ### 5.2c Ô trạng thái
 
@@ -355,6 +366,23 @@ lối chơi. Karma **theo người chơi ra khỏi trận**; Nộ Khí thì ngu�
 
 Nhiều lớp cùng loại gộp thành một ô kèm số lớp (ví dụ *Trúng độc ×3*) thay vì bày ba
 ô giống hệt nhau — nếu không thì chỉ riêng hiệu ứng độc cộng dồn đã chiếm hết chỗ.
+
+### 5.2d Trốn thoát
+
+🔒 Trong trận có nút **Trốn thoát**, tỉ lệ thành công dựa trên Nhanh Nhẹn.
+
+```
+tỉ lệ = (Nhanh Nhẹn của mình ÷ (Nhanh Nhẹn mình + trung bình kẻ địch)) × 1.2
+        kẹp trong khoảng 15% – 90%
+```
+
+Ngang tốc độ thì khoảng **60%**. Trốn phải là lựa chọn thật — không được chắc ăn đến
+mức trận nào khó cũng bấm thoát, nhưng cũng không được vô vọng đến mức không ai bấm.
+
+- Trốn **tiêu trọn lượt**: hụt thì mất lượt đó, kẻ địch vẫn ra đòn bình thường
+- Tỉ lệ dưới 50% thì hiện hộp xác nhận trước khi liều
+- **Một người thoát được thì cả nhóm rút** — phòng cùng vào trận thì cùng ra
+- Không có phần thưởng, nhưng cũng không mất gì
 
 ### 5.3 Quy mô
 
