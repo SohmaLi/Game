@@ -1,0 +1,129 @@
+# FROZEN — game 2D top-down online
+
+Khám phá real-time · chiến đấu turn-based · PvE tối đa 5 người/nhóm.
+Chạy tại **https://game.frozen-top.io.vn**
+
+> Đọc file này trước. Chi tiết thiết kế ở [DESIGN.md](DESIGN.md), hạ tầng ở [SETUP.md](SETUP.md).
+> **Trả lời bằng tiếng Việt.**
+
+---
+
+## Chạy và deploy
+
+```bash
+node app.js          # local, cổng 3000 (KHÔNG có MySQL ở local)
+./deploy.sh          # rsync lên host + npm install + restart
+./tools/migrate.sh   # áp db/schema.sql lên MariaDB
+node tools/simulate.js 400   # mô phỏng cân bằng chiến đấu
+node tools/loadtest.js <url> <n>   # đo tải WebSocket
+```
+
+⚠️ **Local không có MySQL** — mọi thứ liên quan tài khoản/lưu tiến trình chỉ test
+được trên production.
+
+⚠️ **`deploy.sh` phải kill tiến trình node**, không chỉ `touch tmp/restart.txt`:
+Passenger giữ tiến trình cũ sống tới khi WebSocket cuối cùng đóng, nên người đang
+online sẽ chạy code cũ vô thời hạn.
+
+⚠️ **Đổi file trong `public/` phải bump `?v=N`** trong `public/index.html`, nếu
+không trình duyệt dùng bản cache.
+
+---
+
+## Hạ tầng
+
+| | |
+|---|---|
+| Host | cPanel InterData · LiteSpeed · CloudLinux |
+| SSH | `ssh frozento` (key ed25519 đã cấu hình trong `~/.ssh/config`) |
+| Node | v20.19.3 · `/home/frozento/nodevenv/game/20/bin/` |
+| Thư mục | `/home/frozento/game` |
+| DB | MariaDB 10.6 · `frozento_game` |
+| Biến môi trường | cPanel → Setup Node.js App (KHÔNG có file `.env` trên host) |
+
+Đã đo: **100 kết nối WebSocket đồng thời, 0 lỗi, ping 27ms.** WebSocket không
+tiêu tốn Entry Process, nên hạn mức 40 EP không phải trần.
+
+---
+
+## Kiến trúc
+
+```
+app.js                 Express + Socket.IO, /health, /api
+server/
+  net.js               mọi sự kiện socket — cửa vào duy nhất từ client
+  room.js              phòng: người chơi, quái lang thang, NHIỀU trận song song
+  battle.js            bộ máy turn-based
+  party.js             nhóm — quyết định ai cùng vào một trận
+  roamer.js            quái đi lang thang trên bản đồ khám phá
+  stats.js             CÔNG THỨC sát thương và chỉ số (chỉnh cân bằng ở đây)
+  inventory.js         túi đồ, 10 ô trang bị
+  loot.js              rớt đồ và sách
+  progression.js       cấp độ, kinh nghiệm, điểm chỉ số
+  characters.js        CRUD nhân vật + lưu/đọc tiến trình
+  auth.js              scrypt + JWT
+  data/                items · monsters · skills · skilltree · boons · nations · classes
+public/js/
+  game.js              vòng vẽ canvas, bàn phím, kết nối
+  battle.js            màn chiến đấu
+  panel.js             bảng nhân vật (Balo)
+  tree.js              cây kỹ năng
+  hud.js               HUD 4 thanh góc trái
+  ui.js                menu chuột phải, hộp xác nhận
+  account.js           đăng nhập / chọn nhân vật
+```
+
+---
+
+## Nguyên tắc bất di bất dịch
+
+1. **Server authoritative tuyệt đối.** Client chỉ gửi phím bấm và "tôi chọn chiêu
+   X vào mục tiêu Y". Mọi con số do server tính. Không bao giờ để client quyết
+   định vị trí, sát thương, hay kết quả bốc ngẫu nhiên.
+
+2. **Game loop chỉ chạy khi phòng có người.** Shared hosting, vòng lặp chạy không
+   cũng đốt CPU.
+
+3. **Hành động không hoàn tác được phải hỏi lại** — vứt đồ, ghi đè ô Dị Điển,
+   chọn lớp, học kỹ năng.
+
+4. **Lưu tiến trình sau mỗi trận và mỗi thao tác túi đồ**, không chỉ lúc thoát.
+
+5. **Nhóm quyết định ai cùng vào trận.** Phòng chỉ là khoảng không gian chung,
+   không phải một đội.
+
+---
+
+## Bẫy đã vấp — đừng lặp lại
+
+| Lỗi | Nguyên nhân |
+|---|---|
+| Đánh xong không thoát màn chiến đấu | `socket.leave(channel)` chạy TRƯỚC `io.to(channel).emit()` → gửi vào kênh rỗng |
+| Deploy không ăn | `maxAge` cache · Passenger giữ tiến trình cũ khi còn WebSocket |
+| Ô đăng nhập không gõ được W/A/S/D | Bộ bắt phím điều khiển không loại trừ `<input>` |
+| Đồ Thường mạnh hơn nhân vật | Thiếu `POWER_SCALE` trong `data/items.js` |
+| Đồ Hiếm yếu hơn đồ Thường | Chia đều ngân sách làm loãng chỉ số chính khi hạng cao có nhiều chỉ số |
+| 1 người vs 2 quái thắng 0% | Quái dùng chung công thức máu với người chơi |
+| Layout chồng lớp | Nhiều thành phần `position: fixed` cùng góc — đo bằng `getBoundingClientRect` trước khi kết luận |
+
+---
+
+## Trạng thái hiện tại
+
+**Xong:** khung mạng · khám phá + quái lang thang · chiến đấu turn-based · trốn
+thoát · 12 Đặc Ân · 4 quốc gia · 5 chỉ số · trang bị 10 ô + 5 hạng + rớt đồ ·
+cây kỹ năng (Cây Nền 2 class + Dị Điển 10 ô) · nhóm · tài khoản + 3 nhân vật +
+lưu tiến trình · menu chuột phải.
+
+**Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
+người chơi trên bản đồ) · PvP · quái Tinh Anh/Thủ Lĩnh · đổi class ở mốc cấp ·
+Thiên Ân (Karma đầy) · chưa class nào dùng Karma (chờ nhánh bóng tối).
+
+---
+
+## Quy ước
+
+- Tài liệu, giao diện, commit message, và **câu trả lời** đều bằng **tiếng Việt**
+- Comment giải thích **vì sao**, không mô tả lại code
+- Cân bằng số liệu thì **đo bằng `tools/simulate.js`**, không đoán
+- Đo layout bằng `getBoundingClientRect` rồi mới kết luận, không nhìn ảnh đoán
