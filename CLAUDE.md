@@ -25,7 +25,9 @@ node tools/loadtest.js <url> <n>   # đo tải WebSocket
 
 ⚠️ **`deploy.sh` phải kill tiến trình node**, không chỉ `touch tmp/restart.txt`:
 Passenger giữ tiến trình cũ sống tới khi WebSocket cuối cùng đóng, nên người đang
-online sẽ chạy code cũ vô thời hạn.
+online sẽ chạy code cũ vô thời hạn. Tiến trình mang tên **`lsnode:/home/frozento/game/`**,
+KHÔNG phải đường dẫn tới node — `pkill` sai mẫu thì báo thành công mà không giết
+gì. Deploy xong luôn xem `uptimeSec` ở `/health`: còn cao là code mới CHƯA chạy.
 
 ⚠️ **Đổi file trong `public/` phải bump `?v=N`** trong `public/index.html`, nếu
 không trình duyệt dùng bản cache.
