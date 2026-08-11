@@ -22,8 +22,25 @@ const Panel = (() => {
     epic: '#a97bff', legendary: '#ff9f43',
   };
 
+  const RARITY_NAME = {
+    common: 'Thường', fine: 'Tốt', rare: 'Hiếm',
+    epic: 'Sử Thi', legendary: 'Truyền Thuyết',
+  };
+
+  /** Thứ tự từ rẻ tới quý — bộ lọc nhanh chỉ đề nghị xoá từ dưới lên. */
+  const RARITY_ORDER = ['common', 'fine', 'rare', 'epic', 'legendary'];
+
   let socket = null;
   let data = null;
+
+  /**
+   * Chế độ chọn nhiều món để xoá.
+   *
+   * Tách riêng khỏi `data` vì `data` bị ghi đè mỗi lần server gửi lại bảng nhân
+   * vật — mà server gửi lại sau MỌI thao tác. Nhét lựa chọn vào đó thì cứ nhặt
+   * được một món rơi ra là mất sạch những ô vừa tick.
+   */
+  const pick = { on: false, uids: new Set() };
 
   /* ------------------------------------------------ khởi tạo ---------- */
 
@@ -40,11 +57,113 @@ const Panel = (() => {
     $('sbMain').onclick = toggle;
     $('panelClose').onclick = close;
     $('panel').addEventListener('click', (e) => { if (e.target.id === 'panel') close(); });
+
+    $('pPickToggle').onclick = () => setPickMode(!pick.on);
+    $('pPickClear').onclick = () => { pick.uids.clear(); renderBag(); };
+    $('pPickDelete').onclick = discardPicked;
+  }
+
+  /* ------------------------------------------------ chọn để xoá ------- */
+
+  function setPickMode(on) {
+    pick.on = on;
+    pick.uids.clear();
+    $('pPickToggle').textContent = on ? 'Xong' : 'Chọn để xoá';
+    $('pPickToggle').classList.toggle('on', on);
+    $('pPickBar').classList.toggle('hidden', !on);
+    hideTip();
+    if (isOpen()) { renderBag(); setupDrag(); }
+  }
+
+  /**
+   * Bộ lọc nhanh: bấm "Thường" là tick hết đồ hạng Thường trong túi.
+   *
+   * Chỉ dựng nút cho hạng thật sự đang có đồ — một hàng nút mà quá nửa bấm vào
+   * không chọn được gì thì người chơi tưởng nút hỏng.
+   */
+  function renderPickFilters() {
+    const box = $('pPickFilters');
+    box.innerHTML = '';
+    if (!data) return;
+
+    const counts = new Map();
+    for (const it of data.bag) counts.set(it.rarity, (counts.get(it.rarity) || 0) + 1);
+
+    for (const r of RARITY_ORDER) {
+      const n = counts.get(r) || 0;
+      if (!n) continue;
+      const b = document.createElement('button');
+      b.className = 'p-pick-f';
+      b.style.color = RARITY_COLOR[r];
+      b.style.borderColor = RARITY_COLOR[r];
+      b.textContent = `${RARITY_NAME[r]} (${n})`;
+      b.onclick = () => {
+        // Bấm lần nữa thì bỏ chọn cả hạng đó — nếu không, tick nhầm là phải
+        // bấm "Bỏ chọn" rồi tick lại từ đầu
+        const ids = data.bag.filter((i) => i.rarity === r).map((i) => i.uid);
+        const allOn = ids.every((id) => pick.uids.has(id));
+        for (const id of ids) allOn ? pick.uids.delete(id) : pick.uids.add(id);
+        renderBag();
+      };
+      box.appendChild(b);
+    }
+
+    const all = document.createElement('button');
+    all.className = 'p-pick-f all';
+    all.textContent = `Cả túi (${data.bag.length})`;
+    all.onclick = () => {
+      const allOn = data.bag.length > 0 && data.bag.every((i) => pick.uids.has(i.uid));
+      pick.uids.clear();
+      if (!allOn) for (const i of data.bag) pick.uids.add(i.uid);
+      renderBag();
+    };
+    box.appendChild(all);
+  }
+
+  /**
+   * Xoá hàng loạt. Hỏi lại kèm THỐNG KÊ THEO HẠNG, không chỉ tổng số.
+   *
+   * "Xoá 23 món?" không nói lên điều gì. "23 món, trong đó 2 Truyền Thuyết" thì
+   * người chơi dừng tay đúng lúc cần dừng.
+   */
+  async function discardPicked() {
+    const chosen = data.bag.filter((i) => pick.uids.has(i.uid));
+    if (!chosen.length) return;
+
+    const byRarity = RARITY_ORDER
+      .map((r) => [r, chosen.filter((i) => i.rarity === r).length])
+      .filter(([, n]) => n > 0)
+      .map(([r, n]) => `<span style="color:${RARITY_COLOR[r]}">${n} ${RARITY_NAME[r]}</span>`)
+      .join(' · ');
+
+    const precious = chosen.filter((i) => ['rare', 'epic', 'legendary'].includes(i.rarity)).length;
+
+    const ok = await UI.confirm({
+      title: `Xoá ${chosen.length} món?`,
+      message: `${byRarity}<br><br>${precious
+        ? `<span class="warn">Trong đó có <b>${precious}</b> món hạng cao. Xoá rồi là mất vĩnh viễn, không lấy lại được.</span>`
+        : 'Số đồ này sẽ biến mất vĩnh viễn.'}`,
+      confirmLabel: `Xoá ${chosen.length} món`,
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('inv:discardMany', { uids: [...pick.uids] }, (res) => {
+      if (!res?.ok) return toast('warn', 'Không xoá được', res?.error || '');
+      toast('warn', `Đã xoá ${res.removed.length} món`, 'Túi đồ đã gọn hơn');
+      setPickMode(false);
+    });
   }
 
   function isOpen() { return !$('panel').classList.contains('hidden'); }
   function open() { Tree.close(); $('panel').classList.remove('hidden'); render(); }
-  function close() { $('panel').classList.add('hidden'); hideTip(); }
+  // Đóng bảng là thoát luôn chế độ chọn: mở lại mà vẫn còn 20 ô đang tick từ
+  // lúc nào không nhớ là công thức để bấm Xoá nhầm
+  function close() {
+    $('panel').classList.add('hidden');
+    hideTip();
+    if (pick.on) setPickMode(false);
+  }
   function toggle() { isOpen() ? close() : open(); }
 
   function update(c) {
@@ -84,10 +203,12 @@ const Panel = (() => {
 
   function render() {
     if (!data) return;
+    clearTips();
     renderSlots();
     renderStats();
     renderPassives();
     renderBag();
+    setupDrag();
   }
 
   /**
@@ -122,8 +243,17 @@ const Panel = (() => {
       const item = data.equipped[slot.id];
       const el = document.createElement('div');
       el.className = `slot ${item ? '' : 'empty'}`;
+      // Ô nhẫn dùng chung một hình; màu icon chạy theo hạng đồ, ô trống thì xám
+      const iconKey = `slot-${slot.id.startsWith('ring') ? 'ring' : slot.id}`;
+      const iconColor = item ? RARITY_COLOR[item.rarity] : '#3d4658';
+
       el.innerHTML = `
-        <div class="slot-icon" style="${item ? `background:${RARITY_COLOR[item.rarity]};border-color:${RARITY_COLOR[item.rarity]}` : ''}"></div>
+        <div class="slot-drop" data-slot="${slot.id}">
+          ${item
+            ? `<div class="cell filled ico slot-icon" data-uid="${item.uid}"
+                    style="color:${iconColor};border-color:${RARITY_COLOR[item.rarity]}">${Icons.svg(iconKey)}</div>`
+            : `<div class="slot-icon slot-ghost" style="color:${iconColor}">${Icons.svg(iconKey)}</div>`}
+        </div>
         <div class="slot-info">
           <div class="slot-label">${slot.name}</div>
           <div class="slot-item" style="color:${item ? RARITY_COLOR[item.rarity] : '#4a5568'}">
@@ -132,9 +262,7 @@ const Panel = (() => {
         </div>`;
 
       if (item) {
-        el.onmouseenter = (e) => showTip(e, item, 'Bấm để tháo ra · chuột phải để xem thêm');
-        el.onmousemove = moveTip;
-        el.onmouseleave = hideTip;
+        attachTip(el, item, 'Bấm để tháo ra · kéo ra túi · chuột phải để xem thêm');
         el.onclick = () => { hideTip(); unequip(slot.id); };
         el.oncontextmenu = (e) => {
           e.preventDefault();
@@ -144,10 +272,10 @@ const Panel = (() => {
             subtitle: `${item.rarityName} · Cấp ${item.level} · đang mặc`,
             color: RARITY_COLOR[item.rarity],
             items: [
-              { icon: '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
+              { icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
               { icon: '↩', label: 'Tháo ra', onClick: () => unequip(slot.id) },
               null,
-              { icon: '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discardEquipped(slot, item) },
+              { icon: Icons.svg('ui-trash') || '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discardEquipped(slot, item) },
             ],
           });
         };
@@ -204,14 +332,46 @@ const Panel = (() => {
     box.innerHTML = '';
     $('pBagCount').textContent = `${data.bag.length}/${data.bagSize}`;
 
+    // Món đã bị xoá hoặc đã mặc thì bỏ khỏi lựa chọn, nếu không con số "Đã chọn"
+    // đếm cả những uid không còn tồn tại
+    if (pick.on) {
+      const inBag = new Set(data.bag.map((i) => i.uid));
+      for (const uid of [...pick.uids]) if (!inBag.has(uid)) pick.uids.delete(uid);
+      renderPickFilters();
+      $('pPickCount').textContent = `Đã chọn ${pick.uids.size}`;
+      $('pPickDelete').disabled = pick.uids.size === 0;
+      $('pPickDelete').textContent = pick.uids.size ? `Xoá ${pick.uids.size} món` : 'Xoá';
+    }
+
     for (const item of data.bag) {
       const cell = document.createElement('div');
       cell.className = 'cell filled';
+      cell.dataset.uid = item.uid;
       cell.style.color = RARITY_COLOR[item.rarity];
       cell.style.borderColor = RARITY_COLOR[item.rarity];
-      cell.onmouseenter = (e) => showTip(e, item, 'Bấm để mặc · chuột phải để xem thêm');
-      cell.onmousemove = moveTip;
-      cell.onmouseleave = hideTip;
+      const ico = Icons.svg(`slot-${item.slot === 'ring' ? 'ring' : item.slot}`);
+      // Không có icon thì để nguyên khối màu đặc cũ làm phương án dự phòng
+      if (ico) { cell.classList.add('ico'); cell.innerHTML = ico; }
+      if (pick.on) {
+        const on = pick.uids.has(item.uid);
+        cell.classList.add('pickable');
+        cell.classList.toggle('picked', on);
+        attachTip(cell, item, 'Bấm để chọn / bỏ chọn');
+        cell.onclick = () => {
+          on ? pick.uids.delete(item.uid) : pick.uids.add(item.uid);
+          renderBag();
+        };
+        // Chuột phải vẫn xem được chi tiết — đang định xoá thì càng cần xem kỹ
+        cell.oncontextmenu = (e) => {
+          e.preventDefault();
+          hideTip();
+          UI.itemDetail(item, RARITY_COLOR[item.rarity]);
+        };
+        box.appendChild(cell);
+        continue;
+      }
+
+      attachTip(cell, item, 'Bấm để mặc · kéo vào ô trang bị · chuột phải để xem thêm');
       cell.onclick = () => { hideTip(); equip(item); };
       cell.oncontextmenu = (e) => {
         e.preventDefault();
@@ -221,10 +381,10 @@ const Panel = (() => {
           subtitle: `${item.rarityName} · Cấp ${item.level}`,
           color: RARITY_COLOR[item.rarity],
           items: [
-            { icon: '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
-            { icon: '⬆', label: 'Mặc vào', onClick: () => equip(item) },
+            { icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => UI.itemDetail(item, RARITY_COLOR[item.rarity]) },
+            { icon: Icons.svg('ui-equip') || '⬆', label: 'Mặc vào', onClick: () => equip(item) },
             null,
-            { icon: '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discard(item) },
+            { icon: Icons.svg('ui-trash') || '🗑', label: 'Vứt bỏ', danger: true, onClick: () => discard(item) },
           ],
         });
       };
@@ -299,32 +459,139 @@ const Panel = (() => {
 
   /* ------------------------------------------------ tooltip ----------- */
 
-  function showTip(e, item, hint) {
-    const tip = $('tooltip');
+  /**
+   * Tooltip do Tippy.js lo phần đặt chỗ.
+   *
+   * Trước đây tự tính: bám theo con trỏ rồi kẹp lại ở mép màn hình. Nó hỏng ở
+   * đúng chỗ khó nhất — ô ở hàng cuối, cột ngoài cùng, nơi tooltip cần LẬT sang
+   * phía khác chứ không phải bị đẩy dúm vào. Tippy lật và trượt sẵn.
+   */
+  let tips = [];
+
+  function tipHtml(item, hint) {
     const stats = Object.entries(item.stats || {})
       .map(([k, v]) => `<div class="tip-stat">+${v} ${STAT_NAMES[k] || k}</div>`).join('');
     const passives = (item.passives || [])
       .map((p) => `<div class="tip-passive">◆ ${esc(p.name)} — ${esc(p.desc)}</div>`).join('');
 
-    tip.innerHTML = `
+    return `
       <h4 style="color:${RARITY_COLOR[item.rarity]}">${esc(item.name)}</h4>
       <div class="tip-sub">${esc(item.rarityName)} · Cấp ${item.level}</div>
       ${stats}${passives}
       <div class="tip-hint">${hint}</div>`;
-    tip.classList.remove('hidden');
-    moveTip(e);
   }
 
-  function moveTip(e) {
-    const tip = $('tooltip');
-    // Lật sang trái / lên trên khi sát mép, để tooltip không bị cắt
-    const x = e.clientX + 16;
-    const y = e.clientY + 16;
-    tip.style.left = `${Math.min(x, window.innerWidth - tip.offsetWidth - 10)}px`;
-    tip.style.top = `${Math.min(y, window.innerHeight - tip.offsetHeight - 10)}px`;
+  function attachTip(el, item, hint) {
+    if (typeof tippy !== 'function') return;   // thư viện không nạp được thì thôi
+    tips.push(tippy(el, {
+      content: tipHtml(item, hint),
+      allowHTML: true,
+      theme: 'frozen',
+      placement: 'right',
+      offset: [0, 12],
+      delay: [90, 0],
+      duration: [90, 60],
+      maxWidth: 290,
+      appendTo: () => document.body,
+    }));
   }
 
-  function hideTip() { $('tooltip').classList.add('hidden'); }
+  /** Vẽ lại bảng là thay sạch DOM — không dọn thì mỗi lần mở lại rò thêm một lứa. */
+  function clearTips() {
+    for (const t of tips) t.destroy();
+    tips = [];
+  }
+
+  function hideTip() { for (const t of tips) t.hide(); }
+
+  /* ------------------------------------------------ kéo thả ----------- */
+
+  /**
+   * Kéo đồ giữa túi và ô trang bị (SortableJS).
+   *
+   * Chuột trái bấm để mặc/tháo vẫn giữ nguyên — kéo thả là đường thứ hai, không
+   * phải đường duy nhất. Chạm màn hình và bàn phím vẫn phải dùng được.
+   *
+   * Server mới là nơi quyết định: thả xong chỉ gửi lệnh lên, rồi server trả về
+   * cả bảng nhân vật và cả bảng được vẽ lại. Cái ô mà Sortable vừa nhích sang
+   * chỗ mới bị ghi đè ngay — cố tình để vậy, vì nếu tin vào chỗ Sortable đặt nó
+   * thì màn hình và server lệch nhau ngay lần đầu server từ chối.
+   */
+  let sortables = [];
+
+  function clearSortables() {
+    for (const s of sortables) { try { s.destroy(); } catch { /* DOM đã thay */ } }
+    sortables = [];
+  }
+
+  const fitsSlot = (item, slotId) => (item.slot === 'ring'
+    ? slotId === 'ring1' || slotId === 'ring2'
+    : item.slot === slotId);
+
+  function setupDrag() {
+    if (typeof Sortable !== 'function') return;   // thư viện không nạp được thì thôi
+    clearSortables();
+    if (pick.on) return;                          // đang tick chọn thì đừng cho kéo
+
+    const bag = $('pBag');
+    sortables.push(Sortable.create(bag, {
+      group: { name: 'items', pull: true, put: true },
+      sort: false,                 // server không lưu thứ tự túi, sắp xếp là vô nghĩa
+      draggable: '.cell.filled',
+      animation: 130,
+      // Kéo bằng chuột thay cho HTML5 drag-and-drop: trang này có canvas game
+      // phủ toàn màn, native DnD trên đó mỗi trình duyệt một kiểu. Kèm theo,
+      // chế độ này chạy được cả trên màn cảm ứng.
+      forceFallback: true,
+      fallbackTolerance: 4,
+      ghostClass: 'p-drop-ghost',
+      chosenClass: 'p-drag-chosen',
+      dragClass: 'p-drag-move',
+      onStart: hideTip,
+      // Kéo từ ô trang bị về túi = tháo ra
+      onAdd: (e) => {
+        const slotId = e.from.dataset.slot;
+        if (slotId) unequip(slotId);
+      },
+    }));
+
+    for (const drop of document.querySelectorAll('#pSlots .slot-drop')) {
+      const slotId = drop.dataset.slot;
+      sortables.push(Sortable.create(drop, {
+        group: {
+          name: 'items',
+          pull: true,
+          // Chặn ngay lúc kéo qua: không cho thả cái mũ vào ô giày
+          put: (to, from, dragEl) => {
+            const item = itemByUid(dragEl?.dataset?.uid);
+            return !!item && fitsSlot(item, slotId);
+          },
+        },
+        sort: false,
+        draggable: '.cell.filled',
+        animation: 130,
+        forceFallback: true,
+        fallbackTolerance: 4,
+        ghostClass: 'p-drop-ghost',
+        chosenClass: 'p-drag-chosen',
+        dragClass: 'p-drag-move',
+        onStart: hideTip,
+        onAdd: (e) => {
+          const uid = e.item.dataset.uid;
+          if (uid) socket.emit('inv:equip', { uid, slot: slotId }, (res) => {
+            if (!res?.ok) toast('warn', 'Không mặc được', res?.error || '');
+          });
+        },
+      }));
+    }
+  }
+
+  function itemByUid(uid) {
+    if (!uid || !data) return null;
+    return data.bag.find((i) => i.uid === uid)
+      || Object.values(data.equipped).find((i) => i && i.uid === uid)
+      || null;
+  }
 
   /* ------------------------------------------------ thông báo --------- */
 

@@ -75,6 +75,27 @@ function discard(inv, uid) {
 }
 
 /**
+ * Vứt nhiều món cùng lúc.
+ *
+ * Chỉ đụng tới TÚI ĐỒ, không bao giờ đụng tới đồ đang mặc: người chơi tick chọn
+ * mười mấy ô rồi bấm xoá, mà một cái tick lỡ tay lại lột luôn món đang mặc trên
+ * người thì không có đường cứu. Muốn vứt đồ đang mặc thì phải tháo ra trước.
+ *
+ * Trả về danh sách món ĐÃ vứt để client báo đúng số lượng — client tự đếm thì
+ * sai ngay khi có uid không tồn tại lẫn vào.
+ */
+function discardMany(inv, uids) {
+  const wanted = new Set(Array.isArray(uids) ? uids : []);
+  if (!wanted.size) return { ok: false, error: 'Chưa chọn món nào.' };
+
+  const removed = inv.bag.filter((i) => wanted.has(i.uid));
+  if (!removed.length) return { ok: false, error: 'Không tìm thấy món nào trong túi.' };
+
+  inv.bag = inv.bag.filter((i) => !wanted.has(i.uid));
+  return { ok: true, removed: removed.map((i) => ({ uid: i.uid, name: i.name, rarity: i.rarity })) };
+}
+
+/**
  * Cộng dồn toàn bộ trang bị đang mặc thành một bảng cộng thêm.
  *
  * Trả về hai nhóm tách biệt:
@@ -153,6 +174,6 @@ function itemScore(item) {
 }
 
 module.exports = {
-  BAG_SIZE, create, addItem, equip, unequip, discard, findInBag, bonuses, activePassives,
+  BAG_SIZE, create, addItem, equip, unequip, discard, discardMany, findInBag, bonuses, activePassives,
   itemScore, bagFull,
 };

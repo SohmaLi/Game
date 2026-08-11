@@ -110,8 +110,11 @@ function connect({ token, characterId, zone }) {
   const socket = io({ transports: ['websocket', 'polling'] });
   state.socket = socket;
 
+  // Nạp sprite icon song song với lúc bắt tay mạng — xong trước khi có gì để vẽ
+  Icons.load();
+
   socket.on('connect', () => {
-    socket.emit('join', { token, characterId, zone, type: 'pve' }, (res) => {
+    socket.emit('join', { token, characterId, zone, type: 'pve' }, async (res) => {
       if (!res?.ok) {
         Account.showCharacters();
         alert(res?.error || 'Không vào được phòng');
@@ -122,13 +125,30 @@ function connect({ token, characterId, zone }) {
       state.map = res.map;
       state.zone = res.zone || null;
       state.character = res.character || null;
+      // Đợi sprite trước khi vẽ bất cứ thứ gì — vẽ trước thì `<use>` trỏ vào
+      // symbol chưa tồn tại, ra ô trống, và không phải trình duyệt nào cũng vẽ
+      // lại khi symbol xuất hiện muộn
+      await Icons.load();
+      Icons.paint();
+
       enterGame();
 
-      UI.init();
-      Hud.init(socket);
-      Battle.init(socket, res.you);
-      Panel.init(socket);
-      Tree.init(socket);
+      /**
+       * Chỉ dựng các module ĐÚNG MỘT LẦN cho mỗi socket.
+       *
+       * `connect` bắn lại sau mỗi lần nối lại mạng, và mỗi `init` lại gọi
+       * `socket.on(...)` thêm một lần nữa — chập mạng ba lần là mọi sự kiện
+       * chạy ba lượt, mỗi đòn đánh hiện ba dòng nhật ký.
+       */
+      if (!socket.__inited) {
+        socket.__inited = true;
+        UI.init();
+        Hud.init(socket);
+        Battle.init(socket, res.you);
+        Panel.init(socket);
+        Tree.init(socket);
+      }
+      Battle.setMyId(res.you);
       if (res.characterState) { Panel.update(res.characterState); Tree.update(res.characterState); }
       // Vào phòng đúng lúc cả nhóm đang đánh nhau thì hiện luôn màn chiến đấu
       if (res.battle) Battle.onState(res.battle);

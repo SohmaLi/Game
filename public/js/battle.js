@@ -19,6 +19,7 @@ const Battle = (() => {
     enemies: null, allies: null, order: null, prompt: null, skills: null,
     log: null, result: null, resultTitle: null, resultBody: null, resultClose: null,
     flee: null, fleeChance: null,
+    loading: null, loadingTitle: null, loadingFoes: null,
   };
 
   const state = {
@@ -30,6 +31,8 @@ const Battle = (() => {
     timerRAF: null,
     deadlineAt: 0,
     playing: false,      // đang phát hoạt cảnh, khóa thao tác
+    loadingTimer: null,  // chốt an toàn cho màn chờ vào trận
+    endTimer: null,      // hẹn giờ hiện bảng kết quả
   };
 
   /* ------------------------------------------------ khởi tạo ------------ */
@@ -45,6 +48,7 @@ const Battle = (() => {
         prompt: 'bPrompt', skills: 'bSkills', log: 'bLog', result: 'bResult',
         resultTitle: 'bResultTitle', resultBody: 'bResultBody', resultClose: 'bResultClose',
         flee: 'bFlee', fleeChance: 'bFleeChance',
+        loading: 'bLoading', loadingTitle: 'bLoadingTitle', loadingFoes: 'bLoadingFoes',
       };
       ui[key] = $(map[key]);
     }
@@ -72,12 +76,14 @@ const Battle = (() => {
       submit(FLEE, null);
     };
 
+    socket.on('battle:opening', showLoading);
     socket.on('battle:state', onState);
     socket.on('battle:resolve', onResolve);
     socket.on('battle:end', onEnd);
     // Server dọn trận sau vài giây, nhưng nếu bảng kết quả đang mở thì để nguyên —
     // người chơi cần thời gian đọc phần thưởng, đóng lúc nào là quyền của họ.
     socket.on('battle:closed', () => {
+      hideLoading();
       if (!ui.result.classList.contains('hidden')) return;
       close();
     });
@@ -87,13 +93,46 @@ const Battle = (() => {
 
   function isOpen() { return state.data && !ui.root.classList.contains('hidden'); }
 
-  function open() {
+  /**
+   * Màn chờ giữa lúc chạm phải quái và lúc trận hiện ra.
+   *
+   * Server khoá phím ngay khi quyết định mở trận, nên không có màn này thì
+   * người chơi thấy nhân vật khựng lại giữa bản đồ vài trăm mili giây mà chưa
+   * có gì thay thế — trông hệt như game bị treo.
+   */
+  function showLoading({ boss, foes } = {}) {
+    if (!ui.loading) return;
+    const names = (foes || []).map(
+      (f) => `<span>${escapeHtml(f.name)}<em>Cấp ${f.level}</em></span>`);
+    ui.loadingTitle.textContent = boss ? 'Thủ Lĩnh chặn đường!' : 'Chạm mặt quái!';
+    ui.loadingFoes.innerHTML = names.join('') || '<span>…</span>';
+    ui.loading.classList.remove('hidden');
+
+    // Chốt an toàn: gói battle:state có thể rớt giữa đường. Thà bỏ màn chờ còn
+    // hơn để người chơi nhìn một vòng xoay vĩnh viễn.
+    clearTimeout(state.loadingTimer);
+    state.loadingTimer = setTimeout(hideLoading, 8000);
+  }
+
+  function hideLoading() {
+    clearTimeout(state.loadingTimer);
+    ui.loading?.classList.add('hidden');
+  }
+
+  function open(fresh) {
+    hideLoading();
+    // Trận mới không bao giờ được hiện kèm bảng kết quả của trận trước
+    ui.result.classList.add('hidden');
     ui.root.classList.remove('hidden');
-    ui.log.innerHTML = '';
-    log('sys', 'Trận đấu bắt đầu!');
+    if (fresh) {
+      ui.log.innerHTML = '';
+      log('sys', 'Trận đấu bắt đầu!');
+    }
   }
 
   function close() {
+    hideLoading();
+    clearTimeout(state.endTimer);
     ui.root.classList.add('hidden');
     state.data = null;
     state.pickedSkill = null;
@@ -104,9 +143,18 @@ const Battle = (() => {
   /* ------------------------------------------------ nhận trạng thái ---- */
 
   function onState(data) {
-    const first = !state.data;
+    const fresh = !state.data;
     state.data = data;
-    if (first) open();
+
+    /**
+     * Mở màn khi nó đang ẩn, KHÔNG chỉ khi chưa có dữ liệu.
+     *
+     * Trước đây chỉ xét `!state.data`, nên một gói `battle:closed` đến muộn là
+     * đủ để dữ liệu còn nguyên mà màn đã ẩn. Trận sau đó server vẫn mở bình
+     * thường — người chơi bị khoá phím đứng im trên bản đồ, không thấy màn
+     * chiến đấu đâu. Bám vào trạng thái hiển thị thật thì không lệch được nữa.
+     */
+    if (fresh || ui.root.classList.contains('hidden')) open(fresh);
 
     if (data.phase === 'select') {
       state.submitted = data.chosen.includes(state.myId);
@@ -250,7 +298,7 @@ const Battle = (() => {
       if (!costs.length) costs.push('miễn phí');
 
       btn.innerHTML = `
-        <div class="skill-name">${escapeHtml(s.name)}</div>
+        <div class="skill-name">${Icons.svg(`sk-${s.id}`, { cls: 'gi-sk' })}${escapeHtml(s.name)}</div>
         <div class="skill-cost">${costs.join(' · ')}</div>`;
       btn.onclick = () => pickSkill(s);
       ui.skills.appendChild(btn);
@@ -428,19 +476,37 @@ const Battle = (() => {
   /* ------------------------------------------------ kết thúc --------- */
 
   function onEnd({ result, rewards }) {
-    setTimeout(() => {
+    hideLoading();
+    clearTimeout(state.endTimer);
+    state.endTimer = setTimeout(() => {
       const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại', fled: 'Đã trốn thoát' };
       ui.resultTitle.textContent = titles[result] || result;
       ui.resultTitle.className = result === 'fled' ? 'draw' : result;
 
       if (rewards) {
-        const books = rewards.books.length
-          ? rewards.books.map((b) => `<div class="reward"><span>Sách Dị Điển</span><span>từ ${escapeHtml(b.from)}</span></div>`).join('')
+        /**
+         * Phần của CHÍNH MÌNH, không phải của cả nhóm: vàng và đồ mỗi người bốc
+         * riêng. Đọc thẳng `rewards.books` là đọc phải phần gộp của cả nhóm —
+         * và hồi trước server còn không gửi trường đó, nên chỗ này ném lỗi,
+         * bảng kết quả không bao giờ hiện ra sau mỗi trận thắng.
+         */
+        const mine = rewards.perPlayer?.[state.myId] || {};
+        const books = mine.books || rewards.books || [];
+        const drops = mine.drops || [];
+        const gold = mine.gold ?? rewards.gold ?? 0;
+
+        const bookRows = books.length
+          ? books.map((b) => `<div class="reward"><span>Sách Dị Điển</span><span>từ ${escapeHtml(b.from || '—')}</span></div>`).join('')
+          : '<div class="reward"><span>Sách Dị Điển</span><span>không rơi</span></div>';
+        const dropRows = drops.length
+          ? drops.map((d) => `<div class="reward"><span>Vật phẩm</span><span>${escapeHtml(d.name || '—')}</span></div>`).join('')
           : '';
+
         ui.resultBody.innerHTML = `
-          <div class="reward"><span>Kinh nghiệm</span><span>+${rewards.exp}</span></div>
-          <div class="reward"><span>Vàng</span><span>+${rewards.gold}</span></div>
-          ${books || '<div class="reward"><span>Sách Dị Điển</span><span>không rơi</span></div>'}`;
+          <div class="reward"><span>Kinh nghiệm</span><span>+${rewards.exp ?? 0}</span></div>
+          <div class="reward"><span>Vàng</span><span>+${gold}</span></div>
+          ${dropRows}
+          ${bookRows}`;
       } else if (result === 'fled') {
         ui.resultBody.innerHTML = '<p style="color:#8b95ab">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì.</p>';
       } else {

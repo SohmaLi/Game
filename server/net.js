@@ -133,6 +133,12 @@ function attach(io) {
       inventory.discard(p.inv, d.uid) ? { ok: true } : { ok: false, error: 'Không tìm thấy món đồ.' }
     )));
 
+    // Xoá hàng loạt. Client gửi thẳng danh sách uid — server không nhận "xoá hết
+    // hạng Thường" hay bất kỳ điều kiện lọc nào, vì như vậy một lỗi lọc ở server
+    // là quét sạch túi của người chơi. Lọc là việc của giao diện, chốt danh sách
+    // rồi mới gửi lên.
+    socket.on('inv:discardMany', invAction((p, d) => inventory.discardMany(p.inv, d.uids)));
+
     socket.on('stat:spend', invAction((p, d) => {
       const res = progression.spendStatPoint(p, d.stat);
       return res ? { ok: true, ...res } : { ok: false, error: 'Không còn điểm để cộng.' };

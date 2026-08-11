@@ -304,6 +304,23 @@ class Room {
    */
   checkEncounters(now, players) {
     for (const p of players) {
+      /**
+       * Đang trong trận hoặc đang miễn va chạm thì XOÁ TRẮNG danh sách tiếp xúc.
+       *
+       * Ghi tiếp xúc trong lúc này là tự bắn vào chân mình: hết miễn va chạm,
+       * con quái đang đè lên người đã nằm sẵn trong `contacts` nên không còn
+       * tính là "vừa chạm" nữa. Người chơi đứng trong bụng con quái mà không
+       * trận nào nổ ra — kẹt cứng cho tới khi con đó tự bỏ đi.
+       *
+       * Để trống thì tick đầu tiên sau khi hết miễn, mọi con đang đè lên đều
+       * tính là vừa chạm. Năm giây miễn va chạm đã đủ để bước ra; không bước
+       * thì bị kéo vào trận là đúng, và quan trọng hơn: không bao giờ kẹt.
+       */
+      if (p.battleId || now < (p.graceUntil || 0)) {
+        p.contacts.clear();
+        continue;
+      }
+
       const touching = new Set();
       for (const r of this.mobs()) {
         if (r.immune) continue; // quái vừa hiện ra thì chưa đụng vào ai được
@@ -314,8 +331,6 @@ class Room {
       const fresh = [...touching].filter((id) => !p.contacts.has(id));
       p.contacts = touching;
 
-      if (p.battleId) continue;
-      if (now < (p.graceUntil || 0)) continue; // vừa ra khỏi trận, chưa bị kéo lại
       if (!fresh.length) continue;
 
       // Thủ Lĩnh được ưu tiên: chạm cả hai thì rõ ràng người chơi nhắm con to
@@ -450,6 +465,20 @@ class Room {
     // thấy trận đang diễn ra để nhảy vào phụ.
     if (!opts.boss) for (const r of mobs) this.roamers.delete(r.id);
 
+    /**
+     * Báo "sắp vào trận" NGAY, trước khi dựng trận.
+     *
+     * Dựng combatant cho tới 5 người và 8 con quái mất một nhịp, và client thì
+     * đã khoá phím từ lúc này. Không có tín hiệu nào ở giữa thì người chơi thấy
+     * nhân vật khựng lại giữa bản đồ mà chưa có màn chiến đấu — tưởng là treo.
+     */
+    for (const p of participants) {
+      this.io.to(p.id).emit('battle:opening', {
+        boss: !!opts.boss,
+        foes: monsterDefs.map((d) => ({ name: d.name, level: d.level })),
+      });
+    }
+
     const allies = participants.map((p) => this.allyPayload(p));
 
     // Mỗi trận một kênh socket riêng — người ngoài trận không nhận được gói tin
@@ -505,6 +534,13 @@ class Room {
 
     const c = battle.addAlly(this.allyPayload(p));
     if (!c) return null;
+
+    // Báo sau khi chắc chắn chen được vào — trận Thủ Lĩnh có thể đã đủ người,
+    // báo trước thì màn chờ hiện lên rồi treo ở đó không có gì thay thế
+    this.io.to(p.id).emit('battle:opening', {
+      boss: true,
+      foes: battle.living('enemy').map((m) => ({ name: m.name, level: m.level })),
+    });
 
     p.battleId = battle.id;
     p.input = { up: false, down: false, left: false, right: false };

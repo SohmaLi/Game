@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/css/style.css?v=18">
-<link rel="stylesheet" href="/css/battle.css?v=18">
-<link rel="stylesheet" href="/css/panel.css?v=18">
-<link rel="stylesheet" href="/css/hud.css?v=18">
-<link rel="stylesheet" href="/css/ui.css?v=18">
-<link rel="stylesheet" href="/css/tree.css?v=18">
+<link rel="stylesheet" href="/vendor/tippy.css?v=19">
+<link rel="stylesheet" href="/css/style.css?v=19">
+<link rel="stylesheet" href="/css/battle.css?v=19">
+<link rel="stylesheet" href="/css/panel.css?v=19">
+<link rel="stylesheet" href="/css/hud.css?v=19">
+<link rel="stylesheet" href="/css/ui.css?v=19">
+<link rel="stylesheet" href="/css/tree.css?v=19">
 </head>
 <body>
 
@@ -86,7 +87,7 @@
 
   <!-- Đồng hồ Thủ Lĩnh — 5 phút một lần, ai cũng vào đánh chung được -->
   <div id="bossBar" class="hidden">
-    <span class="boss-ico">◆</span>
+    <span class="boss-ico" data-icon="ui-boss">◆</span>
     <span id="bossText">—</span>
   </div>
 </div>
@@ -118,19 +119,19 @@
   <button class="sb-main" id="sbMain" title="Bấm để xem thông tin nhân vật">
     <span class="sb-name"><span id="sbName">—</span> <em>Cấp <span id="sbLevel">1</span></em></span>
     <span class="sb-exp"><i id="sbExpFill"></i><span id="sbExpText">0 / 0</span></span>
-    <span class="sb-gold">◆ <span id="sbGold">0</span></span>
+    <span class="sb-gold"><i class="sb-ico" data-icon="ui-gold">◆</i> <span id="sbGold">0</span></span>
   </button>
 
   <div class="sb-actions">
     <button id="openPanel" class="sb-btn" title="Balo, trang bị và chỉ số (C)">
-      🎒<span class="sb-btn-label">Balo</span>
+      <i class="sb-ico" data-icon="ui-bag">🎒</i><span class="sb-btn-label">Balo</span>
       <span class="sb-badge hidden" id="sbStatPts">0</span>
     </button>
     <button id="openTree" class="sb-btn" title="Cây kỹ năng (K)">
-      ✦<span class="sb-btn-label">Kỹ năng</span>
+      <i class="sb-ico" data-icon="ui-skills">✦</i><span class="sb-btn-label">Kỹ năng</span>
       <span class="sb-badge hidden" id="sbSkillPts">0</span>
     </button>
-    <button id="quit" class="sb-btn danger" title="Thoát về màn chọn nhân vật">⏻</button>
+    <button id="quit" class="sb-btn danger" title="Thoát về màn chọn nhân vật"><i class="sb-ico" data-icon="ui-quit">⏻</i></button>
   </div>
 </div>
 
@@ -158,7 +159,20 @@
       </section>
 
       <section class="p-col p-bag">
-        <h3>Túi đồ <span id="pBagCount" class="dim"></span></h3>
+        <h3>Túi đồ <span id="pBagCount" class="dim"></span>
+          <button class="p-pick-btn" id="pPickToggle">Chọn để xoá</button>
+        </h3>
+
+        <!-- Thanh xoá hàng loạt — chỉ hiện khi đang ở chế độ chọn -->
+        <div class="p-pickbar hidden" id="pPickBar">
+          <div class="p-pick-filters" id="pPickFilters"></div>
+          <div class="p-pick-actions">
+            <span class="p-pick-count" id="pPickCount">Đã chọn 0</span>
+            <button class="p-pick-clear" id="pPickClear">Bỏ chọn</button>
+            <button class="p-pick-del" id="pPickDelete" disabled>Xoá</button>
+          </div>
+        </div>
+
         <div class="p-grid" id="pBag"></div>
       </section>
     </div>
@@ -195,6 +209,17 @@
 <div id="toasts"></div>
 
 <div id="hint" class="hidden">Dùng <b>WASD</b> hoặc <b>phím mũi tên</b> để di chuyển · chạm vào quái để vào trận</div>
+
+<!-- Màn chờ giữa lúc chạm quái và lúc trận hiện ra. Nằm NGOÀI #battle vì nó
+     phải hiện lên trong lúc màn chiến đấu còn đang ẩn. -->
+<div id="bLoading" class="b-loading hidden">
+  <div class="b-loading-box">
+    <div class="b-loading-ring"></div>
+    <h3 id="bLoadingTitle">Chạm mặt quái!</h3>
+    <div class="b-loading-foes" id="bLoadingFoes"></div>
+    <p class="b-loading-hint">Đang dàn trận…</p>
+  </div>
+</div>
 
 <!-- ============================ MÀN CHIẾN ĐẤU ============================ -->
 <div id="battle" class="hidden">
@@ -243,12 +268,16 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/ui.js?v=18"></script>
-<script src="/js/account.js?v=18"></script>
-<script src="/js/hud.js?v=18"></script>
-<script src="/js/battle.js?v=18"></script>
-<script src="/js/panel.js?v=18"></script>
-<script src="/js/tree.js?v=18"></script>
-<script src="/js/game.js?v=18"></script>
+<script src="/vendor/popper.min.js?v=19"></script>
+<script src="/vendor/tippy.min.js?v=19"></script>
+<script src="/vendor/sortable.min.js?v=19"></script>
+<script src="/js/icons.js?v=19"></script>
+<script src="/js/ui.js?v=19"></script>
+<script src="/js/account.js?v=19"></script>
+<script src="/js/hud.js?v=19"></script>
+<script src="/js/battle.js?v=19"></script>
+<script src="/js/panel.js?v=19"></script>
+<script src="/js/tree.js?v=19"></script>
+<script src="/js/game.js?v=19"></script>
 </body>
 </html>

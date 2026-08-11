@@ -14,7 +14,9 @@ Chạy tại **https://game.frozen-top.io.vn**
 node app.js          # local, cổng 3000 (KHÔNG có MySQL ở local)
 ./deploy.sh          # rsync lên host + npm install + restart
 ./tools/migrate.sh   # áp db/schema.sql lên MariaDB
+node --test tests/           # bộ test (Node có sẵn, không cần cài gì)
 node tools/simulate.js 400   # mô phỏng cân bằng chiến đấu
+node tools/build-icons.js    # sinh lại public/img/icons.svg từ game-icons.net
 node tools/loadtest.js <url> <n>   # đo tải WebSocket
 ```
 
@@ -71,7 +73,10 @@ public/js/
   tree.js              cây kỹ năng
   hud.js               HUD 4 thanh góc trái
   ui.js                menu chuột phải, hộp xác nhận
+  icons.js             nạp sprite icon, đổi [data-icon] thành SVG
   account.js           đăng nhập / chọn nhân vật / chọn bản đồ
+public/vendor/         Tippy.js (tooltip) · SortableJS (kéo thả) — tải sẵn, KHÔNG dùng CDN
+tests/                 node --test — chạy trước mỗi lần deploy
 ```
 
 ---
@@ -120,6 +125,10 @@ public/js/
 | Cấp cao đánh nhau mấy chục vòng không ai chết | `armorK` cố định 60 — giáp cấp 50 chặn >70% sát thương cả hai phe. Phải tăng theo cấp |
 | Thủ Lĩnh vùng cấp 50 yếu hơn vùng cấp 10 | Viết tay bảng chỉ số ở cấp cao; người chơi tăng nhanh hơn. Đặt cấp gốc thấp rồi để công thức vùng kéo lên |
 | 5 người hạ Thủ Lĩnh trong 2 vòng | Nó ra tay 1 lần/vòng còn nhóm 5 lần — cộng máu vô ích, phải cho đòn quét cả nhóm |
+| Đứng trong bụng quái mà không vào trận, nhân vật kẹt cứng | `checkEncounters` vẫn GHI `contacts` trong lúc miễn va chạm. Hết miễn thì con đang đè lên người không còn "vừa chạm" nữa. Phải xoá trắng `contacts` suốt thời gian miễn |
+| Thắng trận xong không hiện bảng phần thưởng | Client đọc `rewards.books` nhưng server chỉ gửi `{exp, gold, perPlayer}` → ném lỗi trong `setTimeout`, không ai thấy |
+| Trận sau không mở màn chiến đấu | `onState` chỉ mở khi `!state.data`. Một gói `battle:closed` đến muộn là dữ liệu còn mà màn đã ẩn — phải xét chính lớp `hidden` |
+| Mỗi đòn đánh hiện 2–3 dòng nhật ký | `socket.on('connect')` bắn lại sau mỗi lần nối lại mạng, và mỗi lần lại gọi `Battle.init` đăng ký thêm một bộ handler |
 
 ---
 
@@ -130,6 +139,9 @@ thoát · 12 Đặc Ân · 4 quốc gia · 5 chỉ số · trang bị 10 ô + 5 
 cây kỹ năng (Cây Nền 2 class + Dị Điển 10 ô) · nhóm · tài khoản + 3 nhân vật +
 lưu tiến trình · menu chuột phải · **5 vùng bản đồ cấp 1–50** · **Thủ Lĩnh 5
 phút một lần, đánh chung không cần nhóm**.
+
+**Xong thêm:** màn chờ vào trận · xoá đồ hàng loạt có lọc theo hạng · icon
+game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test.
 
 **Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
 người chơi trên bản đồ) · PvP · quái Tinh Anh chưa xuất hiện ngoài bản đồ ·

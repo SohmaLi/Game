@@ -373,3 +373,72 @@
 /* Chừa chỗ cho thanh kinh nghiệm cố định ở đáy (z-index cao hơn màn này),
    nếu không nó che mất thanh kỹ năng. Chiều cao thật do game.js đo. */
 #battle { padding-bottom: var(--sb-h, 48px); }
+
+/* ---------- màn chờ vào trận ---------- */
+/* Phải nằm trên MỌI thứ, kể cả thanh kinh nghiệm cố định ở đáy (z-index 50):
+   trong lúc chờ, người chơi đã bị khoá phím rồi, không nên bấm được gì. */
+
+.b-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(9, 7, 14, .82);
+  backdrop-filter: blur(3px);
+  animation: bLoadIn .18s ease-out;
+}
+.b-loading.hidden { display: none; }
+
+@keyframes bLoadIn { from { opacity: 0 } to { opacity: 1 } }
+
+.b-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 26px 34px;
+  max-width: min(90vw, 380px);
+  text-align: center;
+}
+
+.b-loading-ring {
+  width: 42px;
+  height: 42px;
+  border: 3px solid #2f2540;
+  border-top-color: #a97bff;
+  border-radius: 50%;
+  animation: bSpin .8s linear infinite;
+}
+@keyframes bSpin { to { transform: rotate(360deg) } }
+
+.b-loading-box h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #e6dcf5;
+  letter-spacing: .3px;
+}
+
+.b-loading-foes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.b-loading-foes > * {
+  padding: 3px 9px;
+  background: #1c1622;
+  border: 1px solid #453458;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #c9b3e0;
+}
+.b-loading-foes em { font-style: normal; color: #8b95ab; margin-left: 5px; }
+
+.b-loading-hint { margin: 0; font-size: 12px; color: #8b95ab; }
+
+/* Người dùng tắt hiệu ứng chuyển động thì đừng quay */
+@media (prefers-reduced-motion: reduce) {
+  .b-loading-ring { animation: none; border-top-color: #a97bff; }
+  .b-loading { animation: none; }
+}

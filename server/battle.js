@@ -620,7 +620,15 @@ class Battle {
         perPlayer[ally.id] = { gold: roll.gold, drops: roll.drops, books: roll.books };
       }
 
-      rewards = { exp, gold, perPlayer };
+      /**
+       * `books` và `drops` ở cấp trên gộp của cả nhóm, chỉ để client nào không
+       * tìm thấy phần riêng của mình vẫn có cái mà hiển thị. Con số ĐÚNG của
+       * từng người nằm trong `perPlayer[id]` — mỗi người bốc đồ riêng.
+       */
+      const books = Object.values(perPlayer).flatMap((r) => r.books);
+      const drops = Object.values(perPlayer).flatMap((r) => r.drops);
+
+      rewards = { exp, gold, books, drops, perPlayer };
     }
 
     events.push({ type: 'end', result, rewards });

@@ -148,7 +148,7 @@ const Tree = (() => {
                  data-id="${n.id}" style="left:${p.x}px;top:${p.y}px"
                  title="${esc(n.blocked || n.desc)}">
               <div class="node-top">
-                <span class="node-name">${esc(n.name)}</span>
+                <span class="node-name">${n.skillId ? Icons.svg(`sk-${n.skillId}`, { cls: 'gi-sk' }) : ''}${esc(n.name)}</span>
                 <span class="node-cost">${n.cost}đ</span>
               </div>
               <div class="node-kind ${n.type}">${n.type === 'active' ? 'Chủ động' : 'Bị động'}</div>
@@ -253,7 +253,7 @@ const Tree = (() => {
         UI.menu(e, {
           title: s.name,
           subtitle: 'Bẩm sinh — không chiếm ô',
-          items: [{ icon: '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(s, 'Bẩm sinh') }],
+          items: [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(s, 'Bẩm sinh') }],
         });
       };
     });
@@ -272,11 +272,11 @@ const Tree = (() => {
       subtitle: carried_ ? 'Đang mang vào trận' : 'Đã mở, chưa mang',
       color: '#7dd3fc',
       items: [
-        { icon: '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(skill) },
+        { icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(skill) },
         carried_
           ? { icon: '↩', label: 'Tháo khỏi bộ mang theo',
               onClick: () => setLoadout(list.filter((id) => id !== skill.id)) }
-          : { icon: '⬆', label: 'Mang vào trận',
+          : { icon: Icons.svg('ui-equip') || '⬆', label: 'Mang vào trận',
               disabled: list.length >= max,
               onClick: () => setLoadout([...list, skill.id]) },
       ],

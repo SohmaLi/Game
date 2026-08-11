@@ -147,7 +147,10 @@ const BY_ID = new Map(MONSTERS.map((m) => [m.id, m]));
 const TIER = {
   common: { label: 'Thường', bookDropRate: 0.05, hpMult: 1.0, damageMult: 1.0 },
   elite: { label: 'Tinh Anh', bookDropRate: 0.15, hpMult: 2.2, damageMult: 1.5 },
-  boss: { label: 'Thủ Lĩnh', bookDropRate: 0.40, hpMult: 16.0, damageMult: 2.2 },
+  // Giảm một nửa so với bản đầu (máu 16.0, sát thương 2.2): con Thủ Lĩnh đó
+  // đúng là đáng sợ, nhưng nhóm chưa đủ 5 người thì gần như không có cửa, mà
+  // gom đủ 5 người cùng lúc trong một vùng là chuyện hiếm.
+  boss: { label: 'Thủ Lĩnh', bookDropRate: 0.40, hpMult: 8.0, damageMult: 1.1 },
 };
 
 /**

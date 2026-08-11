@@ -285,3 +285,34 @@ input:focus { border-color: #4c7dff; }
   background-clip: text;
   color: transparent;
 }
+
+/* ---------- icon game-icons.net ---------- */
+/* Mọi icon vẽ bằng `fill: currentColor` nên nó ăn theo màu chữ của chỗ đặt nó.
+   Nhờ vậy cùng một hình cái kiếm dùng được cho cả 5 hạng đồ mà không cần
+   5 file khác nhau. */
+
+.gi {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.14em;
+  flex: none;
+}
+
+/* Icon trong nút thanh dưới — to hơn chữ một chút cho cân */
+.sb-ico {
+  display: inline-flex;
+  align-items: center;
+  font-style: normal;
+}
+.sb-ico .gi { width: 1.25em; height: 1.25em; vertical-align: middle; }
+
+/* Icon chiêu thức đứng trước tên */
+.gi-sk { margin-right: 5px; opacity: .85; }
+
+/* Ô trang bị: icon lấp đầy ô vuông thay cho khối màu đặc trước đây */
+.slot-icon .gi { width: 76%; height: 76%; }
+.slot-icon {
+  display: grid;
+  place-items: center;
+}
