@@ -17,6 +17,7 @@ node app.js          # local, cổng 3000 (KHÔNG có MySQL ở local)
 node --test tests/           # bộ test (Node có sẵn, không cần cài gì)
 node tools/simulate.js 400   # mô phỏng cân bằng chiến đấu
 node tools/build-icons.js    # sinh lại public/img/icons.svg từ game-icons.net
+node tools/build-sprites.js  # sinh lại public/img/atlas.png từ pack Ninja Adventure
 node tools/loadtest.js <url> <n>   # đo tải WebSocket
 ```
 
@@ -76,6 +77,7 @@ public/js/
   hud.js               HUD 4 thanh góc trái
   ui.js                menu chuột phải, hộp xác nhận
   icons.js             nạp sprite icon, đổi [data-icon] thành SVG
+  sprites.js           nạp atlas pixel art, vẽ nhân vật · quái · ô nền
   account.js           đăng nhập / chọn nhân vật / chọn bản đồ
 public/vendor/         Tippy.js (tooltip) · SortableJS (kéo thả) — tải sẵn, KHÔNG dùng CDN
 tests/                 node --test — chạy trước mỗi lần deploy
@@ -136,6 +138,8 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Icon ô trang bị TRỐNG thò hẳn ra ngoài hàng | `.slot-icon .gi { height: 76% }` trong ô lưới `place-items: center` — ô co theo nội dung nên phần trăm không có gốc, SVG rơi về kích thước mặc định 300×150. Chỉ ô CUỐI lộ ra vì dưới nó không còn hàng nào che. Kích thước ô cố định thì dùng **pixel**, đừng dùng phần trăm |
 | Kéo đồ vào ô mà server từ chối thì món đồ ở lại trong ô vĩnh viễn | SortableJS sửa DOM ngay lúc thả, trước khi server trả lời. Server từ chối thì không có gói `character` nào về, không có lần vẽ lại nào. Phải vẽ lại theo dữ liệu server NGAY trong `onAdd` |
 | Vừa lên cấp, bấm dấu + thì bị từ chối "không đổi trang bị giữa trận" | `invAction` chặn theo `battleId`, mà `battleId` chỉ được gỡ vài giây sau khi trận xong — đúng lúc bảng kết quả hiện ra. Phải chặn theo trận CÒN SỐNG (`!battle.ended`) |
+| Pixel art nhìn nhoè, chỗ to chỗ bé | Phóng tỉ lệ lẻ (16→34). Luôn phóng **bội số nguyên**: 32 trên bản đồ, 48 cho Thủ Lĩnh và màn chiến đấu |
+| Mặt đất lỗ chỗ như miếng vá | Ô biến thể lấy từ ô khác sắc độ. Biến thể phải CÙNG TÔNG với ô nền, chỉ khác chi tiết trang trí — và phải thưa (1/11 ô), rải đều thì rối đến mức không thấy con quái đứng đâu |
 
 ---
 
@@ -149,7 +153,9 @@ phút một lần, đánh chung không cần nhóm**.
 
 **Xong thêm:** màn chờ vào trận · xoá đồ hàng loạt có lọc theo hạng · icon
 game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test ·
-tự điền bộ mang theo khi nó rỗng · bảng phần thưởng tô màu theo loại.
+tự điền bộ mang theo khi nó rỗng · bảng phần thưởng tô màu theo loại ·
+**sprite pixel art Ninja Adventure** (10 nhân vật, 13 quái, ô nền 5 vùng, cả
+trên bản đồ lẫn trong màn chiến đấu).
 
 **Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
 người chơi trên bản đồ) · PvP · quái Tinh Anh chưa xuất hiện ngoài bản đồ ·

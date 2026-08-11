@@ -260,9 +260,24 @@ const Battle = (() => {
     const ready = state.data.chosen.includes(c.id) && c.isPlayer && state.data.phase === 'select'
       ? '<div class="unit-ready">✓</div>' : '';
 
+    /**
+     * CẢ HAI phe đều quay mặt về phía người xem.
+     *
+     * Cho đồng đội quay lưng thì đúng với cách hai bên đứng đối diện nhau,
+     * nhưng khung nhìn từ sau của bộ sprite này chỉ là một mảng tóc — không
+     * phân biệt nổi ai với ai. Đọc được quan trọng hơn đúng phối cảnh.
+     * Chưa có sprite thì vẫn là khối màu tròn như trước.
+     */
+    const block = c.isPlayer ? Sprites.charBlock(c.sprite, c.name) : Sprites.mobBlock(c.sprite);
+    const face = Sprites.cssFrame(block, 'down', 3);
+    const avatar = face
+      ? `<div class="unit-avatar sprite" style="${Object.entries(face)
+          .map(([k, v]) => `${k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}:${v}`).join(';')}"></div>`
+      : `<div class="unit-avatar" style="background:${c.color || (c.side === 'enemy' ? '#c05a5a' : '#4c7dff')}"></div>`;
+
     el.innerHTML = `
       ${ready}
-      <div class="unit-avatar" style="background:${c.color || (c.side === 'enemy' ? '#c05a5a' : '#4c7dff')}"></div>
+      ${avatar}
       <div class="unit-name">${escapeHtml(c.name)}</div>
       <div class="unit-sub">Cấp ${c.level}${c.tierLabel ? ` · ${c.tierLabel}` : ''} · ⚡${c.speed}</div>
       <div class="bar hp"><i style="width:${hpPct}%"></i></div>

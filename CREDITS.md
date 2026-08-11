@@ -26,6 +26,31 @@ git nên **lúc deploy không cần mạng**.
 
 ---
 
+## Sprite nhân vật, quái và bản đồ — Ninja Adventure
+
+Giấy phép **CC0** (miễn trừ bản quyền). Không bắt buộc ghi nguồn, nhưng tác giả
+xứng đáng được nhắc tên.
+
+- Tác giả: **Pixel-Boy** ([@2pblog1](https://twitter.com/2pblog1)) và **AAA**
+- Bản gốc: <https://pixel-boy.itch.io/ninja-adventure-asset-pack>
+- Bản đang dùng: <https://github.com/sparklinlabs/superpowers-asset-packs> —
+  cùng tác giả, cùng giấy phép, tải thẳng được nên công cụ dựng lại chạy tự động
+
+10 hình nhân vật, 13 hình quái và ô nền của 5 vùng đã gộp vào
+`public/img/atlas.png` (29 KB) kèm bảng toạ độ `public/img/atlas.json`.
+
+Muốn đổi hình cho một con quái hoặc một vùng thì sửa bảng `CHARS` / `MOBS` /
+`ZONE_TILES` trong `tools/build-sprites.js` rồi chạy:
+
+```bash
+node tools/build-sprites.js
+```
+
+Ô gốc 16×16, phóng lên đúng **bội số nguyên** (32px trên bản đồ, 48px trong màn
+chiến đấu). Phóng tỉ lệ lẻ là pixel chỗ to chỗ bé — hỏng ngay cái nhìn đầu tiên.
+
+---
+
 ## Thư viện JavaScript
 
 Đặt trong `public/vendor/`, tải sẵn về chứ không gọi CDN — host chạy được cả khi

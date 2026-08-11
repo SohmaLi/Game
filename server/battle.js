@@ -669,6 +669,8 @@ class Battle {
       level: c.level,
       tierLabel: c.tierLabel || null,
       color: c.color || null,
+      // Khoá tra hình: người chơi lấy theo lớp, quái lấy theo bản mẫu
+      sprite: c.isPlayer ? (c.className || null) : (c.monsterId || null),
       hp: c.hp, hpMax: c.hpMax,
       mana: c.mana, manaMax: c.manaMax,
       rage: c.rage, rageMax: RAGE_MAX,

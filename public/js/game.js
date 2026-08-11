@@ -110,8 +110,9 @@ function connect({ token, characterId, zone }) {
   const socket = io({ transports: ['websocket', 'polling'] });
   state.socket = socket;
 
-  // Nạp sprite icon song song với lúc bắt tay mạng — xong trước khi có gì để vẽ
+  // Nạp hình song song với lúc bắt tay mạng — xong trước khi có gì để vẽ
   Icons.load();
+  Sprites.load();
 
   socket.on('connect', () => {
     socket.emit('join', { token, characterId, zone, type: 'pve' }, async (res) => {
@@ -300,15 +301,32 @@ function drawMap(cam) {
   const x1 = Math.min(w - 1, Math.ceil((cam.x + vw) / tile));
   const y1 = Math.min(h - 1, Math.ceil((cam.y + vh) / tile));
 
+  const zoneId = state.zone?.id;
+  const tiled = Sprites.zone(zoneId);
+
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       const wall = data[ty * w + tx] === 1;
       const sx = tx * tile - cam.x;
       const sy = ty * tile - cam.y;
 
+      if (tiled) {
+        /**
+         * Nền rải biến thể theo toạ độ ô, KHÔNG theo ngẫu nhiên.
+         *
+         * Cùng một ô phải luôn ra cùng một hình: bốc ngẫu nhiên mỗi khung hình
+         * thì cả bãi cỏ nhấp nháy. Băm toạ độ cho ra thảm cỏ lấm tấm hoa mà
+         * không phải lưu thêm gì.
+         */
+        Sprites.drawGround(ctx, zoneId, tileNoise(tx, ty), sx, sy, tile);
+        // Vật cản vẽ ĐÈ lên nền, nên gốc cây vẫn thấy đất bên dưới
+        if (wall) Sprites.drawProp(ctx, zoneId, sx, sy, tile);
+        continue;
+      }
+
+      // Chưa tải xong atlas thì vẫn là ô màu phẳng như trước
       ctx.fillStyle = wall ? th.wall : ((tx + ty) % 2 ? th.floorB : th.floorA);
       ctx.fillRect(sx, sy, tile, tile);
-
       if (wall) {
         ctx.fillStyle = th.wallTop;
         ctx.fillRect(sx, sy, tile, 3); // viền trên cho tường có chiều sâu
@@ -317,49 +335,82 @@ function drawMap(cam) {
   }
 }
 
+/** Số giả ngẫu nhiên cố định theo ô — dùng chọn biến thể ô nền. */
+function tileNoise(x, y) {
+  let h = (x * 73_856_093) ^ (y * 19_349_663);
+  h = (h ^ (h >>> 13)) >>> 0;
+  return h % 997;
+}
+
+/** Băm chuỗi thành số — dùng lệch pha hoạt cảnh giữa các nhân vật. */
+function hashCode(s) {
+  let h = 0;
+  for (const ch of String(s || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h;
+}
+
 function drawPlayer(p, cam) {
   const x = p.x - cam.x;
   const y = p.y - cam.y;
   const isMe = p.id === state.me;
 
-  // Bóng đổ
+  // Bóng đổ — vẽ cả khi có sprite, nếu không nhân vật trông như dán lên nền
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.beginPath();
   ctx.ellipse(x, y + 11, 11, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Thân
-  ctx.fillStyle = isMe ? '#4c7dff' : '#e0705a';
-  ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
-  ctx.fill();
+  /**
+   * Mỗi người một pha bước chân khác nhau: lấy id làm độ lệch thời gian.
+   * Không có nó thì cả nhóm nhấc chân cùng một nhịp như đội duyệt binh.
+   */
+  const seed = hashCode(p.id) % 400;
+  // Phóng ĐÚNG bội số nguyên (16→32). Tỉ lệ lẻ làm pixel chỗ to chỗ bé, thứ duy
+  // nhất phá hỏng một bộ pixel art nhanh hơn cả chọn sai màu.
+  const drawn = Sprites.drawUnit(
+    ctx, Sprites.charBlock(p.cl, p.n), p.d, Sprites.walkFrame(p.m, seed), x, y, 32);
 
-  ctx.strokeStyle = isMe ? '#a9c6ff' : '#ffb3a3';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  if (!drawn) {
+    // Chưa tải xong atlas thì vẽ hình tròn như trước — không được để trống chỗ
+    ctx.fillStyle = isMe ? '#4c7dff' : '#e0705a';
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isMe ? '#a9c6ff' : '#ffb3a3';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-  // Hướng nhìn
-  const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[p.d] || [0, 1];
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(x + d[0] * 6, y + d[1] * 6, 3, 0, Math.PI * 2);
-  ctx.fill();
+    const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[p.d] || [0, 1];
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + d[0] * 6, y + d[1] * 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (isMe) {
+    // Sprite ai cũng giống ai — cần một dấu chỉ rõ con nào là mình
+    ctx.strokeStyle = 'rgba(124,160,255,.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 11, 12, 5.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
-  // Tên
+  // Tên và thanh máu nằm TRÊN đầu sprite. Sprite cao 32px tính từ y-20, nên mốc
+  // cũ (y-20 / y-17) rơi thẳng vào mặt nhân vật.
+  const top = drawn ? y - 22 : y - 17;
+
   ctx.font = '600 11px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,.75)';
-  ctx.strokeText(p.n, x, y - 20);
+  ctx.strokeText(p.n, x, top - 8);
   ctx.fillStyle = isMe ? '#cfe0ff' : '#ffd9d1';
-  ctx.fillText(p.n, x, y - 20);
+  ctx.fillText(p.n, x, top - 8);
 
-  // Thanh máu
   const bw = 30;
   ctx.fillStyle = 'rgba(0,0,0,.6)';
-  ctx.fillRect(x - bw / 2, y - 17, bw, 4);
+  ctx.fillRect(x - bw / 2, top - 5, bw, 4);
   ctx.fillStyle = '#5ad17a';
-  ctx.fillRect(x - bw / 2, y - 17, bw * (p.hp / 100), 4);
+  ctx.fillRect(x - bw / 2, top - 5, bw * (p.hp / 100), 4);
 }
 
 function drawMonster(m, cam) {
@@ -377,30 +428,43 @@ function drawMonster(m, cam) {
   ctx.ellipse(x, y + r - 1, r - 1, r * 0.42, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = m.c || '#c05a5a';
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Viền đỏ rực khi đang đuổi theo — người chơi cần biết mình bị bám để còn chạy
-  ctx.strokeStyle = m.bs ? '#ffd166' : (m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)');
-  ctx.lineWidth = m.bs ? 3 : (m.a ? 2.5 : 2);
-  ctx.stroke();
-
-  // Vòng hào quang cho Thủ Lĩnh — thấy từ xa là biết nên tránh hay nên rủ người
+  // Vòng hào quang cho Thủ Lĩnh — thấy từ xa là biết nên tránh hay nên rủ người.
+  // Vẽ TRƯỚC thân để nó nằm dưới, không cắt ngang mặt con quái.
   if (m.bs) {
-    ctx.strokeStyle = 'rgba(255,209,102,.35)';
+    ctx.strokeStyle = 'rgba(255,209,102,.45)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, r + 6 + Math.sin(Date.now() / 300) * 2, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[m.d] || [0, 1];
-  ctx.fillStyle = 'rgba(0,0,0,.6)';
-  ctx.beginPath();
-  ctx.arc(x + d[0] * (r * 0.45), y + d[1] * (r * 0.45), r * 0.23, 0, Math.PI * 2);
-  ctx.fill();
+  const drawn = Sprites.drawUnit(
+    ctx, Sprites.mobBlock(m.mid), m.d, Sprites.walkFrame(m.m, hashCode(m.id) % 400),
+    x, y, m.bs ? 48 : 32);
+
+  if (!drawn) {
+    ctx.fillStyle = m.c || '#c05a5a';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = m.bs ? '#ffd166' : (m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)');
+    ctx.lineWidth = m.bs ? 3 : (m.a ? 2.5 : 2);
+    ctx.stroke();
+
+    const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[m.d] || [0, 1];
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.beginPath();
+    ctx.arc(x + d[0] * (r * 0.45), y + d[1] * (r * 0.45), r * 0.23, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (m.a) {
+    // Đang đuổi: vòng đỏ dưới chân thay cho cái viền quanh hình tròn ngày trước
+    ctx.strokeStyle = 'rgba(255,77,77,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + r - 1, r - 1, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   if (m.a) {
     ctx.font = '700 14px system-ui, sans-serif';

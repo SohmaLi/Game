@@ -125,6 +125,20 @@
   background: #4c7dff;
 }
 
+/**
+ * Sprite pixel art: cắt từ atlas bằng background-position, phóng to bằng
+ * `pixelated` để giữ cạnh sắc. Bỏ bo tròn và viền — một hình vuông 16px phóng
+ * lên mà cắt bo góc thì mất luôn tai với vai nhân vật.
+ */
+.unit-avatar.sprite {
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .5));
+}
+.unit.dead .unit-avatar.sprite { filter: grayscale(1) brightness(.5); }
+
 .unit-name {
   font-size: 12px;
   font-weight: 600;

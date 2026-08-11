@@ -428,6 +428,7 @@ class Room {
         hp: p.hp,
         b: !!p.battleId,      // đang trong trận — client vẽ mờ đi
         pt: p.partyId || null, // để client tô màu đồng đội
+        cl: p.className || null, // lớp — client chọn hình nhân vật theo đây
       });
     }
     const monsters = [];

@@ -146,6 +146,7 @@ class Roamer {
       id: this.id,
       n: this.name,
       c: this.color,
+      mid: this.defId,   // bản mẫu — client tra hình theo đây, màu `c` là dự phòng
       x: Math.round(this.x * 10) / 10,
       y: Math.round(this.y * 10) / 10,
       d: this.dir,
