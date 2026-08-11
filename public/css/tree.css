@@ -170,6 +170,35 @@
 }
 .load-info b { color: #cfe0ff; }
 
+/* Cảnh báo "đã mở chiêu mà chưa mang vào trận" — kèm luôn nút sửa, vì chỗ này
+   là nơi duy nhất người chơi có thể phát hiện ra vấn đề trước khi vào trận */
+.load-warn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  background: #2a2113;
+  border: 1px solid #6b5220;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #ffd7a1;
+}
+.load-warn b { color: #ffb648; }
+.load-warn button {
+  flex: none;
+  padding: 6px 13px;
+  background: #ffb648;
+  border: 0;
+  border-radius: 6px;
+  color: #241a08;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.load-warn button:hover { background: #ffc76e; }
+
 .load-slots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));

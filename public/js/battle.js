@@ -14,6 +14,10 @@ const Battle = (() => {
   /** Phải khớp với hằng số cùng tên ở server/battle.js */
   const FLEE = '__flee';
 
+  /** Thời lượng mặc định của một sự kiện trong hoạt cảnh (ms). */
+  const ACT_MS = 320;   // đòn ra tay — cần lâu hơn để đọc kịp tên chiêu
+  const EV_MS = 260;    // gục, độc, hồi máu…
+
   const ui = {
     root: null, round: null, timerFill: null, timerText: null, phase: null,
     enemies: null, allies: null, order: null, prompt: null, skills: null,
@@ -33,6 +37,8 @@ const Battle = (() => {
     playing: false,      // đang phát hoạt cảnh, khóa thao tác
     loadingTimer: null,  // chốt an toàn cho màn chờ vào trận
     endTimer: null,      // hẹn giờ hiện bảng kết quả
+    seq: -1,             // gói trạng thái mới nhất ĐÃ ÁP — xem applyState
+    pendingEnd: null,    // kết quả trận đang chờ hoạt cảnh chạy xong
   };
 
   /* ------------------------------------------------ khởi tạo ------------ */
@@ -137,14 +143,37 @@ const Battle = (() => {
     state.data = null;
     state.pickedSkill = null;
     state.submitted = false;
+    state.playing = false;
+    state.pendingEnd = null;
+    state.seq = -1;
     cancelAnimationFrame(state.timerRAF);
   }
 
   /* ------------------------------------------------ nhận trạng thái ---- */
 
+  /**
+   * Ghi trạng thái mới, nhưng CHỈ khi nó thật sự mới hơn cái đang có.
+   *
+   * Hoạt cảnh của một vòng mất hơn một giây, và trạng thái đi kèm nó chỉ được
+   * áp sau khi phát xong. Vòng sau tới trước lúc đó là chuyện thường — không
+   * chặn thì hoạt cảnh vừa xong sẽ ghi đè trạng thái mới bằng trạng thái cũ:
+   * thanh 20 giây đứng im, mọi nút kỹ năng khoá cứng, trong khi server vẫn
+   * đếm ngược bình thường rồi tự đánh thay. Nhìn y như game treo.
+   */
+  function applyState(data) {
+    if (!data) return false;
+    // Trận khác thì đếm lại từ đầu — mỗi trận có bộ số thứ tự riêng, so số của
+    // trận này với trận trước là vứt mất gói đầu tiên của trận mới
+    const sameBattle = state.data && state.data.battleId === data.battleId;
+    if (sameBattle && data.seq != null && state.seq >= 0 && data.seq <= state.seq) return false;
+    state.seq = data.seq ?? -1;
+    state.data = data;
+    return true;
+  }
+
   function onState(data) {
     const fresh = !state.data;
-    state.data = data;
+    if (!applyState(data)) return;
 
     /**
      * Mở màn khi nó đang ẩn, KHÔNG chỉ khi chưa có dữ liệu.
@@ -347,23 +376,49 @@ const Battle = (() => {
 
   /* ------------------------------------------------ hoạt cảnh -------- */
 
+  /**
+   * Hệ số co giãn để cả chuỗi hoạt cảnh chạy xong TRƯỚC khi server sang vòng mới.
+   *
+   * Một vòng có 4 người ra tay, 3 con gục và vài hiệu ứng cuối vòng cần hơn 2,3
+   * giây theo nhịp mặc định, trong khi server chỉ chờ 2,2 giây. Chiêu quét cả
+   * nhóm (Thiên Thạch, Xoáy Lốc) là thứ thường xuyên đẩy một vòng qua mốc đó vì
+   * nó hạ nhiều con cùng lúc. Vòng cuối trận thì không co — không còn vòng nào
+   * đuổi theo, và đó lại đúng lúc người chơi muốn xem kỹ.
+   */
+  function paceOf(events) {
+    if (events.some((e) => e.type === 'end')) return 1;
+    const budget = (state.data?.resolveMs || 2200) - 250;
+    const natural = events.reduce((sum, e) => sum + (e.type === 'act' ? ACT_MS : EV_MS), 0);
+    return natural <= budget ? 1 : Math.max(0.35, budget / natural);
+  }
+
   async function onResolve({ events, state: newState }) {
     state.playing = true;
     state.pickedSkill = null;
     state.submitted = false;
     ui.phase.textContent = 'Đang xử lý…';
 
+    const pace = paceOf(events);
     for (const ev of events) {
-      await playEvent(ev);
+      await playEvent(ev, pace);
     }
 
-    state.data = newState;
+    // Vòng sau có thể đã tới trong lúc phát hoạt cảnh — `applyState` bỏ qua gói
+    // cũ hơn thay vì ghi đè lên nó
+    applyState(newState);
     state.playing = false;
     Hud.fromCombatant(me());
     render();
+
+    // Bảng kết quả chờ hoạt cảnh chạy hết mới hiện, không cắt ngang đòn cuối
+    if (state.pendingEnd) {
+      const done = state.pendingEnd;
+      state.pendingEnd = null;
+      showResult(done);
+    }
   }
 
-  function playEvent(ev) {
+  function playEvent(ev, pace = 1) {
     return new Promise((resolve) => {
       switch (ev.type) {
         case 'act': {
@@ -372,7 +427,7 @@ const Battle = (() => {
           setTimeout(() => {
             for (const h of ev.hits) applyHit(h);
             resolve();
-          }, 320);
+          }, ACT_MS * pace);
           return;
         }
         case 'dot':
@@ -405,7 +460,7 @@ const Battle = (() => {
         default:
           break;
       }
-      setTimeout(resolve, 260);
+      setTimeout(resolve, EV_MS * pace);
     });
   }
 
@@ -475,46 +530,66 @@ const Battle = (() => {
 
   /* ------------------------------------------------ kết thúc --------- */
 
+  /** Màu hạng đồ — phải khớp với RARITY_COLOR trong panel.js. */
+  const RARITY_COLOR = {
+    common: '#9aa4b8', fine: '#5bd18a', rare: '#5b9cff',
+    epic: '#c07bff', legendary: '#ffb648',
+  };
+
   function onEnd({ result, rewards }) {
     hideLoading();
     clearTimeout(state.endTimer);
-    state.endTimer = setTimeout(() => {
-      const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại', fled: 'Đã trốn thoát' };
-      ui.resultTitle.textContent = titles[result] || result;
-      ui.resultTitle.className = result === 'fled' ? 'draw' : result;
 
-      if (rewards) {
-        /**
-         * Phần của CHÍNH MÌNH, không phải của cả nhóm: vàng và đồ mỗi người bốc
-         * riêng. Đọc thẳng `rewards.books` là đọc phải phần gộp của cả nhóm —
-         * và hồi trước server còn không gửi trường đó, nên chỗ này ném lỗi,
-         * bảng kết quả không bao giờ hiện ra sau mỗi trận thắng.
-         */
-        const mine = rewards.perPlayer?.[state.myId] || {};
-        const books = mine.books || rewards.books || [];
-        const drops = mine.drops || [];
-        const gold = mine.gold ?? rewards.gold ?? 0;
+    // Hoạt cảnh vòng cuối vẫn đang chạy thì xếp hàng chờ — bảng kết quả đè lên
+    // đúng lúc con quái cuối đang gục là cướp mất khoảnh khắc duy nhất đáng xem
+    if (state.playing) {
+      state.pendingEnd = { result, rewards };
+      return;
+    }
+    state.endTimer = setTimeout(() => showResult({ result, rewards }), 900);
+  }
 
-        const bookRows = books.length
-          ? books.map((b) => `<div class="reward"><span>Sách Dị Điển</span><span>từ ${escapeHtml(b.from || '—')}</span></div>`).join('')
-          : '<div class="reward"><span>Sách Dị Điển</span><span>không rơi</span></div>';
-        const dropRows = drops.length
-          ? drops.map((d) => `<div class="reward"><span>Vật phẩm</span><span>${escapeHtml(d.name || '—')}</span></div>`).join('')
-          : '';
+  function showResult({ result, rewards }) {
+    const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại', fled: 'Đã trốn thoát' };
+    ui.resultTitle.textContent = titles[result] || result;
+    ui.resultTitle.className = result === 'fled' ? 'draw' : result;
 
-        ui.resultBody.innerHTML = `
-          <div class="reward"><span>Kinh nghiệm</span><span>+${rewards.exp ?? 0}</span></div>
-          <div class="reward"><span>Vàng</span><span>+${gold}</span></div>
-          ${dropRows}
-          ${bookRows}`;
-      } else if (result === 'fled') {
-        ui.resultBody.innerHTML = '<p style="color:#8b95ab">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì.</p>';
-      } else {
-        ui.resultBody.innerHTML = '<p style="color:#8b95ab">Không nhận được phần thưởng.</p>';
-      }
+    if (rewards) {
+      /**
+       * Phần của CHÍNH MÌNH, không phải của cả nhóm: vàng và đồ mỗi người bốc
+       * riêng. Đọc thẳng `rewards.books` là đọc phải phần gộp của cả nhóm —
+       * và hồi trước server còn không gửi trường đó, nên chỗ này ném lỗi,
+       * bảng kết quả không bao giờ hiện ra sau mỗi trận thắng.
+       */
+      const mine = rewards.perPlayer?.[state.myId] || {};
+      const books = mine.books || rewards.books || [];
+      const drops = mine.drops || [];
+      const gold = mine.gold ?? rewards.gold ?? 0;
 
-      ui.result.classList.remove('hidden');
-    }, 900); // chờ hoạt cảnh đòn cuối chạy xong
+      // Mỗi loại phần thưởng một màu riêng: vàng ra vàng, kinh nghiệm ra tím,
+      // vật phẩm ăn theo màu hạng của chính nó. Tô cả bảng một màu thì phải đọc
+      // từng chữ mới biết vừa nhặt được món hiếm hay món rác.
+      const bookRows = books.length
+        ? books.map((b) => `<div class="reward"><span>Sách Dị Điển</span>
+             <span class="v book">${escapeHtml(b.name || 'Dị Điển')}</span></div>`).join('')
+        : '<div class="reward"><span>Sách Dị Điển</span><span class="v none">không rơi</span></div>';
+      const dropRows = drops.map((d) => `
+        <div class="reward"><span>Vật phẩm</span>
+          <span class="v" style="color:${RARITY_COLOR[d.rarity] || '#e6e9ef'}">${escapeHtml(d.name || '—')}</span>
+        </div>`).join('');
+
+      ui.resultBody.innerHTML = `
+        <div class="reward"><span>Kinh nghiệm</span><span class="v exp">+${rewards.exp ?? 0}</span></div>
+        <div class="reward"><span>Vàng</span><span class="v gold">+${gold}</span></div>
+        ${dropRows}
+        ${bookRows}`;
+    } else if (result === 'fled') {
+      ui.resultBody.innerHTML = '<p style="color:#8b95ab">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì.</p>';
+    } else {
+      ui.resultBody.innerHTML = '<p style="color:#8b95ab">Không nhận được phần thưởng.</p>';
+    }
+
+    ui.result.classList.remove('hidden');
   }
 
   /* ------------------------------------------------ tiện ích --------- */

@@ -186,6 +186,9 @@
   display: flex;
   align-items: center;
   gap: 9px;
+  /* Cao cố định: một ô trang bị lỡ chứa hai phần tử (kéo thả dở dang, icon
+     chưa kịp dọn) cũng không được phép kéo giãn cả hàng ra */
+  height: 48px;
   padding: 6px 8px;
   background: #0f1420;
   border: 1px solid #232c42;
@@ -551,12 +554,25 @@
 
 /* ---------- kéo thả ---------- */
 
+/**
+ * `place-items: stretch` chứ KHÔNG phải `center`.
+ *
+ * Căn giữa làm ô lưới co theo nội dung, nên phần tử con đặt `height: 100%` không
+ * có gì xác định để tính phần trăm — và icon bên trong nó cũng vậy, rơi về kích
+ * thước SVG mặc định rồi tràn ra ngoài hàng. Cho con kéo căng ra đúng 34px thì
+ * mọi phần trăm bên trong đều có gốc để bám. Việc căn giữa để `.slot-icon` lo.
+ */
 .slot-drop {
   display: grid;
-  place-items: center;
+  place-items: stretch;
   border-radius: 8px;
   transition: background .12s, box-shadow .12s;
 }
+/* Mọi thứ trong ô thả nằm CHỒNG lên nhau ở cùng một ô lưới. Để mặc định thì
+   grid xếp mỗi phần tử một hàng, và một khoảnh khắc có hai phần tử (lúc thả đồ
+   xuống, trước khi vẽ lại) là ô méo hẳn đi */
+.slot-drop > * { grid-area: 1 / 1; }
+
 /* Ô trống vẽ mờ để phân biệt với ô đang có đồ */
 .slot-ghost { opacity: .32; }
 
@@ -580,8 +596,19 @@
 
 /* Vùng thả của ô trang bị phải đủ to để nhắm trúng khi kéo bằng chuột */
 .slot-drop { width: 34px; height: 34px; flex: 0 0 34px; }
+
+/**
+ * Kích thước tính bằng PIXEL, không phải phần trăm.
+ *
+ * `height: 100%` ở đây từng tạo ra vòng luẩn quẩn: ô chứa co theo nội dung, nên
+ * phần trăm không có gốc để tính, nên icon rơi về kích thước SVG mặc định
+ * (300×150), nên ô chứa phình lên theo. Kết quả là icon của MỌI ô trang bị
+ * trống cao 114px, thò xuống đè lên hàng dưới — chỉ ô cuối cùng là lộ ra vì
+ * dưới nó không còn hàng nào che.
+ */
 .slot-drop .slot-icon {
-  width: 100%; height: 100%;
+  width: 34px; height: 34px;
   flex: none;
   margin: 0;
 }
+.slot-drop .slot-icon .gi { width: 26px; height: 26px; }

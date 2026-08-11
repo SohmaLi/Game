@@ -173,8 +173,11 @@ const Tree = (() => {
     });
     if (!ok) return;
     socket.emit('tree:learn', { nodeId: n.id }, (res) => {
-      if (res?.ok) Panel.toast('levelup', `Đã học ${n.name}`, n.type === 'active' ? 'Tự động mang vào trận' : 'Bị động, luôn có tác dụng');
-      else Panel.toast('warn', 'Không học được', res?.error || '');
+      if (!res?.ok) return Panel.toast('warn', 'Không học được', res?.error || '');
+      const note = !res.active ? 'Bị động, luôn có tác dụng'
+        : res.carried ? 'Đã mang vào trận'
+          : 'Bộ mang theo đã đầy — vào tab Mang Theo để đổi';
+      Panel.toast('levelup', `Đã học ${n.name}`, note);
     });
   }
 
@@ -188,12 +191,25 @@ const Tree = (() => {
 
     const byId = new Map(unlocked.map((s) => [s.id, s]));
 
+    // Đã mở chiêu mà chưa mang thì phải nói thẳng ra. Không có dòng này, người
+    // chơi cộng điểm xong vào trận không thấy chiêu đâu và tưởng game hỏng.
+    const idle = unlocked.filter((s) => !carried.includes(s.id));
+    const room = max - carried.length;
+    const warn = idle.length && room > 0
+      ? `<div class="load-warn">
+           <span>${carried.length ? `Còn <b>${idle.length}</b> kỹ năng đã mở chưa mang vào trận.`
+             : '<b>Chưa mang kỹ năng nào</b> — vào trận bạn chỉ có Đánh Thường và Phòng Thủ.'}</span>
+           <button id="loadFillAll">Mang tất cả</button>
+         </div>`
+      : '';
+
     pane.innerHTML = `
       <p class="load-info">
         Mang tối đa <b>${max}</b> kỹ năng vào trận — đang mang <b>${carried.length}</b>.
         <br>Bấm vào ô đang có để bỏ ra, bấm ở danh sách dưới để thêm vào.
         <br><span style="color:#6b7791">Đánh Thường và Phòng Thủ là bẩm sinh, không chiếm ô.</span>
       </p>
+      ${warn}
 
       <div class="load-slots">
         ${(data.innate || []).map((s) => `
@@ -225,6 +241,11 @@ const Tree = (() => {
           </div>`;
         }).join('')}
       </div>` : '<p class="books-empty">Chưa mở kỹ năng chủ động nào. Vào tab Cây Nền để học.</p>'}`;
+
+    const fill = $('loadFillAll');
+    if (fill) {
+      fill.onclick = () => setLoadout([...carried, ...idle.map((s) => s.id)].slice(0, max));
+    }
 
     // Đang mang: bấm để tháo, chuột phải để xem thêm
     pane.querySelectorAll('[data-remove]').forEach((el) => {

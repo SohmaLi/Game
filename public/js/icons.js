@@ -11,7 +11,7 @@
  */
 
 const Icons = (() => {
-  const SPRITE = '/img/icons.svg?v=19';
+  const SPRITE = '/img/icons.svg?v=20';
   let loading = null;
 
   function load() {

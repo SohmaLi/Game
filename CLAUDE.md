@@ -131,6 +131,11 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Thắng trận xong không hiện bảng phần thưởng | Client đọc `rewards.books` nhưng server chỉ gửi `{exp, gold, perPlayer}` → ném lỗi trong `setTimeout`, không ai thấy |
 | Trận sau không mở màn chiến đấu | `onState` chỉ mở khi `!state.data`. Một gói `battle:closed` đến muộn là dữ liệu còn mà màn đã ẩn — phải xét chính lớp `hidden` |
 | Mỗi đòn đánh hiện 2–3 dòng nhật ký | `socket.on('connect')` bắn lại sau mỗi lần nối lại mạng, và mỗi lần lại gọi `Battle.init` đăng ký thêm một bộ handler |
+| Dùng chiêu quét cả nhóm xong màn chiến đấu đứng hình, thanh 20 giây không nhúc nhích | Hoạt cảnh dài hơn `RESOLVE_MS` (2200ms) nên vòng mới tới trước lúc phát xong, rồi client ghi đè trạng thái MỚI bằng trạng thái CŨ vừa phát. Chiêu diện rộng hạ nhiều con cùng lúc là thứ thường xuyên đẩy một vòng qua mốc đó. Phải có `seq` tăng dần + co giãn hoạt cảnh cho vừa |
+| Cộng hết điểm kỹ năng mà vào trận không dùng được chiêu nào | `carried` rỗng thì `loadoutFor` chỉ trả về hai chiêu bẩm sinh, và **không có gì trên màn hình nói ra điều đó**. Gỡ hết ở tab Mang Theo chỉ cần vài cú bấm, gắn sách Dị Điển thì trước đây không tự mang chiêu vào trận |
+| Icon ô trang bị TRỐNG thò hẳn ra ngoài hàng | `.slot-icon .gi { height: 76% }` trong ô lưới `place-items: center` — ô co theo nội dung nên phần trăm không có gốc, SVG rơi về kích thước mặc định 300×150. Chỉ ô CUỐI lộ ra vì dưới nó không còn hàng nào che. Kích thước ô cố định thì dùng **pixel**, đừng dùng phần trăm |
+| Kéo đồ vào ô mà server từ chối thì món đồ ở lại trong ô vĩnh viễn | SortableJS sửa DOM ngay lúc thả, trước khi server trả lời. Server từ chối thì không có gói `character` nào về, không có lần vẽ lại nào. Phải vẽ lại theo dữ liệu server NGAY trong `onAdd` |
+| Vừa lên cấp, bấm dấu + thì bị từ chối "không đổi trang bị giữa trận" | `invAction` chặn theo `battleId`, mà `battleId` chỉ được gỡ vài giây sau khi trận xong — đúng lúc bảng kết quả hiện ra. Phải chặn theo trận CÒN SỐNG (`!battle.ended`) |
 
 ---
 
@@ -143,7 +148,8 @@ lưu tiến trình · menu chuột phải · **5 vùng bản đồ cấp 1–50*
 phút một lần, đánh chung không cần nhóm**.
 
 **Xong thêm:** màn chờ vào trận · xoá đồ hàng loạt có lọc theo hạng · icon
-game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test.
+game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test ·
+tự điền bộ mang theo khi nó rỗng · bảng phần thưởng tô màu theo loại.
 
 **Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
 người chơi trên bản đồ) · PvP · quái Tinh Anh chưa xuất hiện ngoài bản đồ ·

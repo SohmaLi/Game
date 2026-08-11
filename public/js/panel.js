@@ -522,6 +522,19 @@ const Panel = (() => {
   function clearSortables() {
     for (const s of sortables) { try { s.destroy(); } catch { /* DOM đã thay */ } }
     sortables = [];
+    /**
+     * Quét sạch bản sao bay theo con trỏ mà SortableJS để lại.
+     *
+     * Ở chế độ `forceFallback`, thư viện gắn một bản sao của món đồ vào
+     * `<body>` trong lúc kéo. Nếu bảng nhân vật được vẽ lại giữa chừng — vào
+     * trận, lên cấp, nhặt được đồ — thì instance bị huỷ trước khi nó kịp dọn,
+     * và bản sao đó nằm lại trên màn hình như một món đồ ma.
+     */
+    // Chỉ quét ở cấp <body>: bên trong bảng là phần tử thật đang được vẽ lại,
+    // đụng vào là xoá nhầm đồ của người chơi
+    for (const el of [...document.body.children]) {
+      if (el.matches?.('.p-drag-move, .sortable-fallback')) el.remove();
+    }
   }
 
   const fitsSlot = (item, slotId) => (item.slot === 'ring'
@@ -551,6 +564,7 @@ const Panel = (() => {
       // Kéo từ ô trang bị về túi = tháo ra
       onAdd: (e) => {
         const slotId = e.from.dataset.slot;
+        redrawItems();
         if (slotId) unequip(slotId);
       },
     }));
@@ -578,12 +592,30 @@ const Panel = (() => {
         onStart: hideTip,
         onAdd: (e) => {
           const uid = e.item.dataset.uid;
+          redrawItems();
           if (uid) socket.emit('inv:equip', { uid, slot: slotId }, (res) => {
             if (!res?.ok) toast('warn', 'Không mặc được', res?.error || '');
           });
         },
       }));
     }
+  }
+
+  /**
+   * Vẽ lại ô trang bị và túi đồ theo dữ liệu SERVER đang giữ.
+   *
+   * SortableJS di chuyển thẳng phần tử trong DOM ngay lúc thả, trước khi server
+   * kịp nói có cho phép hay không. Server từ chối (đang trong trận, ô không hợp
+   * lệ…) thì không có gói `character` nào về, không có lần vẽ lại nào — món đồ
+   * ở lại trong ô trang bị vĩnh viễn dù thật ra nó vẫn nằm trong túi. Trả DOM
+   * về đúng dữ liệu ngay lập tức, rồi để câu trả lời của server vẽ lại lần nữa,
+   * thì màn hình không bao giờ nói dối.
+   */
+  function redrawItems() {
+    if (!data) return;
+    // Hoãn một nhịp: đang đứng giữa handler của SortableJS, huỷ chính instance
+    // đang chạy ngay tại đây là giật tấm thảm dưới chân nó
+    setTimeout(() => { if (data) { renderSlots(); renderBag(); setupDrag(); } }, 0);
   }
 
   function itemByUid(uid) {

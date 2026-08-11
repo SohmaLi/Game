@@ -128,6 +128,16 @@ class Battle {
     ];
 
     this.round = 0;
+    /**
+     * Số thứ tự tăng dần cho mỗi gói trạng thái gửi đi.
+     *
+     * Client phát hoạt cảnh mất hơn một giây, và nó chỉ áp trạng thái kèm theo
+     * SAU khi phát xong. Nếu vòng mới kịp tới trước lúc đó thì client sẽ ghi đè
+     * trạng thái mới bằng trạng thái cũ vừa phát xong — màn hình đứng hình ở
+     * pha "đang xử lý" trong khi server vẫn đếm ngược bình thường. Có số thứ tự
+     * thì client bỏ qua được mọi gói đến sau mà cũ hơn.
+     */
+    this.seq = 0;
     this.phase = 'select';
     this.actions = new Map(); // combatantId -> { skillId, targetId }
     this.timer = null;
@@ -677,11 +687,15 @@ class Battle {
   serialize() {
     return {
       battleId: this.id,
+      seq: ++this.seq,
       boss: this.boss,
       round: this.round,
       phase: this.phase,
       msLeft: this.phase === 'select' ? Math.max(0, this.deadline - Date.now()) : 0,
       selectMs: SELECT_MS,
+      // Client cần biết nó có bao nhiêu thời gian để phát hoạt cảnh trước khi
+      // vòng sau ập tới, để tự co giãn cho vừa thay vì bị cắt ngang
+      resolveMs: RESOLVE_MS,
       chosen: [...this.actions.keys()],
       combatants: this.combatants.map((c) => this.serializeCombatant(c)),
       // Thứ tự lượt hiện tại, để client hiện dải "ai đánh trước"

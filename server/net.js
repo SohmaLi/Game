@@ -117,7 +117,22 @@ function attach(io) {
       const room = manager.roomOf(socket);
       const p = room?.players.get(socket.id);
       if (!p) return ack?.({ ok: false, error: 'Chưa ở trong phòng nào.' });
-      if (p.battleId) return ack?.({ ok: false, error: 'Không đổi trang bị giữa trận.' });
+
+      /**
+       * Chặn theo trận CÒN SỐNG, không theo `battleId`.
+       *
+       * `battleId` chỉ được gỡ vài giây sau khi trận kết thúc (chờ hoạt cảnh
+       * chạy hết). Đúng khoảng đó là lúc bảng kết quả hiện ra, người chơi vừa
+       * lên cấp và bấm ngay dấu + để cộng chỉ số — rồi nhận lại một câu từ chối
+       * khó hiểu. Trận đã xong thì cho thao tác bình thường.
+       *
+       * Câu từ chối cũng phải nói đúng chuyện: hàm này còn gác cả cộng chỉ số,
+       * học kỹ năng và chọn lớp, không riêng gì trang bị.
+       */
+      const live = p.battleId ? room.battles.get(p.battleId) : null;
+      if (live && !live.ended) {
+        return ack?.({ ok: false, error: 'Đang trong trận — đánh xong rồi làm.' });
+      }
 
       const res = fn(p, payload);
       if (res?.ok) {
@@ -163,10 +178,14 @@ function attach(io) {
       // Học được chiêu chủ động mà còn chỗ trống thì tự mang theo luôn —
       // không ai học xong lại muốn để nó nằm không
       const node = tree.node(p.className, d.nodeId);
-      if (node?.type === 'active' && node.skillId && p.carried.length < skillData.MAX_LOADOUT) {
-        p.carried.push(node.skillId);
-      }
-      return { ok: true };
+      const active = node?.type === 'active' && !!node.skillId;
+      const carried = active && p.carried.length < skillData.MAX_LOADOUT;
+      if (carried) p.carried.push(node.skillId);
+
+      // Báo lại đúng chuyện đã xảy ra. Bộ mang theo đầy mà giao diện vẫn khoe
+      // "tự động mang vào trận" thì người chơi chỉ phát hiện ra lúc vào trận
+      // tìm mãi không thấy chiêu vừa học đâu.
+      return { ok: true, active, carried };
     }));
 
     socket.on('loadout:set', invAction((p, d) => {
@@ -198,6 +217,13 @@ function attach(io) {
 
       // Sách cũ biến mất, và chiêu của nó cũng rời khỏi bộ mang theo
       if (old?.skillId) p.carried = p.carried.filter((id) => id !== old.skillId);
+
+      // Gắn sách xong mà chiêu vẫn nằm ngoài trận thì gắn để làm gì. Giống hệt
+      // lúc học một nút chủ động trong Cây Nền: còn chỗ thì mang theo luôn.
+      if (book.skillId && !p.carried.includes(book.skillId)
+          && p.carried.length < skillData.MAX_LOADOUT) {
+        p.carried.push(book.skillId);
+      }
       return { ok: true, replaced: old?.name || null };
     }));
 

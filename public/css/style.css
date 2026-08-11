@@ -297,6 +297,12 @@ input:focus { border-color: #4c7dff; }
   fill: currentColor;
   vertical-align: -0.14em;
   flex: none;
+  /* Chốt chặn: một chỗ nào đó đặt kích thước theo phần trăm mà ô chứa lại không
+     có chiều cao xác định thì SVG rơi về kích thước mặc định 300×150 và tràn ra
+     khỏi chỗ của nó. Đúng chuyện đã xảy ra với ô trang bị trống — icon chiếc
+     nhẫn cao 114px, thò hẳn xuống dưới danh sách như một món đồ ma. */
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Icon trong nút thanh dưới — to hơn chữ một chút cho cân */

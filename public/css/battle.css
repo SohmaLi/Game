@@ -318,7 +318,14 @@
 
 .reward { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #232c42; font-size: 13px; }
 .reward:last-of-type { border-bottom: 0; }
-.reward span:last-child { color: #ffd166; font-weight: 600; }
+.reward span:first-child { color: #8b95ab; }
+/* Mỗi loại phần thưởng một màu: nhìn lướt là biết vừa nhặt được gì, không phải
+   đọc từng dòng. Vật phẩm tự mang màu hạng của nó qua thuộc tính style. */
+.reward .v { font-weight: 600; color: #e6e9ef; }
+.reward .v.exp { color: #c07bff; }
+.reward .v.gold { color: #ffd166; }
+.reward .v.book { color: #d3b8f0; }
+.reward .v.none { color: #5a6478; font-weight: 400; }
 
 #bResultClose {
   width: 100%;

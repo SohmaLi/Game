@@ -20,6 +20,25 @@ let nextRoomId = 1;
 const GUEST_STATS = { str: 5, int: 5, vit: 5, agi: 5, wil: 5 };
 
 /**
+ * Bộ mang theo TRỐNG mà trong tay đã có kỹ năng chủ động thì tự điền vào.
+ *
+ * Vào trận chỉ với Đánh Thường và Phòng Thủ trong khi cây kỹ năng xanh lè là
+ * trạng thái không ai cố ý chọn — nó chỉ xảy ra khi người chơi lỡ tay gỡ hết ở
+ * tab Mang Theo, hoặc khi kỹ năng đến từ sách Dị Điển (gắn sách không tự mang
+ * chiêu vào trận). Và không có gì trên màn hình nói cho họ biết.
+ *
+ * Chỉ điền khi bộ mang theo RỖNG: bỏ bớt vài chiêu để chừa chỗ là lựa chọn
+ * thật, tự nhét lại sau mỗi lần đăng nhập là phá lựa chọn đó.
+ */
+function fillEmptyLoadout(p) {
+  if (!p.className || p.carried.length) return;
+  const usable = tree.unlockedSkills(p.className, p.learned, p.codex)
+    .filter((id) => skillData.get(id));
+  if (!usable.length) return;
+  p.carried = usable.slice(0, skillData.MAX_LOADOUT);
+}
+
+/**
  * Một phòng chơi. Toàn bộ trạng thái nằm trong RAM.
  *
  * Nguyên tắc quan trọng: game loop CHỈ chạy khi phòng có người.
@@ -136,6 +155,8 @@ class Room {
       player.x = character.pos.x;
       player.y = character.pos.y;
     }
+
+    fillEmptyLoadout(player);
 
     this.players.set(socket.id, player);
     socket.join(this.id);
