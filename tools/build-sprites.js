@@ -65,6 +65,9 @@ const MOBS = {
   bone_general: 5,
   ice_troll: 17,
   storm_herald: 13,
+  void_wraith: -8,       // lính giáp lửa
+  void_eye: 16,          // cầu gai tối màu
+  void_lord: -4,         // áo choàng tím có huy hiệu lửa
 };
 
 /**
@@ -81,6 +84,7 @@ const ZONE_TILES = {
   bonewaste: { ground: [23, 13], variants: [[24, 12], [24, 13]], prop: [12, 10] },  // cát · tảng đá
   frostmaw:  { ground: [14, 19], variants: [[13, 19], [16, 19]], prop: [0, 22] },   // tuyết · thông phủ tuyết
   stormpeak: { ground: [16, 30], variants: [],                   prop: [2, 27] },   // đá tím · cây chết
+  voidshrine: { ground: [23, 32], variants: [],                  prop: [8, 25] },   // nền phế tích rêu phong · đá tối
 };
 
 /* -------------------------------------------------------------- PNG I/O --- */

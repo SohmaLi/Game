@@ -71,6 +71,22 @@ const MONSTERS = [
     exp: 46, gold: 26,
     desc: 'Gọi sấm xuống đầu kẻ dám bước lên đỉnh núi.',
   },
+  {
+    id: 'void_wraith', name: 'Chiến Binh Hư Không', family: 'human', tier: 'common',
+    level: 7, color: '#5f7a52',
+    stats: { str: 11, int: 6, vit: 10, agi: 8, wil: 7 },
+    skills: ['attack', 'm_curse'],
+    exp: 54, gold: 31,
+    desc: 'Từng là lính canh ngôi đền, giờ chỉ còn cái vỏ giáp và một ngọn lửa không bao giờ tắt.',
+  },
+  {
+    id: 'void_eye', name: 'Mắt Hư Không', family: 'undead', tier: 'common',
+    level: 8, color: '#2f4a3a',
+    stats: { str: 6, int: 14, vit: 8, agi: 7, wil: 13 },
+    skills: ['attack', 'd_drain'],
+    exp: 62, gold: 35,
+    desc: 'Nhìn vào nó là thấy chính mình rơi mãi không chạm đáy.',
+  },
 
   /* ------------------------------------------------------ hạng Tinh Anh -- */
   {
@@ -90,7 +106,7 @@ const MONSTERS = [
    * Trước đây mỗi Thủ Lĩnh có một bảng chỉ số viết tay ở cấp cao. Sai lầm: sức
    * mạnh người chơi tăng theo cấp nhanh hơn hẳn mấy con số viết tay đó, nên
    * Thủ Lĩnh vùng cấp 50 lại yếu tương đối hơn Thủ Lĩnh vùng cấp 10. Cùng một
-   * công thức tăng với quái thường thì độ khó mới giữ được qua cả 5 vùng.
+   * công thức tăng với quái thường thì độ khó mới giữ được qua cả các vùng.
    */
   {
     id: 'alpha_wolf', name: 'Sói Đầu Đàn', family: 'beast', tier: 'boss',
@@ -132,6 +148,14 @@ const MONSTERS = [
     exp: 850, gold: 580,
     desc: 'Đứng giữa mắt bão và nói chuyện với sấm.',
   },
+  {
+    id: 'void_lord', name: 'Chúa Tể Hư Không', family: 'human', tier: 'boss',
+    level: 7, color: '#8a5cff',
+    stats: { str: 16, int: 24, vit: 16, agi: 15, wil: 20 },
+    skills: ['attack', 'm_wail', 'd_drain'],
+    exp: 980, gold: 650,
+    desc: 'Bước qua khe nứt ấy, nó mang theo cả một cõi trống rỗng.',
+  },
 ];
 
 const BY_ID = new Map(MONSTERS.map((m) => [m.id, m]));
@@ -159,7 +183,7 @@ const TIER = {
  * Đây là NÚM CÂN BẰNG DUY NHẤT cho độ khó theo vùng. Người chơi mỗi cấp vừa
  * được 3 điểm chỉ số vừa thay trang bị tốt hơn, nên quái phải tăng nhanh hơn
  * mức 3 điểm đó khá nhiều. 0.22 đo ra được: một người đủ trang bị đánh 2 con
- * cùng cấp thì thắng ~90% và còn khoảng nửa máu, ở cả 5 vùng.
+ * cùng cấp thì thắng ~90% và còn khoảng nửa máu, ở cả các vùng.
  * Chỉnh xong phải đo lại bằng tools/simulate.js.
  */
 const GROWTH_PER_LEVEL = 0.22;

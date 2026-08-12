@@ -7,6 +7,7 @@ const boons = require('./data/boons');
 const nations = require('./data/nations');
 const loot = require('./loot');
 const classData = require('./data/classes');
+const tree = require('./data/skilltree');
 
 /**
  * Trận đánh turn-based.
@@ -47,6 +48,7 @@ function playerCombatant(player) {
     stats: player.stats || { str: 5, int: 5, vit: 5, agi: 5, wil: 5 },
     equip: player.equip || null,
     skills: skillData.loadoutFor(player.className, player.carried, player.unlocked),
+    skillRanks: player.skillRanks || {},
     cooldowns: {},
     effects: [],
     rage: player.rage || 0,
@@ -379,7 +381,11 @@ class Battle {
       return events;
     }
 
-    const skill = skillData.get(action.skillId) || skillData.get('attack');
+    const rawSkill = skillData.get(action.skillId) || skillData.get('attack');
+    // Chỉ người chơi có bậc kỹ năng — quái luôn dùng đúng bản gốc trong data/skills.js
+    const skill = actor.isPlayer
+      ? (tree.scaledSkill(rawSkill.id, actor.skillRanks) || rawSkill)
+      : rawSkill;
 
     // Kiểm tra lại tài nguyên tại thời điểm thực thi — trạng thái có thể đã đổi
     const cost = stats.manaCost(actor, skill);

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Vùng bản đồ — 5 vùng phủ kín cấp 1 tới 50, mỗi vùng 10 cấp.
+ * Vùng bản đồ — 6 vùng phủ kín cấp 1 tới 60, mỗi vùng 10 cấp.
  *
  * Vùng là thứ chia người chơi ra: mỗi vùng có phòng riêng, quái riêng, Thủ Lĩnh
  * riêng và bản đồ riêng. Người chơi tự chọn vùng trước khi vào game.
@@ -54,6 +54,14 @@ const ZONES = [
     monsters: ['storm_cultist', 'frost_revenant'],
     boss: 'storm_herald',
     theme: { floorA: '#1d1729', floorB: '#211a2f', wall: '#3d2b5c', wallTop: '#553d7d', accent: '#c4a2ff' },
+  },
+  {
+    id: 'voidshrine', name: 'Đền Đài Hư Không',
+    levelMin: 51, levelMax: 60, seed: 51_601,
+    desc: 'Bão Tố xé toạc một phế tích chôn vùi hàng ngàn năm — thứ bò ra từ khe nứt đó không thuộc về thế giới này.',
+    monsters: ['void_wraith', 'void_eye'],
+    boss: 'void_lord',
+    theme: { floorA: '#182418', floorB: '#1b281b', wall: '#2c3a24', wallTop: '#3d4f30', accent: '#c48bff' },
   },
 ];
 

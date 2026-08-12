@@ -188,6 +188,49 @@ function attach(io) {
       return { ok: true, active, carried };
     }));
 
+    /**
+     * Nâng bậc một kỹ năng đã mở, tốn 1 điểm kỹ năng — nơi tiêu điểm dư sau khi
+     * Cây Nền đã mở hết (mỗi lớp chỉ tốn tối đa 15 điểm mà vẫn nhận 1 điểm mỗi
+     * cấp tới cấp 60).
+     */
+    socket.on('skill:rank', invAction((p, d) => {
+      if (!p.className) return { ok: false, error: 'Phải chọn lớp trước.' };
+      const skillId = d.skillId;
+      if (!tree.rankable(skillId)) return { ok: false, error: 'Kỹ năng này không nâng bậc được.' };
+
+      const unlocked = tree.unlockedSkills(p.className, p.learned, p.codex);
+      if (!unlocked.includes(skillId)) return { ok: false, error: 'Kỹ năng chưa mở.' };
+
+      const rank = tree.rankOf(skillId, p.skillRanks);
+      if (rank >= tree.MAX_SKILL_RANK) return { ok: false, error: `Đã đạt bậc tối đa (${tree.MAX_SKILL_RANK}).` };
+
+      const left = tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks);
+      if (left < 1) return { ok: false, error: 'Không đủ điểm kỹ năng.' };
+
+      p.skillRanks = { ...p.skillRanks, [skillId]: rank + 1 };
+      return { ok: true, skillId, rank: rank + 1 };
+    }));
+
+    /**
+     * Tiêu một cuốn sách Dị Điển CHƯA gắn để nâng bậc kỹ năng cùng tên ĐANG gắn
+     * trong một ô Dị Điển khác. Chỉ có tác dụng với sách trùng kỹ năng đang
+     * dùng — sách của kỹ năng chưa gắn ô nào thì vẫn phải gắn vào ô trống trước.
+     */
+    socket.on('codex:upgrade', invAction((p, d) => {
+      const book = (p.books || []).find((b) => b.uid === d.uid);
+      if (!book) return { ok: false, error: 'Không tìm thấy sách.' };
+
+      const socketed = (p.codex || []).some((b) => b?.skillId === book.skillId);
+      if (!socketed) return { ok: false, error: 'Kỹ năng này chưa gắn vào ô Dị Điển nào — gắn vào ô trống trước.' };
+
+      const rank = tree.rankOf(book.skillId, p.skillRanks);
+      if (rank >= tree.MAX_SKILL_RANK) return { ok: false, error: `Kỹ năng đã đạt bậc tối đa (${tree.MAX_SKILL_RANK}).` };
+
+      p.skillRanks = { ...p.skillRanks, [book.skillId]: rank + 1 };
+      p.books = p.books.filter((b) => b.uid !== d.uid);
+      return { ok: true, skillId: book.skillId, rank: rank + 1 };
+    }));
+
     socket.on('loadout:set', invAction((p, d) => {
       const unlocked = tree.unlockedSkills(p.className, p.learned, p.codex);
       const list = (Array.isArray(d.skills) ? d.skills : [])

@@ -140,6 +140,7 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Vừa lên cấp, bấm dấu + thì bị từ chối "không đổi trang bị giữa trận" | `invAction` chặn theo `battleId`, mà `battleId` chỉ được gỡ vài giây sau khi trận xong — đúng lúc bảng kết quả hiện ra. Phải chặn theo trận CÒN SỐNG (`!battle.ended`) |
 | Pixel art nhìn nhoè, chỗ to chỗ bé | Phóng tỉ lệ lẻ (16→34). Luôn phóng **bội số nguyên**: 32 trên bản đồ, 48 cho Thủ Lĩnh và màn chiến đấu |
 | Mặt đất lỗ chỗ như miếng vá | Ô biến thể lấy từ ô khác sắc độ. Biến thể phải CÙNG TÔNG với ô nền, chỉ khác chi tiết trang trí — và phải thưa (1/11 ô), rải đều thì rối đến mức không thấy con quái đứng đâu |
+| Thêm vùng mới xong, CẢ BẢN ĐỒ hoá thành bụi cây trên nền đen | `sprites.js`/`icons.js` từng ghi cứng `?v=21` — một số phiên bản THỨ HAI tách rời `?v=N` của `index.html`. Thêm quái/vùng làm atlas cao thêm, `groundY` dời từ 192 xuống 272; bump index.html mà số kia đứng yên nên trình duyệt ghép **JSON mới với PNG cũ còn trong cache**, toạ độ ô nền rơi trúng hàng vật cản. `atlas.png` + `atlas.json` là MỘT CẶP, phải bust cùng lúc — nay hai file tự đọc `?v=` từ `src` của chính thẻ `<script>`, khỏi có số thứ hai để quên |
 
 ---
 
@@ -148,14 +149,15 @@ tests/                 node --test — chạy trước mỗi lần deploy
 **Xong:** khung mạng · khám phá + quái lang thang · chiến đấu turn-based · trốn
 thoát · 12 Đặc Ân · 4 quốc gia · 5 chỉ số · trang bị 10 ô + 5 hạng + rớt đồ ·
 cây kỹ năng (Cây Nền 2 class + Dị Điển 10 ô) · nhóm · tài khoản + 3 nhân vật +
-lưu tiến trình · menu chuột phải · **5 vùng bản đồ cấp 1–50** · **Thủ Lĩnh 5
+lưu tiến trình · menu chuột phải · **6 vùng bản đồ cấp 1–60** · **Thủ Lĩnh 5
 phút một lần, đánh chung không cần nhóm**.
 
 **Xong thêm:** màn chờ vào trận · xoá đồ hàng loạt có lọc theo hạng · icon
 game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test ·
 tự điền bộ mang theo khi nó rỗng · bảng phần thưởng tô màu theo loại ·
-**sprite pixel art Ninja Adventure** (10 nhân vật, 13 quái, ô nền 5 vùng, cả
-trên bản đồ lẫn trong màn chiến đấu).
+**sprite pixel art Ninja Adventure** (10 nhân vật, 16 quái, ô nền 6 vùng, cả
+trên bản đồ lẫn trong màn chiến đấu) · nâng bậc kỹ năng bằng điểm dư · Dị Điển
+trùng lặp nâng cấp kỹ năng đang gắn.
 
 **Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
 người chơi trên bản đồ) · PvP · quái Tinh Anh chưa xuất hiện ngoài bản đồ ·

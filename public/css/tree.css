@@ -160,6 +160,20 @@
 .node-kind.passive { color: #d3b8f0; }
 .node-lv { font-size: 10px; color: #6b7791; margin-top: 4px; }
 
+/* Bậc kỹ năng — nơi tiêu điểm dư sau khi Cây Nền đã mở hết */
+.rank-badge {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 7px;
+  background: #1d3324;
+  border: 1px solid #2f5340;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #93e0b0;
+}
+.sk-cost .rankb { color: #93e0b0; font-weight: 700; }
+
 /* ---------------- mang theo ---------------- */
 
 .load-info {
@@ -240,6 +254,24 @@
 }
 .pool-item:hover:not(.taken) { border-color: #4c7dff; }
 .pool-item.taken { opacity: .35; cursor: default; }
+
+/* Sách Dị Điển trùng một kỹ năng đang gắn — tiêu được để nâng bậc thay vì
+   nằm không, đúng chỗ người chơi phàn nàn "sách trùng quá nhiều" */
+.pool-item.dup { border-color: #6b5220; background: #201a10; }
+.up-btn {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 5px 6px;
+  background: #ffb648;
+  border: 0;
+  border-radius: 6px;
+  color: #241a08;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.up-btn:hover { background: #ffc76e; }
 
 .sk-name { font-size: 12px; font-weight: 600; color: #cfe0ff; }
 .sk-cost { font-size: 10px; color: #8b95ab; margin-top: 2px; }

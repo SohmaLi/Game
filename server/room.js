@@ -30,6 +30,31 @@ const GUEST_STATS = { str: 5, int: 5, vit: 5, agi: 5, wil: 5 };
  * Chỉ điền khi bộ mang theo RỖNG: bỏ bớt vài chiêu để chừa chỗ là lựa chọn
  * thật, tự nhét lại sau mỗi lần đăng nhập là phá lựa chọn đó.
  */
+/**
+ * Bản gửi client của một cuốn sách Dị Điển, kèm thông số kỹ năng thật của nó
+ * (mana, Nộ Khí, hồi chiêu, mục tiêu, loại) — client không có bảng `data/skills.js`
+ * nên không tự tra được, và cửa sổ xem chi tiết cần đủ những trường này.
+ *
+ * @param assigned  sách đang GẮN trong một ô Dị Điển hay còn nằm trong túi.
+ *                  Chỉ sách đang gắn mới có `rank` — nếu không, cửa sổ chi
+ *                  tiết của một cuốn sách còn nằm không sẽ hiện nhầm nút
+ *                  "nâng bậc bằng điểm" trong khi kỹ năng đó chưa hề mở.
+ */
+function bookView(b, skillRanks, assigned) {
+  if (!b) return null;
+  const skill = skillData.get(b.skillId);
+  const out = {
+    ...b,
+    kind: skill?.kind, manaCost: skill?.manaCost, rage: skill?.rage,
+    cooldown: skill?.cooldown, target: skill?.target,
+  };
+  if (assigned && tree.rankable(b.skillId)) {
+    out.rank = tree.rankOf(b.skillId, skillRanks);
+    out.maxRank = tree.MAX_SKILL_RANK;
+  }
+  return out;
+}
+
 function fillEmptyLoadout(p) {
   if (!p.className || p.carried.length) return;
   const usable = tree.unlockedSkills(p.className, p.learned, p.codex)
@@ -131,6 +156,7 @@ class Room {
         ? character.codex
         : Array(tree.CODEX_SLOTS).fill(null),
       books: character?.books || [],
+      skillRanks: character?.skillRanks || {},
 
       partyId: null,   // nhóm đang tham gia
       battleId: null,  // trận đang đánh, null khi đang khám phá
@@ -311,7 +337,10 @@ class Room {
   fillRoamers() {
     const players = [...this.players.values()];
     while (this.roamers.size < cfg.ROAMER.count) {
-      const r = roamer.spawn(this.zone, this.map, players);
+      // Đã đặt bao nhiêu trong đợt này (kể cả những con còn sót từ trước) thì
+      // né bấy nhiêu — không thì nhiều con dễ dồn cục lại sau một trận lớn
+      // nhấc cùng lúc 5-6 con khỏi bản đồ.
+      const r = roamer.spawn(this.zone, this.map, players, [...this.roamers.values()]);
       this.roamers.set(r.id, r);
     }
   }
@@ -545,6 +574,7 @@ class Room {
       equip: this.modsOf(p),
       carried: p.carried,
       unlocked: tree.unlockedSkills(p.className, p.learned, p.codex),
+      skillRanks: p.skillRanks,
       rage: p.rage,
       karma: p.karma,
     };
@@ -738,20 +768,29 @@ class Room {
         : [],
       classes: classData.all().map((c) => ({ id: c.id, name: c.name, role: c.role, desc: c.desc })),
       tree: p.className ? tree.publicTree(p.className, p) : [],
-      skillPoints: p.className ? tree.pointsLeft(p.className, p.level, p.learned) : tree.pointsEarned(p.level),
+      skillPoints: p.className
+        ? tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks)
+        : tree.pointsEarned(p.level),
+      maxSkillRank: tree.MAX_SKILL_RANK,
       learned: p.learned,
       carried: p.carried,
       maxLoadout: skillData.MAX_LOADOUT,
       unlocked: tree.unlockedSkills(p.className, p.learned, p.codex)
-        .map(skillData.publicView).filter(Boolean),
+        .map((id) => {
+          const view = skillData.publicView(id);
+          if (!view) return null;
+          return tree.rankable(id)
+            ? { ...view, rank: tree.rankOf(id, p.skillRanks), maxRank: tree.MAX_SKILL_RANK }
+            : view;
+        }).filter(Boolean),
       innate: skillData.INNATE.map(skillData.publicView),
-      codex: p.codex,
+      codex: p.codex.map((b) => bookView(b, p.skillRanks, true)),
       codexSlots: tree.CODEX_SLOTS,
 
       equipped: p.inv.equipped,
       bag: p.inv.bag,
       bagSize: inventory.BAG_SIZE,
-      books: p.books || [],
+      books: (p.books || []).map((b) => bookView(b, p.skillRanks, false)),
       unspentBooks: (p.books || []).length,
       slots: itemData.SLOTS,
     };

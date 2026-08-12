@@ -184,14 +184,30 @@ function findSpot(map, players, radius, keepAway) {
   return map.randomSpawn(radius);
 }
 
-/** Sinh một quái thường của vùng, cấp bốc ngẫu nhiên trong khoảng của vùng. */
-function spawn(zone, map, players = []) {
+/**
+ * Sinh một quái thường của vùng, cấp bốc ngẫu nhiên trong khoảng của vùng.
+ *
+ * @param others  quái đã đặt trước đó trong cùng đợt đổ đầy (server/room.js
+ *                fillRoamers). Một trận lớn nhấc 5-6 con khỏi bản đồ cùng lúc,
+ *                rồi đợt đổ đầy sau đó gọi spawn() liên tiếp — không tránh
+ *                nhau thì `map.randomSpawn` ngẫu nhiên độc lập từng lần rất dễ
+ *                dồn nhiều con đứng dính lên nhau ở cùng một góc bản đồ.
+ */
+function spawn(zone, map, players = [], others = []) {
   // Chỉ hạng Thường mới đi lang thang. Tinh Anh và Thủ Lĩnh có luật xuất hiện
   // riêng — thả chúng vào đây là người chơi vấp phải một con Tinh Anh giữa
   // đường mà không hề được báo trước.
   const base = monsterData.randomFrom(zone.monsters, 'common');
   const level = zone.levelMin + Math.floor(Math.random() * (zone.levelMax - zone.levelMin + 1));
-  const pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
+
+  // Cách nhau tối thiểu vài lần bán kính — đủ để không chồng hình, vẫn cho
+  // phép đứng thành bầy gần đó như thiết kế ban đầu (groupRadius vẫn kéo
+  // được cả cụm vào chung một trận).
+  const minGap = R.radius * 3;
+  let pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
+  for (let i = 0; i < 10 && nearest(pos, others, minGap); i++) {
+    pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
+  }
   return new Roamer(monsterData.scaled(base, level), pos);
 }
 

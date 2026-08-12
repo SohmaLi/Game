@@ -164,7 +164,7 @@ const Account = (() => {
   /* ------------------------------------------------ chọn bản đồ ------- */
 
   /**
-   * Năm bản đồ, mỗi bản đồ 10 cấp, phủ kín cấp 1 tới 50.
+   * Sáu bản đồ, mỗi bản đồ 10 cấp, phủ kín cấp 1 tới 60.
    *
    * Chỉ mở bản đồ mà nhân vật đủ cấp. Vẫn cho quay về bản đồ thấp — muốn đi
    * dạo chỗ dễ là quyền của người chơi, chỉ có điều phần thưởng ở đó bèo bọt.

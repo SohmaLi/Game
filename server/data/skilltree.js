@@ -126,6 +126,18 @@ const POINTS_PER_LEVEL = 1;
 /** Số ô Dị Điển (DESIGN.md §3.3). */
 const CODEX_SLOTS = 10;
 
+/**
+ * Bậc kỹ năng — nơi tiêu điểm dư sau khi Cây Nền đã mở hết.
+ *
+ * Cây chỉ tốn tối đa 15 điểm mà người chơi vẫn nhận 1 điểm mỗi cấp tới tận cấp
+ * 60, nên từ khoảng cấp 16 trở đi điểm chỉ nằm không nhìn rất phí. Mỗi kỹ năng
+ * CHỦ ĐỘNG đã mở (Cây Nền hoặc Dị Điển đã gắn) nâng được tối đa 5 bậc, mỗi bậc
+ * tốn 1 điểm và cộng thêm 10% sức mạnh (power / effect.percent) so với bậc 1 —
+ * không đụng vào hồi chiêu hay tiêu hao, chỉ để đòn ra tay mạnh hơn.
+ */
+const MAX_SKILL_RANK = 5;
+const RANK_POWER_STEP = 0.10;
+
 function treeFor(classId) {
   return NODES[classId] || [];
 }
@@ -143,8 +155,50 @@ function pointsSpent(classId, learned = []) {
   return learned.reduce((sum, id) => sum + (node(classId, id)?.cost || 0), 0);
 }
 
-function pointsLeft(classId, level, learned = []) {
-  return pointsEarned(level) - pointsSpent(classId, learned);
+/** Điểm đã dồn vào nâng bậc — bậc 1 là mặc định lúc mở, chỉ bậc 2 trở lên mới tốn điểm. */
+function rankPointsSpent(skillRanks = {}) {
+  return Object.values(skillRanks || {}).reduce((sum, r) => sum + Math.max(0, (r || 1) - 1), 0);
+}
+
+function pointsLeft(classId, level, learned = [], skillRanks = {}) {
+  return pointsEarned(level) - pointsSpent(classId, learned) - rankPointsSpent(skillRanks);
+}
+
+/** Bậc hiện tại của một kỹ năng — 1 nếu chưa nâng bậc nào. */
+function rankOf(skillId, skillRanks = {}) {
+  return (skillRanks || {})[skillId] || 1;
+}
+
+/** Hệ số nhân sức mạnh theo bậc. Bậc 1 = hệ số gốc, không đổi gì. */
+function rankMultiplier(rank) {
+  return 1 + RANK_POWER_STEP * Math.max(0, (rank || 1) - 1);
+}
+
+/** Kỹ năng này có "thông số" nào để nâng bậc hay không. */
+function rankable(skillId) {
+  const s = skills.get(skillId);
+  if (!s) return false;
+  return !!s.power || s.effect?.percent != null || s.effect2?.percent != null || !!s.drain;
+}
+
+/**
+ * Bản kỹ năng đã co giãn theo bậc — power, effect.percent, drain nhân theo
+ * `rankMultiplier`. Bậc 1 hoặc kỹ năng không nâng được thì trả về nguyên bản,
+ * không tạo bản sao vô ích.
+ */
+function scaledSkill(skillId, skillRanks = {}) {
+  const base = skills.get(skillId);
+  if (!base) return null;
+  const rank = rankOf(skillId, skillRanks);
+  if (rank <= 1) return base;
+
+  const mult = rankMultiplier(rank);
+  const out = { ...base };
+  if (out.power) out.power = out.power * mult;
+  if (out.effect?.percent != null) out.effect = { ...out.effect, percent: out.effect.percent * mult };
+  if (out.effect2?.percent != null) out.effect2 = { ...out.effect2, percent: out.effect2.percent * mult };
+  if (out.drain) out.drain = out.drain * mult;
+  return out;
 }
 
 /** Vì sao một nút chưa mở được — trả về null nếu mở được. */
@@ -159,8 +213,9 @@ function blockedReason(classId, nodeId, char) {
     const names = missing.map((r) => node(classId, r)?.name || r).join(', ');
     return `Phải học trước: ${names}.`;
   }
-  if (pointsLeft(classId, char.level, char.learned) < n.cost) {
-    return `Cần ${n.cost} điểm kỹ năng, còn ${pointsLeft(classId, char.level, char.learned)}.`;
+  const left = pointsLeft(classId, char.level, char.learned, char.skillRanks);
+  if (left < n.cost) {
+    return `Cần ${n.cost} điểm kỹ năng, còn ${left}.`;
   }
   return null;
 }
@@ -203,6 +258,7 @@ function publicTree(classId, char) {
   return treeFor(classId).map((n) => {
     const learned = (char.learned || []).includes(n.id);
     const skill = n.skillId ? skills.publicView(n.skillId) : null;
+    const canRank = learned && n.skillId && rankable(n.skillId);
     return {
       id: n.id,
       name: n.name,
@@ -216,12 +272,15 @@ function publicTree(classId, char) {
       skill,
       learned,
       blocked: learned ? null : blockedReason(classId, n.id, char),
+      rank: canRank ? rankOf(n.skillId, char.skillRanks) : null,
+      maxRank: canRank ? MAX_SKILL_RANK : null,
     };
   });
 }
 
 module.exports = {
-  NODES, POINTS_PER_LEVEL, CODEX_SLOTS,
+  NODES, POINTS_PER_LEVEL, CODEX_SLOTS, MAX_SKILL_RANK,
   treeFor, node, pointsEarned, pointsSpent, pointsLeft,
   blockedReason, bonuses, unlockedSkills, publicTree,
+  rankOf, rankMultiplier, rankPointsSpent, rankable, scaledSkill,
 };

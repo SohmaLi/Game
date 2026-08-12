@@ -143,6 +143,7 @@ const Tree = (() => {
         ${nodes.map((n) => {
           const p = at(n);
           const state = n.learned ? 'learned' : (n.blocked ? 'blocked' : 'available');
+          const rankTag = n.rank > 1 ? `<span class="rank-badge">Bậc ${n.rank}/${n.maxRank}</span>` : '';
           return `
             <div class="node ${state} ${n.capstone ? 'capstone' : ''}"
                  data-id="${n.id}" style="left:${p.x}px;top:${p.y}px"
@@ -153,14 +154,67 @@ const Tree = (() => {
               </div>
               <div class="node-kind ${n.type}">${n.type === 'active' ? 'Chủ động' : 'Bị động'}</div>
               <div class="node-lv">Cấp ${n.level}${n.blocked ? ` · ${esc(n.blocked)}` : ''}</div>
+              ${rankTag}
             </div>`;
         }).join('')}
       </div>`;
 
+    // Chuột phải luôn xem được chi tiết, kể cả nút chưa học. Trái: học nếu mở
+    // được, xem chi tiết nếu đã học rồi (trước đây không có gì xảy ra).
     pane.querySelectorAll('.node').forEach((el) => {
       const n = nodes.find((x) => x.id === el.dataset.id);
-      if (!n || n.learned || n.blocked) return;
-      el.onclick = () => learn(n);
+      if (!n) return;
+      el.oncontextmenu = (e) => nodeMenu(e, n);
+      if (n.learned) el.onclick = () => nodeDetail(n);
+      else if (!n.blocked) el.onclick = () => learn(n);
+    });
+  }
+
+  /** Menu chuột phải cho một nút Cây Nền — cả đã học lẫn chưa học. */
+  function nodeMenu(e, n) {
+    e.preventDefault();
+    const items = [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => nodeDetail(n) }];
+
+    if (n.learned && n.skill && n.maxRank) {
+      const maxed = n.rank >= n.maxRank;
+      const pts = data.skillPoints || 0;
+      items.push({
+        icon: '▲',
+        label: maxed ? `Đã đạt bậc tối đa (${n.maxRank})` : `Nâng bậc ${n.rank} → ${n.rank + 1} (1đ)`,
+        disabled: maxed || pts < 1,
+        onClick: () => rankUp(n.skill.id, n.name),
+      });
+    } else if (!n.learned && !n.blocked) {
+      items.push({ icon: '＋', label: 'Học kỹ năng', onClick: () => learn(n) });
+    }
+
+    UI.menu(e, {
+      title: n.name,
+      subtitle: n.learned ? (n.rank ? `Đã học · Bậc ${n.rank}/${n.maxRank}` : 'Đã học') : (n.blocked || 'Có thể học'),
+      color: '#7dd3fc',
+      items,
+    });
+  }
+
+  /** Chi tiết một nút Cây Nền — chủ động thì mượn khuôn skillDetail, bị động tự dựng. */
+  function nodeDetail(n) {
+    if (n.skill) return skillDetail({ ...n.skill, rank: n.rank, maxRank: n.maxRank });
+    UI.itemDetail({
+      name: n.name,
+      rarityName: n.learned ? 'Bị động · Đã học' : (n.blocked || 'Bị động · Chưa học'),
+      level: `Cấp ${n.level}`,
+      slot: 'skill',
+      stats: {},
+      passives: [{ name: 'Mô tả', desc: n.desc || '' }],
+    }, '#d3b8f0');
+  }
+
+  /** Tiêu 1 điểm kỹ năng để nâng bậc — dùng chung cho cả 3 tab. */
+  function rankUp(skillId, name) {
+    socket.emit('skill:rank', { skillId }, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không nâng được', res?.error || '');
+      Panel.toast('levelup', `${name || 'Kỹ năng'} lên Bậc ${res.rank}`,
+        `+${Math.round((res.rank - 1) * 10)}% sức mạnh so với bậc 1`);
     });
   }
 
@@ -288,24 +342,38 @@ const Tree = (() => {
     e.preventDefault();
     if (!skill) return;
 
+    const items = [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(skill) }];
+
+    if (skill.maxRank) {
+      const maxed = skill.rank >= skill.maxRank;
+      items.push({
+        icon: '▲',
+        label: maxed ? `Đã đạt bậc tối đa (${skill.maxRank})` : `Nâng bậc ${skill.rank} → ${skill.rank + 1} (1đ)`,
+        disabled: maxed || (data.skillPoints || 0) < 1,
+        onClick: () => rankUp(skill.id, skill.name),
+      });
+    }
+
+    items.push(
+      carried_
+        ? { icon: '↩', label: 'Tháo khỏi bộ mang theo',
+            onClick: () => setLoadout(list.filter((id) => id !== skill.id)) }
+        : { icon: Icons.svg('ui-equip') || '⬆', label: 'Mang vào trận',
+            disabled: list.length >= max,
+            onClick: () => setLoadout([...list, skill.id]) },
+    );
+
     UI.menu(e, {
       title: skill.name,
       subtitle: carried_ ? 'Đang mang vào trận' : 'Đã mở, chưa mang',
       color: '#7dd3fc',
-      items: [
-        { icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(skill) },
-        carried_
-          ? { icon: '↩', label: 'Tháo khỏi bộ mang theo',
-              onClick: () => setLoadout(list.filter((id) => id !== skill.id)) }
-          : { icon: Icons.svg('ui-equip') || '⬆', label: 'Mang vào trận',
-              disabled: list.length >= max,
-              onClick: () => setLoadout([...list, skill.id]) },
-      ],
+      items,
     });
   }
 
   /** Cửa sổ chi tiết kỹ năng, dựng theo cùng khuôn với chi tiết vật phẩm. */
   function skillDetail(skill, note = null) {
+    const skillId = skill.id || skill.skillId;
     const rows = [];
     if (skill.manaCost) rows.push(['Tiêu hao', `${skill.manaCost} mana`]);
     if (skill.rage > 0) rows.push(['Tiêu hao', `${skill.rage} Nộ Khí`]);
@@ -313,6 +381,10 @@ const Tree = (() => {
     rows.push(['Hồi chiêu', skill.cooldown ? `${skill.cooldown} vòng` : 'không']);
     rows.push(['Mục tiêu', targetLabel(skill.target)]);
     rows.push(['Loại', kindLabel(skill.kind)]);
+    if (skill.maxRank) {
+      const rank = skill.rank || 1;
+      rows.push(['Bậc', `${rank} / ${skill.maxRank}${rank >= skill.maxRank ? ' · tối đa' : ''}`]);
+    }
 
     UI.itemDetail({
       name: skill.name,
@@ -332,6 +404,23 @@ const Tree = (() => {
     block.innerHTML = '<h4>Thông số</h4>' + rows.map(([k, v]) =>
       `<div class="detail-line"><span>${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
     box.insertBefore(block, box.querySelector('.modal-actions'));
+
+    /**
+     * Nút nâng bậc bằng điểm — chỉ hiện khi `rank` đã được server tính, nghĩa
+     * là kỹ năng đang thật sự mở/gắn. Một cuốn sách Dị Điển còn nằm trong túi
+     * chưa gắn ô nào thì không có trường này, nên không hiện nút gây hiểu lầm
+     * (bấm vào chỉ nhận về "Kỹ năng chưa mở").
+     */
+    if (skill.maxRank && (skill.rank || 1) < skill.maxRank && skillId) {
+      const pts = data.skillPoints || 0;
+      const btn = document.createElement('button');
+      btn.className = 'btn-ok';
+      btn.textContent = pts < 1 ? 'Không đủ điểm kỹ năng' : `Nâng bậc ${skill.rank || 1} → ${(skill.rank || 1) + 1} (1đ)`;
+      btn.disabled = pts < 1;
+      btn.onclick = () => { UI.closeModal(); rankUp(skillId, skill.name); };
+      const actions = box.querySelector('.modal-actions');
+      actions.insertBefore(btn, actions.firstChild);
+    }
   }
 
   const targetLabel = (t) => ({
@@ -351,6 +440,7 @@ const Tree = (() => {
 
   const costText = (s) => {
     const parts = [];
+    if (s.rank > 1) parts.push(`<span class="rankb">Bậc ${s.rank}</span>`);
     if (s.manaCost) parts.push(`<span class="mana">${s.manaCost} mana</span>`);
     if (s.rage > 0) parts.push(`<span class="rage">${s.rage} nộ</span>`);
     if (s.cooldown) parts.push(`chờ ${s.cooldown}`);
@@ -363,21 +453,28 @@ const Tree = (() => {
     const pane = $('paneCodex');
     const slots = data.codex || [];
     const books = data.books || [];
+    // Sách nào đang trùng một kỹ năng ĐÃ GẮN thì có thể tiêu để nâng bậc, thay
+    // vì nằm không trong "chưa gắn" — đúng thứ người chơi phàn nàn: quá nhiều
+    // sách trùng mà ô thì chỉ có 10.
+    const socketedIds = new Set(slots.filter(Boolean).map((b) => b.skillId));
 
     pane.innerHTML = `
       <p class="load-info">
         <b>${data.codexSlots || 10} ô Dị Điển</b> — điền bằng sách rơi từ quái.
         <br><span style="color:#ff9aa8">Gắn đè lên ô đã có sẽ xoá vĩnh viễn sách cũ.</span>
+        <br>Sách trùng kỹ năng đang gắn tiêu được để nâng bậc kỹ năng đó, thay vì nằm không.
       </p>
 
       <div class="codex-grid">
         ${Array.from({ length: data.codexSlots || 10 }, (_, i) => {
           const b = slots[i];
+          const rankTag = b?.rank > 1 ? `<span class="rank-badge">Bậc ${b.rank}/${b.maxRank}</span>` : '';
           return b
             ? `<div class="codex-slot" data-slot="${i}" title="${esc(b.desc || '')}">
                  <span class="cx-num">${i + 1}</span>
                  <div class="cx-name">${esc(b.name || 'Sách')}</div>
                  <div class="cx-from">từ ${esc(b.from || '?')}</div>
+                 ${rankTag}
                </div>`
             : `<div class="codex-slot empty" data-slot="${i}">
                  <span class="cx-num">${i + 1}</span>ô trống
@@ -389,31 +486,49 @@ const Tree = (() => {
         Sách chưa gắn (${books.length})
       </h3>
       ${books.length ? `<div class="pool">
-        ${books.map((b) => `
-          <div class="pool-item" data-book="${b.uid}" title="${esc(b.desc || '')}">
+        ${books.map((b) => {
+          const dup = socketedIds.has(b.skillId);
+          return `
+          <div class="pool-item ${dup ? 'dup' : ''}" data-book="${b.uid}" title="${esc(b.desc || '')}">
             <div class="sk-name">${esc(b.name || 'Sách')}</div>
             <div class="sk-cost">từ ${esc(b.from || '?')}</div>
-          </div>`).join('')}
+            ${dup ? `<button class="up-btn" data-upgrade="${b.uid}">Sách trùng — nâng bậc</button>` : ''}
+          </div>`;
+        }).join('')}
       </div>` : `<p class="books-empty">
         Chưa có sách nào. Sách Dị Điển rơi từ quái với tỉ lệ <b>5%</b> (quái Tinh Anh 15%,
         Thủ Lĩnh 40%). Đặc Ân <b>Duyên Kho Báu</b> làm tăng tỉ lệ này.
       </p>`}`;
 
     let picked = null;
+
     pane.querySelectorAll('[data-book]').forEach((el) => {
-      el.onclick = () => {
-        picked = el.dataset.book;
+      const uid = el.dataset.book;
+      const book = books.find((b) => b.uid === uid);
+      el.oncontextmenu = (e) => bookMenu(e, book);
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.up-btn')) return; // nút riêng tự xử lý, khỏi chọn để gắn
+        picked = uid;
         pane.querySelectorAll('[data-book]').forEach((x) => x.classList.remove('taken'));
         el.classList.add('taken');
         Panel.toast('item', 'Đã chọn sách', 'Giờ bấm vào một ô Dị Điển để gắn');
-      };
+      });
+    });
+
+    pane.querySelectorAll('[data-upgrade]').forEach((btn) => {
+      btn.onclick = (e) => { e.stopPropagation(); upgradeBook(btn.dataset.upgrade); };
     });
 
     pane.querySelectorAll('[data-slot]').forEach((el) => {
+      const slot = parseInt(el.dataset.slot, 10);
+      const old = slots[slot];
+      if (old) el.oncontextmenu = (e) => slotMenu(e, old, slot);
+
       el.onclick = async () => {
-        if (!picked) return Panel.toast('warn', 'Chưa chọn sách', 'Bấm một cuốn ở danh sách dưới trước');
-        const slot = parseInt(el.dataset.slot, 10);
-        const old = slots[slot];
+        if (!picked) {
+          if (old) return skillDetail(old, `Dị Điển · Ô ${slot + 1}`);
+          return Panel.toast('warn', 'Chưa chọn sách', 'Bấm một cuốn ở danh sách dưới trước');
+        }
 
         if (old) {
           const ok = await UI.confirm({
@@ -435,6 +550,52 @@ const Tree = (() => {
           }
         });
       };
+    });
+  }
+
+  /** Menu chuột phải cho một cuốn sách CHƯA gắn. */
+  function bookMenu(e, book) {
+    e.preventDefault();
+    if (!book) return;
+
+    const items = [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(book, 'Dị Điển · chưa gắn') }];
+
+    const socketed = (data.codex || []).find((b) => b?.skillId === book.skillId);
+    if (socketed) {
+      const rank = socketed.rank || 1;
+      const maxed = rank >= (socketed.maxRank || 5);
+      items.push({
+        icon: '▲',
+        label: maxed ? 'Kỹ năng đang gắn đã đạt bậc tối đa' : `Tiêu sách này — nâng bậc ${rank} → ${rank + 1}`,
+        disabled: maxed,
+        onClick: () => upgradeBook(book.uid),
+      });
+    }
+
+    UI.menu(e, {
+      title: book.name,
+      subtitle: socketed ? 'Trùng kỹ năng đang gắn' : 'Chưa gắn ô nào',
+      color: '#d3b8f0',
+      items,
+    });
+  }
+
+  /** Menu chuột phải cho một ô Dị Điển đã gắn sách. */
+  function slotMenu(e, book, slot) {
+    e.preventDefault();
+    UI.menu(e, {
+      title: book.name,
+      subtitle: `Đang gắn ở ô ${slot + 1}${book.rank > 1 ? ` · Bậc ${book.rank}/${book.maxRank}` : ''}`,
+      color: '#d3b8f0',
+      items: [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(book, `Dị Điển · Ô ${slot + 1}`) }],
+    });
+  }
+
+  /** Tiêu một cuốn sách trùng để nâng bậc kỹ năng đang gắn — miễn phí, không tốn điểm. */
+  function upgradeBook(uid) {
+    socket.emit('codex:upgrade', { uid }, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không nâng được', res?.error || '');
+      Panel.toast('levelup', `Lên Bậc ${res.rank}`, 'Đã tiêu sách trùng để nâng cấp');
     });
   }
 

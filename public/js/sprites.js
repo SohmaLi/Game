@@ -13,8 +13,21 @@
  */
 
 const Sprites = (() => {
-  const PNG = '/img/atlas.png?v=21';
-  const JSON_URL = '/img/atlas.json?v=21';
+  /**
+   * Phiên bản lấy thẳng từ thẻ `<script>` của chính file này.
+   *
+   * `atlas.png` và `atlas.json` là MỘT CẶP: bảng toạ độ chỉ đúng với đúng cái
+   * ảnh sinh ra cùng lúc với nó. Trước đây chỗ này ghi cứng `?v=21` tách rời
+   * `?v=N` của index.html, nên bump index.html mà quên chỗ này là trình duyệt
+   * ghép JSON MỚI với PNG CŨ còn trong cache — toạ độ ô nền rơi trúng hàng vật
+   * cản, cả bản đồ hoá thành bụi cây. Đọc từ `src` của chính mình thì hai file
+   * luôn bị bust cùng lúc, không bao giờ lệch nhau được nữa.
+   */
+  const VER = new URL(document.currentScript.src, location.href).searchParams.get('v');
+  const q = VER ? `?v=${encodeURIComponent(VER)}` : '';
+
+  const PNG = `/img/atlas.png${q}`;
+  const JSON_URL = `/img/atlas.json${q}`;
 
   /** Cột trong một khối = hướng nhìn. Thứ tự do pack quy định, đừng đổi. */
   const DIR_COL = { down: 0, up: 1, left: 2, right: 3 };

@@ -39,6 +39,7 @@ const Battle = (() => {
     endTimer: null,      // hẹn giờ hiện bảng kết quả
     seq: -1,             // gói trạng thái mới nhất ĐÃ ÁP — xem applyState
     pendingEnd: null,    // kết quả trận đang chờ hoạt cảnh chạy xong
+    resultBattleId: null, // trận mà bảng kết quả đang hiện thuộc về — xem resultClose
   };
 
   /* ------------------------------------------------ khởi tạo ------------ */
@@ -61,7 +62,16 @@ const Battle = (() => {
 
     ui.resultClose.onclick = () => {
       ui.result.classList.add('hidden');
-      close();
+      /**
+       * Chỉ dọn hẳn màn chiến đấu khi trận đang hiện VẪN là trận của chính
+       * bảng kết quả này. Người chơi đứng yên đọc bảng thưởng lâu quá 5 giây
+       * miễn va chạm thì có thể đã bị quái khác kéo vào một trận MỚI ngay
+       * trong lúc bảng còn mở (xem onState) — lúc đó `state.data` đã âm thầm
+       * trỏ sang trận mới, và `close()` xoá trắng nó là tự tay phá một trận
+       * đang sống, khiến người chơi đứng hình không thao tác được nữa dù
+       * server vẫn tính họ đang trong trận.
+       */
+      if (!state.data || state.data.battleId === state.resultBattleId) close();
     };
 
     ui.flee.onclick = async () => {
@@ -113,6 +123,10 @@ const Battle = (() => {
     ui.loadingTitle.textContent = boss ? 'Thủ Lĩnh chặn đường!' : 'Chạm mặt quái!';
     ui.loadingFoes.innerHTML = names.join('') || '<span>…</span>';
     ui.loading.classList.remove('hidden');
+    // Một trận MỚI có thể mở ra trong lúc bảng kết quả của trận trước còn
+    // đang hiện (đọc thưởng lâu quá 5 giây miễn va chạm) — nhường chỗ ngay,
+    // đừng để nó che mất màn chờ của trận mới.
+    ui.result.classList.add('hidden');
 
     // Chốt an toàn: gói battle:state có thể rớt giữa đường. Thà bỏ màn chờ còn
     // hơn để người chơi nhìn một vòng xoay vĩnh viễn.
@@ -146,6 +160,7 @@ const Battle = (() => {
     state.playing = false;
     state.pendingEnd = null;
     state.seq = -1;
+    state.resultBattleId = null;
     cancelAnimationFrame(state.timerRAF);
   }
 
@@ -172,18 +187,29 @@ const Battle = (() => {
   }
 
   function onState(data) {
-    const fresh = !state.data;
+    /**
+     * Trận MỚI (battleId khác) chứ không chỉ "chưa có dữ liệu gì".
+     *
+     * Quái có thể kéo người chơi vào một trận khác ngay trong lúc bảng kết
+     * quả của trận trước còn mở trên màn hình (đọc thưởng lâu quá 5 giây
+     * miễn va chạm). `state.data` lúc đó KHÔNG rỗng — nó vẫn giữ trận cũ đã
+     * kết thúc — nên chỉ xét `!state.data` là bỏ sót đúng trường hợp này:
+     * dữ liệu bị âm thầm thay bằng trận mới mà bảng kết quả cũ vẫn che phủ,
+     * và bấm "Tiếp tục" lúc đó xoá luôn cả trận mới đang sống.
+     */
+    const isNewBattle = !state.data || state.data.battleId !== data.battleId;
     if (!applyState(data)) return;
 
     /**
-     * Mở màn khi nó đang ẩn, KHÔNG chỉ khi chưa có dữ liệu.
+     * Mở màn khi nó đang ẩn, hoặc khi đây là trận mới — KHÔNG chỉ khi chưa có
+     * dữ liệu.
      *
      * Trước đây chỉ xét `!state.data`, nên một gói `battle:closed` đến muộn là
      * đủ để dữ liệu còn nguyên mà màn đã ẩn. Trận sau đó server vẫn mở bình
      * thường — người chơi bị khoá phím đứng im trên bản đồ, không thấy màn
      * chiến đấu đâu. Bám vào trạng thái hiển thị thật thì không lệch được nữa.
      */
-    if (fresh || ui.root.classList.contains('hidden')) open(fresh);
+    if (isNewBattle || ui.root.classList.contains('hidden')) open(isNewBattle);
 
     if (data.phase === 'select') {
       state.submitted = data.chosen.includes(state.myId);
@@ -565,6 +591,7 @@ const Battle = (() => {
   }
 
   function showResult({ result, rewards }) {
+    state.resultBattleId = state.data?.battleId ?? null;
     const titles = { win: 'Chiến thắng', lose: 'Thất bại', draw: 'Bất phân thắng bại', fled: 'Đã trốn thoát' };
     ui.resultTitle.textContent = titles[result] || result;
     ui.resultTitle.className = result === 'fled' ? 'draw' : result;

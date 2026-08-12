@@ -524,7 +524,7 @@ sai"*, *"dưới 30% máu thì hóa cuồng"*, *"miễn nhiễm vật lý cho t�
 
 ## 6b. Vùng bản đồ
 
-🔒 **Năm vùng, mỗi vùng 10 cấp, phủ kín cấp 1 tới 50.** Người chơi chọn vùng
+🔒 **Sáu vùng, mỗi vùng 10 cấp, phủ kín cấp 1 tới 60.** Người chơi chọn vùng
 ngay sau khi chọn nhân vật, trước khi vào game.
 
 | # | Vùng | Cấp | Quái | Thủ Lĩnh |
@@ -534,6 +534,7 @@ ngay sau khi chọn nhân vật, trước khi vào game.
 | 3 | **Hoang Mạc Xương Trắng** | 21–30 | Bộ Hài Cốt · Xạ Thủ Xương | Tướng Xương |
 | 4 | **Vực Băng Vĩnh Cửu** | 31–40 | Oán Hồn Băng · Xạ Thủ Xương | Quỷ Băng |
 | 5 | **Đỉnh Bão Tố** | 41–50 | Tín Đồ Bão · Oán Hồn Băng | Sứ Giả Bão |
+| 6 | **Đền Đài Hư Không** | 51–60 | Chiến Binh Hư Không · Mắt Hư Không | Chúa Tể Hư Không |
 
 **Vùng chia người chơi ra, không chỉ đổi cảnh.** Mỗi vùng có phòng riêng, bản đồ
 riêng, bảng màu riêng và đồng hồ Thủ Lĩnh riêng. Hai người ở hai vùng khác nhau
@@ -561,7 +562,7 @@ exp/vàng ×= 1 + (cấp − cấp_gốc) × 0.55
 `0.22` là **núm cân bằng duy nhất** cho độ khó theo vùng. Người chơi mỗi cấp vừa
 được 3 điểm chỉ số vừa thay trang bị tốt hơn, nên quái phải tăng nhanh hơn mức 3
 điểm đó khá nhiều. Đo bằng `tools/simulate.js`: một người đủ trang bị đánh 2 con
-cùng cấp thì thắng ~90% và còn khoảng nửa máu, ở cả 5 vùng.
+cùng cấp thì thắng ~90% và còn khoảng nửa máu, ở cả các vùng.
 
 ### 6b.2 Giáp phải nhẹ dần theo cấp
 

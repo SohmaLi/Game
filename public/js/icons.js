@@ -11,7 +11,10 @@
  */
 
 const Icons = (() => {
-  const SPRITE = '/img/icons.svg?v=21';
+  // Cùng lý do với sprites.js: bump ?v=N ở index.html là file sprite cũng phải
+  // được tải lại, không để một số phiên bản thứ hai ghi cứng ở đây bỏ quên
+  const VER = new URL(document.currentScript.src, location.href).searchParams.get('v');
+  const SPRITE = `/img/icons.svg${VER ? `?v=${encodeURIComponent(VER)}` : ''}`;
   let loading = null;
 
   function load() {
