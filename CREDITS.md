@@ -36,11 +36,11 @@ xứng đáng được nhắc tên.
 - Bản đang dùng: <https://github.com/sparklinlabs/superpowers-asset-packs> —
   cùng tác giả, cùng giấy phép, tải thẳng được nên công cụ dựng lại chạy tự động
 
-10 hình nhân vật, 16 hình quái và ô nền của 6 vùng đã gộp vào
+10 hình nhân vật, 1 hình NPC, 16 hình quái và ô nền của 7 vùng đã gộp vào
 `public/img/atlas.png` kèm bảng toạ độ `public/img/atlas.json`.
 
-Muốn đổi hình cho một con quái hoặc một vùng thì sửa bảng `CHARS` / `MOBS` /
-`ZONE_TILES` trong `tools/build-sprites.js` rồi chạy:
+Muốn đổi hình cho một con quái hoặc một vùng thì sửa bảng `CHARS` / `NPCS` /
+`MOBS` / `ZONE_TILES` trong `tools/build-sprites.js` rồi chạy:
 
 ```bash
 node tools/build-sprites.js

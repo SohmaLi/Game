@@ -13,7 +13,8 @@ const tree = require('./data/skilltree');
  * Trận đánh turn-based.
  *
  * Vòng lượt (DESIGN.md §5.2):
- *   1. Tất cả cùng chọn hành động — 20 giây, hết giờ thì tự đánh thường
+ *   1. Tất cả cùng chọn hành động — xong sớm thì xử lý sớm, ai treo máy quá
+ *      20 giây thì server đánh thường thay
  *   2. Server sắp thứ tự theo Nhanh Nhẹn
  *   3. Thực thi lần lượt, gửi danh sách sự kiện về client để dựng hoạt cảnh
  *   4. Tính hiệu ứng cuối vòng (độc, hồi máu, giảm lượt hồi chiêu)
@@ -23,6 +24,14 @@ const tree = require('./data/skilltree');
  */
 
 const SELECT_MS = 20_000;
+/**
+ * Khoảng nghỉ giữa lúc người cuối cùng bấm xong và lúc vòng bắt đầu xử lý.
+ *
+ * Không phải để chờ ai — chỉ để dấu ✓ trên thẻ nhân vật kịp hiện lên. Xử lý
+ * ngay lập tức thì cú bấm cuối và loạt hoạt cảnh dính làm một, người chơi không
+ * kịp thấy lựa chọn của mình đã được ghi nhận.
+ */
+const EARLY_MS = 250;
 const RESOLVE_MS = 2200;   // thời gian client phát hoạt cảnh trước khi sang vòng mới
 const MAX_ROUNDS = 50;     // chặn trận đánh kéo dài vô tận
 const RAGE_MAX = 100;
@@ -73,9 +82,14 @@ function monsterCombatant(def, index) {
     side: 'enemy',
     isPlayer: false,
     monsterId: def.id,
+    // Tinh Anh mượn hình quái thường cùng họ — xem data/monsters.js
+    spriteId: def.sprite || def.id,
     family: def.family,
     tier: def.tier,
     tierLabel: tier.label,
+    /** Cơ chế riêng của Thủ Lĩnh (data/monsters.js). Quái thường không có. */
+    mechanics: def.mechanics || null,
+    fired: {},        // cơ chế một-lần đã chạy chưa, khoá theo loại
     color: def.color,
     level: def.level,
     stats: def.stats,
@@ -129,6 +143,15 @@ class Battle {
       ...monsterDefs.map(monsterCombatant),
     ];
 
+    /**
+     * Số thứ tự cho con quái KẾ TIẾP được thêm vào (Thủ Lĩnh gọi quân).
+     *
+     * Id combatant dựng từ số này (`m3_grey_wolf`). Đếm lại bằng `enemies.length`
+     * là trùng id ngay lần gọi thứ hai — con đầu đã chết nhưng vẫn nằm trong
+     * danh sách, mà `byId` thì trả về con tìm thấy trước.
+     */
+    this.nextEnemyIndex = monsterDefs.length;
+
     this.round = 0;
     /**
      * Số thứ tự tăng dần cho mỗi gói trạng thái gửi đi.
@@ -146,6 +169,7 @@ class Battle {
     this.deadline = 0;
     this.log = [];
     this.ended = false;
+    this.result = null;   // 'win' | 'lose' | 'fled' | 'draw', đặt trong `finish`
 
     this.startRound();
   }
@@ -176,6 +200,12 @@ class Battle {
     this.combatants = this.combatants.filter((x) => x !== c);
     this.actions.delete(id);
     this.onLeave?.(this, c);
+    /**
+     * Người vừa rời có thể là người CUỐI CÙNG mà cả trận đang đợi. Không xét
+     * lại ở đây thì những người còn lại — đã chọn xong từ lâu — ngồi nhìn thanh
+     * 20 giây chạy hết vì một người không còn trong trận nữa.
+     */
+    this.maybeResolveEarly();
     return c;
   }
 
@@ -245,13 +275,27 @@ class Battle {
     return true;
   }
 
-  /** Tất cả người chơi còn sống đã chọn xong thì xử lý luôn, không chờ hết 20 giây. */
+  /**
+   * Tất cả người chơi còn sống đã chọn xong thì xử lý luôn, không chờ hết 20 giây.
+   *
+   * Đi lẻ thì đây là đường chạy MẶC ĐỊNH: chọn chiêu, chọn mục tiêu, trận nổ ra
+   * sau `EARLY_MS` — thanh 20 giây chỉ còn là chốt chặn cho người treo máy.
+   *
+   * Hẹn giờ ghi vào chính `this.timer` chứ không thả rông: `destroy()` và
+   * `finish()` chỉ dọn được cái nằm ở đó, còn hẹn giờ thả rông thì vẫn sống
+   * tiếp và ôm theo cả trận trong bộ nhớ dù phòng đã bị xoá.
+   */
   maybeResolveEarly() {
-    const pending = this.living('ally').filter((a) => a.isPlayer && !this.actions.has(a.id));
-    if (pending.length === 0 && this.auto) {
-      clearTimeout(this.timer);
-      setTimeout(() => this.resolveRound(), 250);
-    }
+    if (this.phase !== 'select' || this.ended || !this.auto) return;
+
+    const alive = this.living('ally');
+    // Không còn ai bên phe mình thì đừng tự mở vòng mới — `dropBattle` (người
+    // cuối rớt mạng) hoặc nhánh trốn thoát trong `execute` mới là chỗ kết thúc
+    if (!alive.length) return;
+    if (alive.some((a) => a.isPlayer && !this.actions.has(a.id))) return;
+
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.resolveRound(), EARLY_MS);
   }
 
   /**
@@ -592,8 +636,101 @@ class Battle {
       }
     }
 
+    if (!this.ended) events.push(...this.runMechanics());
+
     this.checkEnd(events);
     return events;
+  }
+
+  /**
+   * Cơ chế riêng của Thủ Lĩnh (DESIGN.md §6.2) — chạy CUỐI vòng.
+   *
+   * Cuối vòng chứ không đầu vòng, vì hai lý do: máu lúc này mới là máu sau khi
+   * cả nhóm đã ra tay (mốc hoá cuồng phải xét trên con số đó), và sự kiện sinh
+   * ra ở đây đi kèm luôn gói `battle:resolve` của vòng vừa xong nên client phát
+   * nó liền mạch sau đòn cuối, không phải một gói lẻ đến giữa lúc đang chọn chiêu.
+   *
+   * Không có phần này thì "Thủ Lĩnh" chỉ là con quái thường nhiều máu, và đánh
+   * con thứ sáu y hệt đánh con thứ nhất.
+   */
+  runMechanics() {
+    const events = [];
+
+    for (const c of this.living('enemy')) {
+      for (const m of c.mechanics || []) {
+        if (m.type === 'enrage') events.push(...this.doEnrage(c, m));
+        else if (m.type === 'summon') events.push(...this.doSummon(c, m));
+        else if (m.type === 'regen') events.push(...this.doRegen(c, m));
+      }
+    }
+    return events;
+  }
+
+  /** Dưới ngưỡng máu thì đánh mạnh hẳn lên — MỘT LẦN, và không tắt được. */
+  doEnrage(c, m) {
+    if (c.fired.enrage) return [];
+    if (c.hp > c.hpMax * m.atPercent) return [];
+
+    c.fired.enrage = true;
+    c.damageMult *= m.damageMult;
+    return [{
+      type: 'mechanic', kind: 'enrage', id: c.id, name: c.name,
+      label: m.label, mult: m.damageMult,
+    }];
+  }
+
+  /**
+   * Gọi thêm quân mỗi `every` vòng.
+   *
+   * `max` đếm TỔNG số con đã gọi cả trận, không phải số con đang sống. Đếm số
+   * đang sống thì nhóm dọn sạch tay sai xong lại bị gọi tiếp — trận kéo dài tới
+   * đúng `MAX_ROUNDS` rồi hoà, mà hoà thì cả hai bên đều mất công vô ích.
+   */
+  doSummon(c, m) {
+    if (this.round === 0 || this.round % m.every !== 0) return [];
+
+    const done = c.fired.summoned || 0;
+    const room = Math.max(0, (m.max ?? 99) - done);
+    if (!room) return [];
+
+    const base = monsterData.get(m.minion);
+    if (!base) return [];
+
+    const born = [];
+    for (let i = 0; i < Math.min(m.count, room); i++) {
+      // Tay sai theo cấp của chính con Thủ Lĩnh — lấy cấp gốc của bản mẫu thì ở
+      // vùng cấp 60 nó gọi ra một bầy sói cấp 1 đứng làm cảnh
+      born.push(this.addEnemy(monsterData.scaled(base, c.level)));
+    }
+    c.fired.summoned = done + born.length;
+
+    return [{
+      type: 'mechanic', kind: 'summon', id: c.id, name: c.name,
+      label: m.label, minions: born.map((b) => ({ id: b.id, name: b.name, hp: b.hp, hpMax: b.hpMax })),
+    }];
+  }
+
+  /**
+   * Tự liền vết thương mỗi vòng — bài kiểm tra sát thương, không phải bài kiểm
+   * tra sức bền: nhóm nào đánh không đủ mạnh thì đánh mãi không xong rồi hoà ở
+   * vòng 50, và hoà thì cả hai bên đều mất công vô ích.
+   *
+   * Dùng lại đúng loại sự kiện `regen` mà client đã biết vẽ, chỉ khác cái tên
+   * ghi trong `via` — thêm một loại sự kiện nữa chỉ để hiện cùng một con số.
+   */
+  doRegen(c, m) {
+    if (c.hp >= c.hpMax) return [];
+    const before = c.hp;
+    c.hp = Math.min(c.hpMax, c.hp + Math.round(c.hpMax * m.percent));
+    if (c.hp === before) return [];
+    return [{ type: 'regen', id: c.id, amount: c.hp - before, hp: c.hp, via: m.label }];
+  }
+
+  /** Thêm một con quái vào trận đang chạy. Chỉ cơ chế Thủ Lĩnh dùng tới. */
+  addEnemy(def) {
+    const c = monsterCombatant(def, this.nextEnemyIndex++);
+    this.combatants.push(c);
+    return c;
   }
 
   checkEnd(events) {
@@ -609,6 +746,12 @@ class Battle {
     if (this.ended) return;
     this.ended = true;
     this.phase = 'ended';
+    /**
+     * Giữ lại kết quả: `endBattle` chạy 4 giây SAU đây, và nó cần biết trận này
+     * thắng hay thua để chọn nơi thả người chơi ra và thời gian miễn va chạm.
+     * Đọc `living('ally')` lúc đó thì không phân biệt nổi thua với trốn thoát.
+     */
+    this.result = result;
     clearTimeout(this.timer);
 
     let rewards = null;
@@ -676,7 +819,7 @@ class Battle {
       tierLabel: c.tierLabel || null,
       color: c.color || null,
       // Khoá tra hình: người chơi lấy theo lớp, quái lấy theo bản mẫu
-      sprite: c.isPlayer ? (c.className || null) : (c.monsterId || null),
+      sprite: c.isPlayer ? (c.className || null) : (c.spriteId || c.monsterId || null),
       hp: c.hp, hpMax: c.hpMax,
       mana: c.mana, manaMax: c.manaMax,
       rage: c.rage, rageMax: RAGE_MAX,
@@ -719,4 +862,4 @@ class Battle {
   }
 }
 
-module.exports = { Battle, SELECT_MS, RESOLVE_MS, RAGE_MAX, FLEE };
+module.exports = { Battle, SELECT_MS, EARLY_MS, RESOLVE_MS, RAGE_MAX, FLEE };

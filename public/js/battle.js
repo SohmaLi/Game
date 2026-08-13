@@ -40,6 +40,7 @@ const Battle = (() => {
     seq: -1,             // gói trạng thái mới nhất ĐÃ ÁP — xem applyState
     pendingEnd: null,    // kết quả trận đang chờ hoạt cảnh chạy xong
     resultBattleId: null, // trận mà bảng kết quả đang hiện thuộc về — xem resultClose
+    defeat: null,        // hình phạt của trận vừa thua, tới bằng gói `defeat` riêng
   };
 
   /* ------------------------------------------------ khởi tạo ------------ */
@@ -96,6 +97,16 @@ const Battle = (() => {
     socket.on('battle:state', onState);
     socket.on('battle:resolve', onResolve);
     socket.on('battle:end', onEnd);
+
+    /**
+     * Hình phạt đi bằng gói RIÊNG, không nằm trong `battle:end`.
+     *
+     * `battle:end` gửi cho cả kênh trận nên nội dung phải giống hệt nhau, trong
+     * khi số kinh nghiệm mất là của từng người — ai vừa lên cấp thì mất 0. Gói
+     * này bắn ngay sau `battle:end` trên cùng một socket nên chắc chắn tới trước
+     * bảng kết quả (bảng chờ 900ms hoạt cảnh mới hiện).
+     */
+    socket.on('defeat', (d) => { state.defeat = d; });
     // Server dọn trận sau vài giây, nhưng nếu bảng kết quả đang mở thì để nguyên —
     // người chơi cần thời gian đọc phần thưởng, đóng lúc nào là quyền của họ.
     socket.on('battle:closed', () => {
@@ -146,6 +157,9 @@ const Battle = (() => {
     ui.root.classList.remove('hidden');
     if (fresh) {
       ui.log.innerHTML = '';
+      // Hình phạt của trận TRƯỚC phải chết theo trận trước, nếu không trận này
+      // thua mà gói `defeat` rớt giữa đường là bảng kết quả hiện lại con số cũ
+      state.defeat = null;
       log('sys', 'Trận đấu bắt đầu!');
     }
   }
@@ -498,6 +512,24 @@ const Battle = (() => {
           log('die', `${escapeHtml(ev.name)} đã gục.`);
           document.querySelector(`.unit[data-id="${cssEsc(ev.id)}"]`)?.classList.add('dead');
           break;
+        /**
+         * Cơ chế riêng của Thủ Lĩnh. Thẻ quái mới chỉ hiện sau khi phát hết hoạt
+         * cảnh (`applyState` chạy cuối `onResolve`) — nên dòng nhật ký ở đây là
+         * thứ DUY NHẤT báo trước, và nó phải nói rõ có bao nhiêu con vừa xuất
+         * hiện. Không có nó thì hai con quái tự mọc ra giữa màn hình.
+         */
+        case 'mechanic':
+          if (ev.kind === 'summon') {
+            log('sys', `<b>${escapeHtml(ev.name)}</b> dùng <b>${escapeHtml(ev.label)}</b>
+              — thêm ${ev.minions.length} kẻ địch!`);
+            float(ev.id, escapeHtml(ev.label).toUpperCase(), 'crit');
+          } else {
+            log('die', `<b>${escapeHtml(ev.name)}</b> <b>${escapeHtml(ev.label)}</b>
+              — sát thương tăng ${Math.round((ev.mult - 1) * 100)}%!`);
+            float(ev.id, escapeHtml(ev.label).toUpperCase(), 'crit');
+            animate(ev.id, 'acting');
+          }
+          break;
         default:
           break;
       }
@@ -626,12 +658,36 @@ const Battle = (() => {
         ${dropRows}
         ${bookRows}`;
     } else if (result === 'fled') {
-      ui.resultBody.innerHTML = '<p style="color:#8b95ab">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì.</p>';
+      ui.resultBody.innerHTML = '<p class="b-note">Rút lui an toàn. Không có phần thưởng, nhưng cũng không mất gì — đó là lý do nút Trốn thoát tồn tại.</p>';
+    } else if (result === 'lose') {
+      ui.resultBody.innerHTML = defeatBody(state.defeat);
     } else {
-      ui.resultBody.innerHTML = '<p style="color:#8b95ab">Không nhận được phần thưởng.</p>';
+      ui.resultBody.innerHTML = '<p class="b-note">Không ai hạ được ai. Không phần thưởng, cũng không mất gì.</p>';
     }
 
     ui.result.classList.remove('hidden');
+  }
+
+  /**
+   * Bảng thua — nói THẲNG mất gì và không mất gì.
+   *
+   * Người chơi vừa thua đang muốn biết đúng một điều: "tôi có mất đồ không?".
+   * Để họ tự đoán là để họ mở túi đồ đếm lại từng món sau mỗi lần ngã xuống.
+   */
+  function defeatBody(d) {
+    // Gói `defeat` rớt giữa đường thì thà nói chung chung còn hơn nói sai số
+    if (!d) return '<p class="b-note">Bạn đã ngã xuống. Không mất đồ, không tụt cấp.</p>';
+
+    const lost = d.expLost > 0
+      ? `<div class="reward"><span>Kinh nghiệm</span><span class="v loss">−${d.expLost}</span></div>`
+      // Vừa lên cấp xong mà thua thì trừ vào 0 — nói rõ ra, đừng để người chơi
+      // tưởng hệ thống hỏng khi thanh kinh nghiệm không nhúc nhích
+      : '<div class="reward"><span>Kinh nghiệm</span><span class="v none">không mất gì</span></div>';
+
+    return `${lost}
+      <div class="reward"><span>Vàng và trang bị</span><span class="v none">giữ nguyên</span></div>
+      <p class="b-note">Mất ${d.pct}% kinh nghiệm của cấp ${d.level}, và <b>không bao giờ tụt cấp</b>.
+        Bạn tỉnh lại ở một góc khác của bản đồ.</p>`;
   }
 
   /* ------------------------------------------------ tiện ích --------- */

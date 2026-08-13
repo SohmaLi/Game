@@ -18,10 +18,42 @@ const atlas = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'i
 const monsters = require('../server/data/monsters');
 const zones = require('../server/data/zones');
 const classes = require('../server/data/classes');
+const npcs = require('../server/data/npcs');
 
-test('mọi con quái đều có hình', () => {
-  const thiếu = monsters.MONSTERS.map((m) => m.id).filter((id) => !atlas.mobs[id]);
+test('mọi con quái đều tra ra một khối hình', () => {
+  // Quái Tinh Anh MƯỢN hình của một con thường cùng họ (`sprite`) rồi vẽ to hơn
+  // kèm quầng tím, nên khoá tra bảng không phải lúc nào cũng là id của nó
+  const thiếu = monsters.MONSTERS
+    .map((m) => m.sprite || m.id)
+    .filter((key) => !atlas.mobs[key]);
   assert.deepEqual(thiếu, [], 'thiếu hình thì con quái đó lặng lẽ quay về hình tròn màu');
+});
+
+test('hình mượn phải trỏ tới một bản mẫu CÓ THẬT', () => {
+  // Gõ sai một chữ trong `sprite` thì con quái vẫn chạy, chỉ là mất hình — và
+  // bài trên không bắt được vì nó chỉ soi bảng atlas
+  for (const m of monsters.MONSTERS) {
+    if (!m.sprite) continue;
+    assert.ok(monsters.get(m.sprite), `"${m.id}" mượn hình của "${m.sprite}" — không có bản mẫu nào tên vậy`);
+  }
+});
+
+test('mọi NPC đều có hình, và tra ở bảng RIÊNG chứ không lẫn với quái', () => {
+  const thiếu = npcs.NPCS.map((n) => n.sprite).filter((s) => !atlas.npcs?.[s]);
+  assert.deepEqual(thiếu, [], 'thiếu hình thì người bán hàng thành một khối tròn vàng');
+
+  for (const n of npcs.NPCS) {
+    assert.ok(!atlas.mobs[n.sprite],
+      `hình NPC "${n.sprite}" lọt vào bảng quái — chỉ cần một chỗ tra nhầm là ông bán hàng bị vẽ như con quái`);
+  }
+});
+
+test('vùng nào có NPC thì NPC đó phải có thật', () => {
+  for (const z of zones.all()) {
+    for (const id of z.npcs || []) {
+      assert.ok(npcs.get(id), `vùng ${z.id} trỏ tới NPC không có thật: ${id}`);
+    }
+  }
 });
 
 test('mọi vùng đều có ô nền và vật cản', () => {

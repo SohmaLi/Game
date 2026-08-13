@@ -258,6 +258,14 @@ input:focus { border-color: #4c7dff; }
 }
 .zone-card.locked:hover { transform: none; background: #0f1420; }
 
+/* Bến cảng an toàn tách hẳn khỏi sáu vùng săn quái: nó là chỗ về nhà, không
+   phải chỗ đi săn dễ hơn một chút */
+.zone-card.safe {
+  background: #171308;
+  border-color: #4a3a22;
+}
+.zone-card.safe:hover { background: #1d1810; }
+
 .zn-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .zn-name { font-size: 14px; font-weight: 700; color: #e6e9ef; }
 .zn-range { font-size: 11px; color: var(--accent, #7dd3fc); white-space: nowrap; }

@@ -123,9 +123,9 @@ const STAT_NAMES = { str: 'Sức Mạnh', int: 'Trí Tuệ', vit: 'Thể Chất'
 
 let nextItemId = 1;
 
-function pickWeighted(entries) {
+function pickWeighted(entries, rnd = Math.random) {
   const total = entries.reduce((s, e) => s + e.w, 0);
-  let r = Math.random() * total;
+  let r = rnd() * total;
   for (const e of entries) {
     r -= e.w;
     if (r <= 0) return e.v;
@@ -134,11 +134,11 @@ function pickWeighted(entries) {
 }
 
 /** Bốc hạng theo trọng số. `luck` nhân vào trọng số của các hạng cao. */
-function rollRarity(luck = 1) {
+function rollRarity(luck = 1, rnd = Math.random) {
   return pickWeighted(RARITY_ORDER.map((id) => ({
     v: id,
     w: RARITIES[id].weight * (id === 'common' || id === 'fine' ? 1 : luck),
-  })));
+  })), rnd);
 }
 
 /**
@@ -146,13 +146,20 @@ function rollRarity(luck = 1) {
  * @param level  cấp của món, thường lấy theo cấp quái rơi ra
  * @param opts.rarity  ép hạng cụ thể, để trống thì bốc
  * @param opts.slot    ép ô cụ thể
+ * @param opts.rng     nguồn ngẫu nhiên thay cho `Math.random`.
+ *
+ *   Hàng của thương nhân dùng đường này: cùng một hạt giống phải cho ra đúng
+ *   cùng một quầy hàng. Nếu không, thoát phòng rồi vào lại là bốc lại quầy —
+ *   người chơi cứ ra vào tới lúc thấy món vừa ý, và cái quầy hoá thành máy quay
+ *   xổ số miễn phí. Xem `server/shop.js`.
  */
 function generate(level = 1, opts = {}) {
-  const rarityId = opts.rarity || rollRarity(opts.luck || 1);
+  const rnd = opts.rng || Math.random;
+  const rarityId = opts.rarity || rollRarity(opts.luck || 1, rnd);
   const rarity = RARITIES[rarityId];
 
   const pool = opts.slot ? (BASE_BY_SLOT[opts.slot] || BASES) : BASES;
-  const base = pool[Math.floor(Math.random() * pool.length)];
+  const base = pool[Math.floor(rnd() * pool.length)];
 
   // Ngân sách tăng theo cấp — đồ cấp 10 phải rõ ràng mạnh hơn đồ cấp 1
   const budget = base.budget * POWER_SCALE * rarity.budget * (1 + (level - 1) * 0.12);
@@ -162,7 +169,7 @@ function generate(level = 1, opts = {}) {
   const available = Object.entries(base.weights).map(([k, w]) => ({ v: k, w }));
   const count = Math.min(rarity.statCount, available.length);
   for (let i = 0; i < count; i++) {
-    const key = pickWeighted(available);
+    const key = pickWeighted(available, rnd);
     chosen.push(key);
     const idx = available.findIndex((e) => e.v === key);
     available.splice(idx, 1);
@@ -183,7 +190,7 @@ function generate(level = 1, opts = {}) {
   const stats = {};
   chosen.forEach((key, i) => {
     const share = i === 0 ? budget : budget * EXTRA_STAT_SHARE;
-    const value = Math.max(1, Math.round(share * (0.9 + Math.random() * 0.2)));
+    const value = Math.max(1, Math.round(share * (0.9 + rnd() * 0.2)));
     stats[key] = (stats[key] || 0) + value;
   });
 
@@ -191,7 +198,7 @@ function generate(level = 1, opts = {}) {
   const passives = [];
   const passivePool = [...PASSIVES];
   for (let i = 0; i < rarity.passives && passivePool.length; i++) {
-    const p = passivePool.splice(Math.floor(Math.random() * passivePool.length), 1)[0];
+    const p = passivePool.splice(Math.floor(rnd() * passivePool.length), 1)[0];
     passives.push({ id: p.id, name: p.name, desc: p.desc.replace('{v}', p.per), effect: p.effect });
   }
 

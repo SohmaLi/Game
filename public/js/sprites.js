@@ -78,6 +78,8 @@ const Sprites = (() => {
   }
 
   const mobBlock = (defId) => (ready() ? man.mobs[defId] || null : null);
+  /** Người bán hàng tra bảng RIÊNG, không dùng chung với quái. */
+  const npcBlock = (spriteId) => (ready() ? man.npcs?.[spriteId] || null : null);
   const zone = (zoneId) => (ready() ? man.zones[zoneId] || null : null);
 
   /** Khung hoạt cảnh theo đồng hồ. Đứng yên thì luôn là khung 0 (dáng đứng). */
@@ -155,5 +157,5 @@ const Sprites = (() => {
     };
   }
 
-  return { load, ready, charBlock, mobBlock, zone, walkFrame, drawUnit, drawGround, drawProp, cssFrame };
+  return { load, ready, charBlock, mobBlock, npcBlock, zone, walkFrame, drawUnit, drawGround, drawProp, cssFrame };
 })();

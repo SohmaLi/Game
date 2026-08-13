@@ -1,0 +1,283 @@
+/* ====================== CỬA HÀNG THƯƠNG NHÂN ====================== */
+
+/**
+ * Tông vàng đồng chạy suốt màn này, khác hẳn tông tím của cây kỹ năng và tông
+ * xanh của bảng nhân vật — mở nhầm cửa sổ thì nhìn màu là biết ngay.
+ *
+ * z-index 60: trên cả thanh kinh nghiệm (50), vì đang mua bán thì không có
+ * việc gì phải bấm ở thanh đó, mà một cái nút thò lên trên hộp thoại là thứ
+ * người chơi sẽ bấm nhầm.
+ */
+
+#shop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 9, 15, .72);
+  backdrop-filter: blur(3px);
+  z-index: 60;
+}
+#shop.hidden { display: none; }
+
+.sh-box {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(720px, 100%);
+  background: #11151f;
+  border: 1px solid #4a3a22;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+  overflow: hidden;
+}
+
+/* ---------------- đầu cửa sổ ---------------- */
+
+.sh-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  background: linear-gradient(180deg, #1d1810, #141019);
+  border-bottom: 1px solid #3a2e1c;
+}
+.sh-head h2 { font-size: 16px; color: #ffd166; font-weight: 600; }
+.sh-role {
+  font-size: 11px;
+  color: #9a8a63;
+  padding: 2px 8px;
+  border: 1px solid #4a3a22;
+  border-radius: 999px;
+}
+.sh-head-gap { flex: 1; }
+
+.sh-gold-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffd166;
+  white-space: nowrap;
+}
+.sh-gold-box .gi { width: 15px; height: 15px; }
+
+.sh-close {
+  background: transparent;
+  border: 0;
+  color: #6b7791;
+  font-size: 17px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.sh-close:hover { color: #e6e9ef; }
+
+/* ---------------- lời chào + phí ---------------- */
+
+.sh-greet {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-style: italic;
+  color: #a9b4c9;
+  background: #0d1119;
+  border-bottom: 1px solid #232c3f;
+}
+
+.sh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 16px;
+  font-size: 11px;
+  color: #8b95ab;
+  border-bottom: 1px solid #232c3f;
+}
+.sh-meta b { color: #c9d1e0; }
+.sh-meta .perked b { color: #7ee89a; }
+
+.sh-perk {
+  margin-left: 5px;
+  padding: 1px 7px;
+  font-size: 10px;
+  color: #7ee89a;
+  border: 1px solid #2f6b45;
+  border-radius: 999px;
+}
+
+.sh-restock { margin-left: auto; color: #9a8a63; white-space: nowrap; }
+
+/* ---------------- tab ---------------- */
+
+.sh-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 0;
+}
+.sh-tab {
+  padding: 7px 16px;
+  font-size: 13px;
+  color: #8b95ab;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  cursor: pointer;
+}
+.sh-tab:hover { color: #c9d1e0; }
+.sh-tab.active {
+  color: #ffd166;
+  background: #171c28;
+  border-color: #3a2e1c;
+}
+
+.sh-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  background: #171c28;
+  overflow-y: auto;
+}
+.sh-pane { display: none; }
+.sh-pane.active { display: block; }
+
+/* ---------------- một dòng hàng ---------------- */
+
+.sh-grid { display: flex; flex-direction: column; gap: 7px; }
+
+.sh-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  background: #10141d;
+  border: 1px solid #2b3651;
+  border-left-width: 3px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.sh-row:hover { background: #172033; }
+.sh-row.poor { opacity: .45; }
+.sh-row.picked { background: #1e2a1c; box-shadow: inset 0 0 0 1px #4d7a45; }
+
+.sh-ico {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  /* Kích thước cố định thì dùng PIXEL. Phần trăm trong ô co theo nội dung
+     không có gốc để nhân, và SVG rơi về kích thước mặc định 300×150. */
+  width: 30px;
+  height: 30px;
+}
+.sh-ico .gi { width: 22px; height: 22px; }
+
+.sh-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sh-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-sub { font-size: 11px; color: #6b7791; }
+
+.sh-price {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffd166;
+  white-space: nowrap;
+}
+.sh-price .gi { width: 13px; height: 13px; }
+
+.sh-empty {
+  padding: 26px 10px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7791;
+}
+
+/* ---------------- thanh bán hàng loạt ---------------- */
+
+.sh-sellbar {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 11px;
+  padding: 10px 12px;
+  background: #10141d;
+  border: 1px solid #2b3651;
+  border-radius: 10px;
+}
+
+.sh-filters { display: flex; flex-wrap: wrap; gap: 5px; }
+.sh-filter {
+  padding: 3px 9px;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid #3a3050;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.sh-filter:hover { background: #1a2233; }
+.sh-filter.all { color: #9aa5ba; border-color: #3a3050; }
+
+.sh-sell-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sh-sell-count { flex: 1 0 auto; font-size: 11px; color: #8b95ab; white-space: nowrap; }
+
+.sh-sell-clear,
+.sh-sell-btn {
+  padding: 5px 13px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2b3651;
+  border-radius: 8px;
+  color: #8b95ab;
+  cursor: pointer;
+}
+.sh-sell-clear:hover { border-color: #6b7791; color: #c9d1e0; }
+
+.sh-sell-btn { border-color: #7a5f22; color: #ffd166; font-weight: 600; }
+.sh-sell-btn:hover:not(:disabled) { background: #2a2113; }
+.sh-sell-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ---------------- lời nhắc bấm E trên bản đồ ---------------- */
+
+/**
+ * Neo theo `--sb-h` (chiều cao thanh kinh nghiệm ĐO ĐƯỢC), không phải một số
+ * cứng: màn hẹp thì thanh đáy xuống dòng và cao gấp đôi, đoán số là cách đã
+ * làm thông báo chui xuống dưới nút Balo một lần rồi.
+ */
+#npcPrompt {
+  position: fixed;
+  left: 50%;
+  /* Thẻ lời mời vào nhóm cũng đậu ở đáy. Nó chỉ hiện chốc lát nên nhường chỗ
+     bằng chiều cao ĐO ĐƯỢC của nó (`--invite-h`), 0 khi không có lời mời nào */
+  bottom: calc(var(--sb-h, 44px) + 18px + var(--invite-h, 0px));
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #e6e9ef;
+  background: rgba(17, 21, 31, .94);
+  border: 1px solid #4a3a22;
+  border-radius: 999px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .5);
+  pointer-events: none;
+  z-index: 20;
+}
+#npcPrompt.hidden { display: none; }
+#npcPrompt b { color: #ffd166; }
+
+@media (max-width: 560px) {
+  .sh-head { flex-wrap: wrap; }
+  .sh-row { gap: 8px; padding: 8px 10px; }
+  .sh-name { font-size: 12px; }
+}

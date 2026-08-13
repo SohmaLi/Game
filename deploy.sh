@@ -36,10 +36,18 @@ echo "==> Khởi động lại app"
 #      đường dẫn tới node. Trước đây pkill tìm 'nodevenv/game/20/bin/node' nên
 #      không khớp gì cả — deploy báo thành công mà người đang online vẫn chạy
 #      code cũ hàng chục tiếng.
+#
+# Dấu ngoặc vuông trong mẫu KHÔNG phải để cho đẹp. `pkill -f` soi toàn bộ dòng
+# lệnh của mọi tiến trình — kể cả `bash -c` đang chạy chính câu pkill này, vì
+# dòng lệnh của nó chứa nguyên văn cái mẫu. Không có ngoặc thì pkill tự giết
+# phiên ssh của mình, ssh trả về 255, `set -e` cắt script ngay tại đây và toàn
+# bộ phần KIỂM TRA bên dưới không bao giờ chạy — đúng cái chốt chặn quan trọng
+# nhất. `[g]ame` khớp với "game" trong tiến trình thật, nhưng không khớp với
+# chuỗi "[g]ame" nằm trong dòng lệnh của chính mình.
 ssh "$HOST" "cloudlinux-selector restart --json --interpreter nodejs --app-root game >/dev/null 2>&1; \
              mkdir -p $REMOTE/tmp && touch $REMOTE/tmp/restart.txt; \
-             pkill -u frozento -f 'lsnode:$REMOTE' >/dev/null 2>&1; \
-             pkill -u frozento -f 'nodevenv/game/20/bin/node' >/dev/null 2>&1; \
+             pkill -u frozento -f 'lsnode:/home/frozento/[g]ame' >/dev/null 2>&1; \
+             pkill -u frozento -f 'nodevenv/game/20/bin/[n]ode' >/dev/null 2>&1; \
              echo 'đã khởi động lại'"
 
 echo "==> Kiểm tra"

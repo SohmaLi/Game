@@ -21,6 +21,13 @@ const state = {
   curr: null,
   ping: 0,
   camera: { x: 0, y: 0 },
+  /** Người bán hàng — nhận một lần lúc vào phòng, không bao giờ đổi */
+  npcs: [],
+  talkRadius: 56,
+  /** NPC đang trong tầm nói chuyện, null khi đứng xa */
+  nearNpc: null,
+  /** Vị trí người chơi ĐÃ nội suy của khung hình vừa vẽ — chuột phải dò theo đây */
+  drawnPlayers: [],
 };
 
 /* Vẽ chậm hơn thực tế đúng một snapshot. Nghe có vẻ ngược đời, nhưng nhờ luôn
@@ -62,9 +69,20 @@ window.addEventListener('keydown', (e) => {
   if (Battle.isOpen()) return;
 
   if (e.code === 'Escape') {
+    if (Shop.isOpen()) { Shop.close(); return; }
     if (Tree.isOpen()) { Tree.close(); return; }
     if (Panel.isOpen()) { Panel.close(); return; }
   }
+  // Nói chuyện với người bán hàng. Nhả hết phím trước khi mở, nếu không nhân
+  // vật chạy tiếp dưới cửa sổ đang mở rồi lạc ra khỏi tầm nói chuyện
+  if (e.code === 'KeyE' && state.me && state.nearNpc && !Shop.isOpen()) {
+    e.preventDefault();
+    for (const key of Object.keys(keys)) keys[key] = false;
+    sendInputIfChanged();
+    Shop.open(state.nearNpc);
+    return;
+  }
+  if (Shop.isOpen()) return;
   if (e.code === 'KeyK' && state.me) {
     e.preventDefault();
     Tree.toggle();
@@ -126,6 +144,10 @@ function connect({ token, characterId, zone }) {
       state.map = res.map;
       state.zone = res.zone || null;
       state.character = res.character || null;
+      // Người bán hàng đứng yên vĩnh viễn nên chỉ về đúng một lần cùng bản đồ,
+      // không nằm trong gói `state` bắn 15 lần mỗi giây
+      state.npcs = res.npcs || [];
+      state.talkRadius = res.talkRadius || 56;
       // Đợi sprite trước khi vẽ bất cứ thứ gì — vẽ trước thì `<use>` trỏ vào
       // symbol chưa tồn tại, ra ô trống, và không phải trình duyệt nào cũng vẽ
       // lại khi symbol xuất hiện muộn
@@ -148,9 +170,16 @@ function connect({ token, characterId, zone }) {
         Battle.init(socket, res.you);
         Panel.init(socket);
         Tree.init(socket);
+        Shop.init(socket);
+        Party.init(socket);
       }
       Battle.setMyId(res.you);
-      if (res.characterState) { Panel.update(res.characterState); Tree.update(res.characterState); }
+      Party.setMe(res.you, res.maxParty);
+      if (res.characterState) {
+        Panel.update(res.characterState);
+        Tree.update(res.characterState);
+        Party.update(res.characterState);
+      }
       // Vào phòng đúng lúc cả nhóm đang đánh nhau thì hiện luôn màn chiến đấu
       if (res.battle) Battle.onState(res.battle);
     });
@@ -160,6 +189,8 @@ function connect({ token, characterId, zone }) {
     state.prev = state.curr;
     state.curr = { ...snap, recvAt: performance.now() };
     renderBossBar(snap.boss);
+    // Cờ "đang trong trận" chỉ có trong gói này, không có trong `character`
+    Party.syncBusy(snap.players);
   });
 
   // Thủ Lĩnh là sự kiện của cả phòng — ai đang ở trong vùng cũng phải biết
@@ -202,8 +233,14 @@ function enterGame() {
   $('menu').classList.add('hidden');
   $('navbar').classList.remove('hidden');
   $('zoneBadge').textContent = state.zone
-    ? `${state.zone.name} · ${state.zone.levelMin}–${state.zone.levelMax}`
+    ? (state.zone.safe ? `${state.zone.name} · an toàn` : `${state.zone.name} · ${state.zone.levelMin}–${state.zone.levelMax}`)
     : '—';
+
+  // Lời nhắc phải nói đúng việc đang làm được: bảo người chơi "chạm vào quái"
+  // ở một vùng không có con quái nào là cách nhanh nhất khiến họ đi tìm mỏi mắt
+  $('hint').innerHTML = state.zone?.safe
+    ? 'Vùng an toàn — không có quái. Đi tới chỗ <b>thương nhân</b> rồi bấm <b>E</b> để mua bán'
+    : 'Dùng <b>WASD</b> hoặc <b>phím mũi tên</b> để di chuyển · chạm vào quái để vào trận';
   $('hint').classList.remove('hidden');
   setTimeout(() => $('hint').classList.add('hidden'), 6000);
 }
@@ -225,8 +262,18 @@ function renderBossBar(boss) {
 }
 
 function leaveGame() {
+  /**
+   * Màn chiến đấu phải đóng ĐẦU TIÊN.
+   *
+   * Nó nằm ở z-index 30, cao hơn màn chọn nhân vật (20). Rớt mạng giữa trận mà
+   * không đóng nó thì người chơi nhìn thấy một trận đấu đông cứng phủ lên trên
+   * màn chọn nhân vật, bấm gì cũng không ăn.
+   */
+  Battle.close();
   Panel.close();
   Tree.close();
+  Shop.close();
+  Party.hide();
   UI.closeMenu();
   UI.closeModal();
   Hud.hide();
@@ -234,8 +281,12 @@ function leaveGame() {
   $('navbar').classList.add('hidden');
   $('bossBar').classList.add('hidden');
   $('hint').classList.add('hidden');
+  $('npcPrompt').classList.add('hidden');
   state.me = null;
   state.prev = state.curr = null;
+  state.npcs = [];
+  state.nearNpc = null;
+  state.drawnPlayers = [];
 }
 
 /* ---------------- Nội suy ---------------- */
@@ -353,6 +404,9 @@ function drawPlayer(p, cam) {
   const x = p.x - cam.x;
   const y = p.y - cam.y;
   const isMe = p.id === state.me;
+  // Đồng đội phải nhìn ra được từ xa: họ là những người sẽ bị kéo vào trận cùng
+  // mình, và giữa một bản đồ đông người thì tên trắng nào cũng giống tên trắng nào
+  const mate = !isMe && Party.has(p.id);
 
   // Bóng đổ — vẽ cả khi có sprite, nếu không nhân vật trông như dán lên nền
   ctx.fillStyle = 'rgba(0,0,0,.35)';
@@ -385,9 +439,10 @@ function drawPlayer(p, cam) {
     ctx.beginPath();
     ctx.arc(x + d[0] * 6, y + d[1] * 6, 3, 0, Math.PI * 2);
     ctx.fill();
-  } else if (isMe) {
-    // Sprite ai cũng giống ai — cần một dấu chỉ rõ con nào là mình
-    ctx.strokeStyle = 'rgba(124,160,255,.85)';
+  } else if (isMe || mate) {
+    // Sprite ai cũng giống ai — cần một dấu chỉ rõ con nào là mình, và con nào
+    // là người sẽ vào trận cùng mình
+    ctx.strokeStyle = isMe ? 'rgba(124,160,255,.85)' : 'rgba(110,225,150,.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.ellipse(x, y + 11, 12, 5.5, 0, 0, Math.PI * 2);
@@ -403,7 +458,7 @@ function drawPlayer(p, cam) {
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,.75)';
   ctx.strokeText(p.n, x, top - 8);
-  ctx.fillStyle = isMe ? '#cfe0ff' : '#ffd9d1';
+  ctx.fillStyle = isMe ? '#cfe0ff' : (mate ? '#9ff0b5' : '#ffd9d1');
   ctx.fillText(p.n, x, top - 8);
 
   const bw = 30;
@@ -413,10 +468,71 @@ function drawPlayer(p, cam) {
   ctx.fillRect(x - bw / 2, top - 5, bw * (p.hp / 100), 4);
 }
 
+/**
+ * Người bán hàng. Vẽ giống nhân vật nhưng KHÔNG có thanh máu và không bao giờ
+ * có dấu "!" — nó không đánh nhau, và mọi thứ trông giống quái đều khiến người
+ * chơi vòng tránh thay vì lại gần.
+ */
+function drawNpc(n, cam) {
+  const x = n.x - cam.x;
+  const y = n.y - cam.y;
+  const near = state.nearNpc?.id === n.id;
+
+  /**
+   * Vòng tầm nói chuyện dưới chân, đậm hơn khi đã bước vào trong — đó là toàn
+   * bộ phản hồi cho biết đứng thế này đã bấm được hay chưa.
+   *
+   * Vẽ HAI nét: nét sẫm dày ở dưới, nét sáng mảnh ở trên. Nền thị trấn là đá
+   * lát màu vàng cát, nên một vòng vàng mảnh vẽ thẳng lên đó gần như tàng hình
+   * — đúng kiểu chỉ lộ ra khi nhìn trên nền thật chứ không phải trong đầu.
+   */
+  const rw = state.talkRadius * 0.62;
+  const rh = state.talkRadius * 0.3;
+  const ring = () => {
+    ctx.beginPath();
+    ctx.ellipse(x, y + 11, rw, rh, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  };
+  ctx.strokeStyle = near ? 'rgba(40,22,0,.75)' : 'rgba(40,22,0,.35)';
+  ctx.lineWidth = 4;
+  ring();
+  ctx.strokeStyle = near ? 'rgba(255,226,150,.95)' : 'rgba(255,226,150,.45)';
+  ctx.lineWidth = 1.5;
+  ring();
+
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 11, 11, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const drawn = Sprites.drawUnit(ctx, Sprites.npcBlock(n.sprite), 'down', 0, x, y, 32);
+  if (!drawn) {
+    ctx.fillStyle = '#e8c37a';
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const top = drawn ? y - 22 : y - 17;
+  ctx.font = '600 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,.75)';
+  ctx.strokeText(n.name, x, top - 8);
+  ctx.fillStyle = '#ffd166';
+  ctx.fillText(n.name, x, top - 8);
+
+  ctx.font = '500 10px system-ui, sans-serif';
+  ctx.strokeText(n.role, x, top + 4);
+  ctx.fillStyle = '#c9b489';
+  ctx.fillText(n.role, x, top + 4);
+}
+
 function drawMonster(m, cam) {
   const x = m.x - cam.x;
   const y = m.y - cam.y;
-  const r = m.bs ? 17 : 11;
+  // Ba cỡ bóng, khớp với bán kính va chạm thật ở server (config.js)
+  const r = m.bs ? 17 : (m.el ? 14 : 11);
 
   /* Quái vừa hiện ra chưa chạm vào ai được — vẽ mờ đi để người chơi hiểu vì
      sao đi xuyên qua nó mà không vào trận, thay vì tưởng game lỗi. */
@@ -428,19 +544,23 @@ function drawMonster(m, cam) {
   ctx.ellipse(x, y + r - 1, r - 1, r * 0.42, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Vòng hào quang cho Thủ Lĩnh — thấy từ xa là biết nên tránh hay nên rủ người.
-  // Vẽ TRƯỚC thân để nó nằm dưới, không cắt ngang mặt con quái.
-  if (m.bs) {
-    ctx.strokeStyle = 'rgba(255,209,102,.45)';
+  /* Vòng hào quang — thấy từ xa là biết nên tránh, nên đánh, hay nên rủ người.
+     Vẽ TRƯỚC thân để nó nằm dưới, không cắt ngang mặt con quái.
+     Vàng = Thủ Lĩnh, tím = Tinh Anh; tím nhịp chậm hơn để hai thứ không lẫn. */
+  if (m.bs || m.el) {
+    ctx.strokeStyle = m.bs ? 'rgba(255,209,102,.45)' : 'rgba(196,139,255,.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, r + 6 + Math.sin(Date.now() / 300) * 2, 0, Math.PI * 2);
+    ctx.arc(x, y, r + 6 + Math.sin(Date.now() / (m.bs ? 300 : 480)) * 2, 0, Math.PI * 2);
     ctx.stroke();
   }
 
+  /* Phóng phải là BỘI SỐ NGUYÊN của ô 16px, nếu không pixel art nhoè và chỗ to
+     chỗ bé. Tinh Anh dùng chung mức 48 với Thủ Lĩnh — khác nhau ở màu quầng và
+     dấu ◈ trước tên, không phải ở cỡ. */
   const drawn = Sprites.drawUnit(
     ctx, Sprites.mobBlock(m.mid), m.d, Sprites.walkFrame(m.m, hashCode(m.id) % 400),
-    x, y, m.bs ? 48 : 32);
+    x, y, (m.bs || m.el) ? 48 : 32);
 
   if (!drawn) {
     ctx.fillStyle = m.c || '#c05a5a';
@@ -448,8 +568,8 @@ function drawMonster(m, cam) {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = m.bs ? '#ffd166' : (m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)');
-    ctx.lineWidth = m.bs ? 3 : (m.a ? 2.5 : 2);
+    ctx.strokeStyle = m.bs ? '#ffd166' : (m.el ? '#c48bff' : (m.a ? '#ff4d4d' : 'rgba(255,255,255,.22)'));
+    ctx.lineWidth = (m.bs || m.el) ? 3 : (m.a ? 2.5 : 2);
     ctx.stroke();
 
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[m.d] || [0, 1];
@@ -473,13 +593,16 @@ function drawMonster(m, cam) {
     ctx.fillText('!', x, y - r - 7);
   }
 
-  const label = m.bs ? `◆ ${m.n} · ${m.lv}` : `${m.n} · ${m.lv}`;
-  ctx.font = m.bs ? '700 11px system-ui, sans-serif' : '500 10px system-ui, sans-serif';
+  // Dấu đầu tên nói ra HẠNG của con quái, vì cái quầng sáng thì bị thân nó che
+  // mất một phần khi đứng chồng lên vật cản
+  const mark = m.bs ? '◆ ' : (m.el ? '◈ ' : '');
+  const label = `${mark}${m.n} · ${m.lv}`;
+  ctx.font = (m.bs || m.el) ? '700 11px system-ui, sans-serif' : '500 10px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,.75)';
   ctx.strokeText(label, x, y + r + 13);
-  ctx.fillStyle = m.bs ? '#ffd166' : '#e8b3ab';
+  ctx.fillStyle = m.bs ? '#ffd166' : (m.el ? '#c48bff' : '#e8b3ab');
   ctx.fillText(label, x, y + r + 13);
 
   // Đã có người đánh — nhảy vào là được, không cần lập nhóm
@@ -501,6 +624,9 @@ function render() {
 
   const { players, monsters } = interpolate();
   const me = players.find((p) => p.id === state.me);
+  // Chuột phải dò trúng đúng thứ đang NHÌN THẤY, không phải vị trí thô của gói
+  // tin gần nhất — lệch nửa ô là bấm vào người mà menu không hiện
+  state.drawnPlayers = players;
 
   // Camera bám nhân vật, kẹp trong biên bản đồ để không lộ vùng trống ngoài rìa
   if (me) {
@@ -514,19 +640,111 @@ function render() {
 
   drawMap(state.camera);
 
-  // Trộn người chơi và quái rồi vẽ theo thứ tự y, để ai đứng dưới che ai đứng trên
+  updateNearNpc(me);
+
+  // Trộn người chơi, quái và người bán hàng rồi vẽ theo thứ tự y, để ai đứng
+  // dưới che ai đứng trên
   const entities = [
     ...players.map((p) => ({ ...p, kind: 'player' })),
     ...monsters.map((m) => ({ ...m, kind: 'monster' })),
+    ...state.npcs.map((n) => ({ ...n, kind: 'npc' })),
   ].sort((a, b) => a.y - b.y);
 
   for (const e of entities) {
     if (e.kind === 'player') drawPlayer(e, state.camera);
+    else if (e.kind === 'npc') drawNpc(e, state.camera);
     else drawMonster(e, state.camera);
   }
 }
 
+/**
+ * Ai đang trong tầm nói chuyện.
+ *
+ * Tính ở client CHỈ để bật cái nhắc trên màn hình. Server kiểm tra lại khoảng
+ * cách trong từng lệnh mua bán — không thì sửa vài dòng JS là mở được cửa hàng
+ * từ giữa Vực Băng, và việc đi bộ về thị trấn chẳng còn ý nghĩa gì.
+ */
+function updateNearNpc(me) {
+  const before = state.nearNpc?.id || null;
+  state.nearNpc = me
+    ? state.npcs.find((n) => Math.hypot(n.x - me.x, n.y - me.y) <= state.talkRadius) || null
+    : null;
+
+  if ((state.nearNpc?.id || null) === before) return;
+
+  const el = $('npcPrompt');
+  if (!state.nearNpc) return el.classList.add('hidden');
+  el.innerHTML = `Bấm <b>E</b> để nói chuyện với <b>${UI.esc(state.nearNpc.name)}</b>`;
+  el.classList.remove('hidden');
+}
+
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/* ---------------- Chuột phải lên người chơi ---------------- */
+
+/**
+ * Ai đang ở dưới con trỏ.
+ *
+ * Canvas trải đúng 100vw × 100vh từ góc trái trên, nên toạ độ chuột cộng thẳng
+ * với camera ra toạ độ thế giới — không cần `getBoundingClientRect`.
+ *
+ * Bắt theo KHUNG CHỮ NHẬT chứ không theo bán kính: sprite cao 32px mà chỉ rộng
+ * chừng nửa thế, dùng hình tròn thì bấm vào đầu nhân vật là trượt.
+ */
+function playerAt(clientX, clientY) {
+  const wx = clientX + state.camera.x;
+  const wy = clientY + state.camera.y;
+
+  let best = null;
+  for (const p of state.drawnPlayers) {
+    if (Math.abs(wx - p.x) > 16) continue;
+    if (wy < p.y - 22 || wy > p.y + 13) continue;
+    // Hai người chồng lên nhau thì lấy người vẽ SAU — đúng con đang nằm trên
+    if (!best || p.y > best.y) best = p;
+  }
+  return best;
+}
+
+/**
+ * Menu nhóm — lối vào DUY NHẤT của cả hệ thống nhóm.
+ *
+ * `server/party.js` chạy đủ từ lâu nhưng chưa có gì gọi tới, nên "PvE tối đa 5
+ * người/nhóm" đúng trên giấy mà trong game thì không ai lập nổi một nhóm.
+ */
+canvas.addEventListener('contextmenu', (e) => {
+  // Đang đánh nhau hoặc đang mua bán thì bản đồ ở dưới không nhận thao tác nào
+  if (!state.me || !state.curr || Battle.isOpen() || Shop.isOpen()) return;
+
+  const t = playerAt(e.clientX, e.clientY);
+  if (!t) return;
+  e.preventDefault();
+
+  // Bấm vào chính mình: chỗ thứ hai để rời nhóm, ngoài cái nút trên khung nhóm
+  if (t.id === state.me) {
+    if (Party.size() < 2) return;
+    UI.menu(e, {
+      title: t.n,
+      subtitle: `Đang ở nhóm ${Party.size()}/${Party.max} người`,
+      color: '#9ff0b5',
+      items: [{ label: 'Rời nhóm', icon: '⎋', danger: true, onClick: () => Party.leave() }],
+    });
+    return;
+  }
+
+  // Lý do không mời được hiện thẳng dưới tên, không giấu trong một nút xám câm
+  const why = Party.cannotInvite(t);
+  UI.menu(e, {
+    title: t.n,
+    subtitle: why || 'Cùng nhóm thì cùng bị kéo vào một trận',
+    color: why ? '#8b95ab' : '#9ff0b5',
+    items: [{
+      label: 'Mời vào nhóm',
+      icon: '✚',
+      disabled: !!why,
+      onClick: () => Party.invite(t.id, t.n),
+    }],
+  });
+});
 
 render();
 
@@ -554,17 +772,22 @@ function trackBars() {
   const root = document.documentElement;
   const sb = $('statusBar');
   const nav = $('navbar');
+  // HUD cũng phải đo: hàng ô trạng thái bung ra là nó cao thêm, và khung nhóm
+  // ngay bên dưới thì trèo đè lên
+  const hud = $('playerHud');
+
+  const measure = (el) => (el.classList.contains('hidden') ? 0 : el.getBoundingClientRect().height);
 
   const apply = () => {
-    const h = sb.classList.contains('hidden') ? 0 : sb.getBoundingClientRect().height;
-    const n = nav.classList.contains('hidden') ? 0 : nav.getBoundingClientRect().height;
-    root.style.setProperty('--sb-h', `${Math.round(h)}px`);
-    root.style.setProperty('--nav-h', `${Math.round(n)}px`);
+    root.style.setProperty('--sb-h', `${Math.round(measure(sb))}px`);
+    root.style.setProperty('--nav-h', `${Math.round(measure(nav))}px`);
+    root.style.setProperty('--hud-h', `${Math.round(measure(hud))}px`);
   };
 
   const ro = new ResizeObserver(apply);
   ro.observe(sb);
   ro.observe(nav);
+  ro.observe(hud);
   window.addEventListener('resize', apply);
   apply();
 }

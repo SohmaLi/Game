@@ -29,13 +29,17 @@ class Roamer {
     this.id = `r${nextId++}`;
     this.def = def;
     this.defId = def.id;
+    /** Khoá tra hình — Tinh Anh mượn hình quái thường cùng họ (xem data/monsters.js). */
+    this.spriteId = def.sprite || def.id;
     this.name = def.name;
     this.color = def.color;
     this.family = def.family;
     this.level = def.level;
     this.boss = !!opts.boss;
+    this.tier = def.tier || 'common';
+    this.elite = this.tier === 'elite';
 
-    const K = this.boss ? cfg.BOSS : R;
+    const K = this.boss ? cfg.BOSS : (this.elite ? cfg.ELITE : R);
     this.radius = K.radius;
     this.speed = K.speed;
     this.aggroRadius = K.aggroRadius;
@@ -146,7 +150,7 @@ class Roamer {
       id: this.id,
       n: this.name,
       c: this.color,
-      mid: this.defId,   // bản mẫu — client tra hình theo đây, màu `c` là dự phòng
+      mid: this.spriteId, // khoá tra hình, màu `c` là dự phòng khi chưa có atlas
       x: Math.round(this.x * 10) / 10,
       y: Math.round(this.y * 10) / 10,
       d: this.dir,
@@ -154,6 +158,7 @@ class Roamer {
       lv: this.level,
       a: this.state === 'chase', // đang đuổi — client vẽ dấu cảnh báo
       bs: this.boss || undefined,
+      el: this.elite || undefined,    // Tinh Anh — client vẽ to hơn kèm quầng tím
       im: this.immune || undefined,   // đang miễn va chạm — client vẽ mờ
       f: this.battleId ? true : undefined, // có người đang đánh, vào phụ được
     };
@@ -193,21 +198,36 @@ function findSpot(map, players, radius, keepAway) {
  *                nhau thì `map.randomSpawn` ngẫu nhiên độc lập từng lần rất dễ
  *                dồn nhiều con đứng dính lên nhau ở cùng một góc bản đồ.
  */
-function spawn(zone, map, players = [], others = []) {
-  // Chỉ hạng Thường mới đi lang thang. Tinh Anh và Thủ Lĩnh có luật xuất hiện
-  // riêng — thả chúng vào đây là người chơi vấp phải một con Tinh Anh giữa
-  // đường mà không hề được báo trước.
-  const base = monsterData.randomFrom(zone.monsters, 'common');
-  const level = zone.levelMin + Math.floor(Math.random() * (zone.levelMax - zone.levelMin + 1));
+function spawn(zone, map, players = [], others = [], opts = {}) {
+  /**
+   * Thủ Lĩnh KHÔNG bao giờ đi qua đây — nó có đồng hồ 5 phút riêng và chỉ một
+   * con mỗi vùng. Tinh Anh thì có, nhưng phải do `Room.fillRoamers` gọi ra với
+   * `opts.elite`, sau khi đã đếm còn dưới trần `ROAMER.eliteMax`.
+   */
+  const elite = !!opts.elite && zone.elites?.length;
+  const base = elite
+    ? monsterData.randomFrom(zone.elites, 'elite')
+    : monsterData.randomFrom(zone.monsters, 'common');
 
-  // Cách nhau tối thiểu vài lần bán kính — đủ để không chồng hình, vẫn cho
-  // phép đứng thành bầy gần đó như thiết kế ban đầu (groupRadius vẫn kéo
-  // được cả cụm vào chung một trận).
-  const minGap = R.radius * 3;
-  let pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
-  for (let i = 0; i < 10 && nearest(pos, others, minGap); i++) {
-    pos = findSpot(map, players, R.radius, R.aggroRadius * 1.5);
+  const level = zone.levelMin + Math.floor(Math.random() * (zone.levelMax - zone.levelMin + 1));
+  const K = elite ? cfg.ELITE : R;
+
+  /**
+   * Cách nhau tối thiểu vài lần bán kính — đủ để không chồng hình, vẫn cho phép
+   * đứng thành bầy gần đó như thiết kế ban đầu (groupRadius vẫn kéo được cả cụm
+   * vào chung một trận).
+   *
+   * Tinh Anh giữ khoảng CÁCH XA HƠN HẲN: nó đã bằng hai con quái thường về máu
+   * và gấp rưỡi về sát thương, kèm thêm hai con đứng cạnh là một trận không ai
+   * đi một mình thắng nổi — mà con Tinh Anh đứng lẻ mới là thứ đáng đi tìm.
+   */
+  const minGap = elite ? R.groupRadius * 1.6 : R.radius * 3;
+  let pos = findSpot(map, players, K.radius, K.aggroRadius * 1.5);
+  for (let i = 0; i < 12 && nearest(pos, others, minGap); i++) {
+    pos = findSpot(map, players, K.radius, K.aggroRadius * 1.5);
   }
+  // Không truyền cờ elite vào constructor: hạng đọc từ `def.tier` là nguồn duy
+  // nhất, hai chỗ cùng nói một việc là hai chỗ để lệch nhau
   return new Roamer(monsterData.scaled(base, level), pos);
 }
 

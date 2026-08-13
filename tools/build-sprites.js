@@ -71,6 +71,15 @@ const MOBS = {
 };
 
 /**
+ * Người không đánh nhau. Cùng bố cục 4 hướng × 4 khung như nhân vật người chơi,
+ * chỉ khác chỗ tra bảng — để `Sprites` không bao giờ lỡ tay lấy hình ông bán
+ * hàng ra vẽ cho một con quái.
+ */
+const NPCS = {
+  merchant: 14,   // mũ rộng vành, áo khoác đi đường — dân buôn đường dài
+};
+
+/**
  * Ô nền và vật cản của từng vùng. Toạ độ tính theo ô 16px trong tileset.
  *
  * Ô biến thể phải CÙNG TÔNG với ô nền — chỉ khác ở chi tiết trang trí (bông
@@ -79,6 +88,7 @@ const MOBS = {
  * ô cùng tông thì để nền trơn, thà đơn điệu còn hơn lỗ chỗ.
  */
 const ZONE_TILES = {
+  duskmoor:  { ground: [26, 11], variants: [[27, 11]],           prop: [5, 8] },    // đá lát quảng trường · xe hàng
   meadow:    { ground: [14, 16], variants: [[13, 16], [16, 16]], prop: [0, 10] },   // cỏ · cây
   mistwood:  { ground: [23, 11], variants: [],                   prop: [6, 10] },   // cỏ sẫm · thông
   bonewaste: { ground: [23, 13], variants: [[24, 12], [24, 13]], prop: [12, 10] },  // cát · tảng đá
@@ -256,6 +266,7 @@ async function main() {
 
   const need = new Set();
   for (const n of Object.values(CHARS)) need.add(`characters/${n}.png`);
+  for (const n of Object.values(NPCS)) need.add(`characters/${n}.png`);
   for (const n of Object.values(MOBS)) need.add(n < 0 ? `characters/${-n}.png` : `monsters/${n}.png`);
   need.add('background-elements/tileset.png');
 
@@ -275,6 +286,7 @@ async function main() {
   const PER_ROW = 8;
   const units = [
     ...Object.keys(CHARS).map((k) => ['char', k, CHARS[k]]),
+    ...Object.keys(NPCS).map((k) => ['npc', k, NPCS[k]]),
     ...Object.keys(MOBS).map((k) => ['mob', k, MOBS[k]]),
   ];
   const unitRows = Math.ceil(units.length / PER_ROW);
@@ -287,16 +299,16 @@ async function main() {
   const atlasH = propY + CELL * 2;
 
   const atlas = new Canvas(atlasW, atlasH);
-  const man = { cell: CELL, walk: WALK, dirs: DIRS, chars: {}, mobs: {}, zones: {} };
+  const man = { cell: CELL, walk: WALK, dirs: DIRS, chars: {}, npcs: {}, mobs: {}, zones: {} };
 
   units.forEach(([kind, key, n], i) => {
-    const rel = n < 0 ? `characters/${-n}.png` : (kind === 'char' ? `characters/${n}.png` : `monsters/${n}.png`);
+    const rel = n < 0 ? `characters/${-n}.png` : (kind === 'mob' ? `monsters/${n}.png` : `characters/${n}.png`);
     const im = src.get(rel);
     const dx = (i % PER_ROW) * BLOCK;
     const dy = Math.floor(i / PER_ROW) * BLOCK;
     // 4 cột × 4 hàng đầu: chu kỳ đi của cả bốn hướng
     atlas.blit(im, 0, 0, BLOCK, Math.min(BLOCK, im.h), dx, dy);
-    (kind === 'char' ? man.chars : man.mobs)[key] = { x: dx, y: dy };
+    man[{ char: 'chars', npc: 'npcs', mob: 'mobs' }[kind]][key] = { x: dx, y: dy };
   });
 
   const ts = src.get('background-elements/tileset.png');
@@ -315,7 +327,8 @@ async function main() {
   fs.writeFileSync(OUT_JSON, `${JSON.stringify(man, null, 2)}\n`);
 
   console.log(`==> ${OUT_PNG} — ${atlas.w}×${atlas.h}, ${(fs.statSync(OUT_PNG).size / 1024).toFixed(0)} KB`);
-  console.log(`    ${Object.keys(man.chars).length} nhân vật · ${Object.keys(man.mobs).length} quái · ${zones.length} vùng`);
+  console.log(`    ${Object.keys(man.chars).length} nhân vật · ${Object.keys(man.npcs).length} NPC`
+    + ` · ${Object.keys(man.mobs).length} quái · ${zones.length} vùng`);
   console.log('    Nhớ bump ?v=N trong public/index.html');
 }
 

@@ -89,13 +89,73 @@ const MONSTERS = [
   },
 
   /* ------------------------------------------------------ hạng Tinh Anh -- */
+  /**
+   * Mỗi vùng đúng MỘT con Tinh Anh, đi lang thang lẫn với quái thường nhưng to
+   * hơn và có quầng sáng riêng — nhìn từ xa là quyết định được tránh hay đánh.
+   *
+   * Sức mạnh thật đến từ `TIER.elite` (máu ×2.2, sát thương ×1.5); chỉ số gốc ở
+   * đây chỉ là phần tinh chỉnh. Đích nhắm: **một người đủ trang bị ở cấp trần
+   * vùng thắng 65–75% và mất khoảng hai phần ba máu** — đáng dừng lại đánh, và
+   * đủ để phải cân nhắc khi máu đã vơi.
+   *
+   * ĐỪNG so mấy con số này với nhau hay với quái thường cùng cấp gốc rồi kết
+   * luận con nào mạnh hơn: chúng được vặn cho tới khi `tools/simulate.js` cho ra
+   * đúng dải trên, chứ không đặt theo một tỉ lệ đẹp mắt. Ở vùng cấp cao, cùng
+   * một tỉ lệ chỉ số cho ra tỉ lệ thắng thấp hơn hẳn — nên `void_sentinel` nhìn
+   * "yếu" hơn `void_eye` trên giấy mà ngoài trận vẫn đúng tầm. Chỉnh xong phải
+   * đo lại, đừng suy ra.
+   *
+   * `sprite` mượn hình của một con quái thường cùng họ. Vẽ to 48px kèm quầng
+   * tím là đủ để phân biệt, và không phải sinh lại atlas — mà `atlas.png` với
+   * `atlas.json` là một cặp, mỗi lần đụng vào là một lần rủi ro lệch phiên bản.
+   */
   {
     id: 'cliff_bear', name: 'Gấu Vách Đá', family: 'beast', tier: 'elite',
     level: 3, color: '#7a5c3e',
-    stats: { str: 12, int: 2, vit: 11, agi: 4, wil: 5 },
+    stats: { str: 13, int: 2, vit: 12, agi: 4, wil: 6 },
     skills: ['attack', 'm_bite', 'm_ambush'],
     exp: 40, gold: 18,
     desc: 'Chậm nhưng mỗi cú tát đều đáng sợ.',
+  },
+  {
+    id: 'fog_reaver', name: 'Kẻ Xẻ Sương', family: 'human', tier: 'elite',
+    level: 4, color: '#c08a5a', sprite: 'bandit',
+    stats: { str: 12, int: 5, vit: 8, agi: 12, wil: 5 },
+    skills: ['attack', 'm_ambush', 'd_venom'],
+    exp: 50, gold: 26,
+    desc: 'Đi trong sương không gây một tiếng động, và bạn chỉ biết khi đã trễ.',
+  },
+  {
+    id: 'bone_champion', name: 'Vệ Sĩ Xương', family: 'undead', tier: 'elite',
+    level: 5, color: '#f0f4fa', sprite: 'skeleton',
+    stats: { str: 14, int: 6, vit: 13, agi: 7, wil: 10 },
+    skills: ['attack', 'm_curse', 'd_bonewall'],
+    exp: 65, gold: 33,
+    desc: 'Bộ giáp còn nguyên vẹn sau ba trăm năm, vì chưa ai chọc thủng được nó.',
+  },
+  {
+    id: 'frost_warden', name: 'Quản Ngục Băng', family: 'undead', tier: 'elite',
+    level: 6, color: '#a8dcff', sprite: 'frost_revenant',
+    stats: { str: 11, int: 10, vit: 10, agi: 6, wil: 11 },
+    skills: ['attack', 'd_drain', 'm_curse'],
+    exp: 80, gold: 44,
+    desc: 'Canh một nhà tù không còn tù nhân, chỉ còn những hình khắc trong băng.',
+  },
+  {
+    id: 'thunder_zealot', name: 'Cuồng Tín Sấm', family: 'human', tier: 'elite',
+    level: 7, color: '#c79aff', sprite: 'storm_cultist',
+    stats: { str: 10, int: 11, vit: 9, agi: 7, wil: 10 },
+    skills: ['attack', 'm_curse', 'm_wail'],
+    exp: 94, gold: 52,
+    desc: 'Đứng dưới trời giông giơ hai tay lên, và sấm nghe lời hắn.',
+  },
+  {
+    id: 'void_sentinel', name: 'Vệ Binh Hư Không', family: 'human', tier: 'elite',
+    level: 8, color: '#7a9a68', sprite: 'void_wraith',
+    stats: { str: 11, int: 7, vit: 10, agi: 6, wil: 8 },
+    skills: ['attack', 'm_quake', 'd_drain'],
+    exp: 108, gold: 60,
+    desc: 'Ngọn lửa trong bộ giáp ấy cháy đã lâu hơn cả cái đền nó đang canh.',
   },
 
   /* ------------------------------------------------------ hạng Thủ Lĩnh -- */
@@ -107,6 +167,10 @@ const MONSTERS = [
    * mạnh người chơi tăng theo cấp nhanh hơn hẳn mấy con số viết tay đó, nên
    * Thủ Lĩnh vùng cấp 50 lại yếu tương đối hơn Thủ Lĩnh vùng cấp 10. Cùng một
    * công thức tăng với quái thường thì độ khó mới giữ được qua cả các vùng.
+   *
+   * `mechanics` là thứ làm sáu con này KHÁC NHAU (DESIGN.md §6.2). Không có nó
+   * thì "Thủ Lĩnh" chỉ là một con quái thường có nhiều máu, và đánh con thứ sáu
+   * y hệt đánh con thứ nhất. Xem `Battle.runMechanics` để biết từng loại làm gì.
    */
   {
     id: 'alpha_wolf', name: 'Sói Đầu Đàn', family: 'beast', tier: 'boss',
@@ -114,6 +178,8 @@ const MONSTERS = [
     stats: { str: 13, int: 4, vit: 7, agi: 16, wil: 5 },
     skills: ['attack', 'm_bite', 'm_quake'],
     exp: 230, gold: 140,
+    // Đúng câu mô tả của chính nó: nó không gầm, cả bầy xông vào thay nó
+    mechanics: [{ type: 'summon', label: 'Gọi Bầy', every: 2, count: 2, minion: 'grey_wolf', max: 6 }],
     desc: 'Con đầu đàn không gầm — nó chỉ nhìn, rồi cả bầy xông vào.',
   },
   {
@@ -122,6 +188,7 @@ const MONSTERS = [
     stats: { str: 11, int: 9, vit: 9, agi: 20, wil: 5 },
     skills: ['attack', 'd_venom', 'm_wail'],
     exp: 430, gold: 270,
+    mechanics: [{ type: 'summon', label: 'Nở Trứng', every: 2, count: 2, minion: 'mist_spider', max: 6 }],
     desc: 'Cả cánh rừng sương là cái tổ của nó.',
   },
   {
@@ -130,6 +197,8 @@ const MONSTERS = [
     stats: { str: 13, int: 5, vit: 14, agi: 7, wil: 11 },
     skills: ['attack', 'm_quake', 'd_bonewall'],
     exp: 300, gold: 200,
+    // Thưa hơn hai con trên nhưng gọi ba con một lượt — "vẫn giữ đội hình"
+    mechanics: [{ type: 'summon', label: 'Dựng Đội Hình', every: 3, count: 3, minion: 'skeleton', max: 6 }],
     desc: 'Chết đã ba trăm năm mà vẫn giữ đội hình.',
   },
   {
@@ -138,6 +207,12 @@ const MONSTERS = [
     stats: { str: 15, int: 12, vit: 15, agi: 11, wil: 16 },
     skills: ['attack', 'm_quake', 'm_bite'],
     exp: 690, gold: 450,
+    // Đúng câu mô tả: vết thương tự đóng băng. Nhóm đánh không đủ mạnh thì đánh
+    // mãi không xong — rồi tới lúc nó hoá cuồng thì đã quá muộn
+    mechanics: [
+      { type: 'regen', label: 'Đóng Băng Vết Thương', percent: 0.06 },
+      { type: 'enrage', label: 'Hoá Cuồng', atPercent: 0.45, damageMult: 2.2 },
+    ],
     desc: 'Vết thương trên da nó đóng băng lại trước khi kịp chảy máu.',
   },
   {
@@ -146,6 +221,9 @@ const MONSTERS = [
     stats: { str: 14, int: 22, vit: 13, agi: 14, wil: 18 },
     skills: ['attack', 'm_wail', 'm_curse'],
     exp: 850, gold: 580,
+    // Ngưỡng CAO chứ không phải cú vùng lên phút chót: nó nổi giận từ sớm rồi giữ
+    // nguyên như thế tới cuối, khác hẳn nhịp của Quỷ Băng
+    mechanics: [{ type: 'enrage', label: 'Mắt Bão', atPercent: 0.60, damageMult: 1.8 }],
     desc: 'Đứng giữa mắt bão và nói chuyện với sấm.',
   },
   {
@@ -154,6 +232,11 @@ const MONSTERS = [
     stats: { str: 16, int: 24, vit: 16, agi: 15, wil: 20 },
     skills: ['attack', 'm_wail', 'd_drain'],
     exp: 980, gold: 650,
+    // Con cuối cùng của lục địa được cả hai — gọi quân VÀ hoá cuồng
+    mechanics: [
+      { type: 'summon', label: 'Xé Khe Nứt', every: 4, count: 2, minion: 'void_eye', max: 4 },
+      { type: 'enrage', label: 'Cõi Trống Rỗng', atPercent: 0.30, damageMult: 1.5 },
+    ],
     desc: 'Bước qua khe nứt ấy, nó mang theo cả một cõi trống rỗng.',
   },
 ];

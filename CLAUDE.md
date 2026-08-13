@@ -61,19 +61,22 @@ server/
   battle.js            bộ máy turn-based
   party.js             nhóm — quyết định ai cùng vào một trận
   roamer.js            quái đi lang thang trên bản đồ khám phá (kể cả Thủ Lĩnh)
-  map.js               sinh bản đồ theo seed của vùng, mỗi vùng một bản
+  map.js               sinh bản đồ theo seed của vùng — hoang dã hoặc thị trấn
   stats.js             CÔNG THỨC sát thương và chỉ số (chỉnh cân bằng ở đây)
+  shop.js              giá cả, quầy hàng, mua bán với thương nhân
   inventory.js         túi đồ, 10 ô trang bị
   loot.js              rớt đồ và sách
   progression.js       cấp độ, kinh nghiệm, điểm chỉ số
   characters.js        CRUD nhân vật + lưu/đọc tiến trình
   auth.js              scrypt + JWT
-  data/                items · monsters · skills · skilltree · boons · nations · classes · zones
+  data/                items · monsters · skills · skilltree · boons · nations · classes · zones · npcs
 public/js/
   game.js              vòng vẽ canvas, bàn phím, kết nối
   battle.js            màn chiến đấu
   panel.js             bảng nhân vật (Balo)
   tree.js              cây kỹ năng
+  shop.js              cửa hàng thương nhân (Mua / Bán)
+  party.js             khung nhóm, thẻ lời mời, menu mời trên bản đồ
   hud.js               HUD 4 thanh góc trái
   ui.js                menu chuột phải, hộp xác nhận
   icons.js             nạp sprite icon, đổi [data-icon] thành SVG
@@ -102,6 +105,22 @@ tests/                 node --test — chạy trước mỗi lần deploy
 5. **Nhóm quyết định ai cùng vào trận.** Phòng chỉ là khoảng không gian chung,
    không phải một đội. **Ngoại lệ duy nhất: Thủ Lĩnh** — ai chạm vào cũng nhảy
    được vào trận đang diễn ra, và trốn thoát chỉ rút một mình người bấm.
+
+5a. **Mọi đường rời nhóm đi qua `Room.dropFromParty`** — tự bấm "Rời", mất kết
+   nối, đổi vùng. Hàm đó vừa gỡ tên vừa BÁO cho người còn lại. Hai bản sao của
+   cùng một việc là hai chỗ để quên cập nhật một người.
+
+5b. **Vùng an toàn tắt BỐN đường một lúc** — đổ đầy quái, hẹn giờ Thủ Lĩnh, dò
+   va chạm, và đồng hồ Thủ Lĩnh gửi cho client. Cả bốn đọc chung cờ `room.safe`;
+   bỏ sót một đường là người chơi bị kéo vào trận ngay giữa chợ.
+
+5c. **Thua trận chỉ được lấy đi KINH NGHIỆM** (DESIGN.md §5.2f) — không tụt cấp,
+   không mất đồ, không mất vàng. `progression.loseExp` trừ tới 0 rồi dừng; đó là
+   chốt chặn cứng, không phải con số để chỉnh cân bằng.
+
+5d. **Quái Tinh Anh đi MỘT MÌNH** — `Room.groupAround` là chỗ duy nhất quyết định
+   ai cùng vào một trận với con vừa chạm phải. Tinh Anh đã có máu ×2.2 và sát
+   thương ×1.5; kéo thêm cả bầy vào là một trận không ai đi lẻ thắng nổi.
 
 6. **Trận nổ ra khi quái VỪA chạm vào, không phải khi đang chạm.** Mỗi người giữ
    `contacts` — danh sách con đang đè lên mình. Nhờ vậy con đứng sẵn dưới chân
@@ -140,7 +159,16 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Vừa lên cấp, bấm dấu + thì bị từ chối "không đổi trang bị giữa trận" | `invAction` chặn theo `battleId`, mà `battleId` chỉ được gỡ vài giây sau khi trận xong — đúng lúc bảng kết quả hiện ra. Phải chặn theo trận CÒN SỐNG (`!battle.ended`) |
 | Pixel art nhìn nhoè, chỗ to chỗ bé | Phóng tỉ lệ lẻ (16→34). Luôn phóng **bội số nguyên**: 32 trên bản đồ, 48 cho Thủ Lĩnh và màn chiến đấu |
 | Mặt đất lỗ chỗ như miếng vá | Ô biến thể lấy từ ô khác sắc độ. Biến thể phải CÙNG TÔNG với ô nền, chỉ khác chi tiết trang trí — và phải thưa (1/11 ô), rải đều thì rối đến mức không thấy con quái đứng đâu |
+| Vào thị trấn thì nhân vật kẹt cứng trong một chiếc xe hàng | `pos_x/pos_y` lưu KHÔNG kèm vùng, mà mỗi vùng có vật cản ở chỗ khác nhau. Thoát ở giữa đồng cỏ rồi vào vùng khác là toạ độ cũ rơi trúng tường, đi hướng nào cũng bị va chạm chặn. Phải xét `map.canStand` trước khi dùng lại vị trí đã lưu |
+| Rớt mạng xong, bảng nhóm của người ở lại còn treo tên người đã đi | `Room.remove` gọi thẳng `party.leave` — gỡ tên trong bộ nhớ rồi thôi, không ai gửi lại `character` cho người còn lại. Suốt thời gian chưa có khung nhóm thì không nhìn thấy, nên không ai biết |
+| Rớt mạng giữa trận thì màn chiến đấu đông cứng phủ lên màn chọn nhân vật | `leaveGame` đóng đủ mọi cửa sổ TRỪ `#battle`. Nó ở z-index 30, màn chọn nhân vật ở 20 — bấm gì cũng không ăn. Kéo theo: `panel.js` chỉ hiện HUD khi `!Battle.isOpen()`, nên vào lại phòng cũng không thấy thanh máu đâu |
+| Thua trận không mất gì, trốn thoát thành nút vô nghĩa | `applyRewards` thoát ngay ở dòng đầu khi kết quả không phải `win`, và máu ngoài bản đồ thì không bao giờ đổi. Lao vào Thủ Lĩnh một mình rồi thua có giá đúng bằng 0 |
+| Hẹn giờ dọn trận và đổ quái giữ nguyên cả phòng trong bộ nhớ | `setTimeout` không lưu tay cầm, sống 4–20 giây và ôm theo `this`. `RoomManager` xoá phòng trong khoảng đó thì bản đồ và danh sách người chơi vẫn nằm nguyên chờ nó chạy xong. Nay gom hết vào `room.timers`, `stopLoop` dọn một lượt |
+| Thêm quái mới vào `data/monsters.js` là bộ test hình đỏ ngay | Đúng ý đồ — nhưng quái Tinh Anh MƯỢN hình quái thường qua trường `sprite`, nên chỗ kiểm phải tra `m.sprite \|\| m.id`, không phải `m.id`. Sinh lại atlas chỉ vì thêm một con quái là chuốc lấy rủi ro lệch cặp `atlas.png`/`atlas.json` |
+| Thủ Lĩnh gọi quân lượt hai thì combatant mới trùng id với lượt một | Đếm chỉ số bằng `enemies.length` — con lượt một đã chết nhưng vẫn nằm trong danh sách, và `byId` trả về con tìm thấy trước. Phải có bộ đếm riêng chỉ tăng (`nextEnemyIndex`) |
 | Thêm vùng mới xong, CẢ BẢN ĐỒ hoá thành bụi cây trên nền đen | `sprites.js`/`icons.js` từng ghi cứng `?v=21` — một số phiên bản THỨ HAI tách rời `?v=N` của `index.html`. Thêm quái/vùng làm atlas cao thêm, `groundY` dời từ 192 xuống 272; bump index.html mà số kia đứng yên nên trình duyệt ghép **JSON mới với PNG cũ còn trong cache**, toạ độ ô nền rơi trúng hàng vật cản. `atlas.png` + `atlas.json` là MỘT CẶP, phải bust cùng lúc — nay hai file tự đọc `?v=` từ `src` của chính thẻ `<script>`, khỏi có số thứ hai để quên |
+| Đã chọn chiêu xong vẫn ngồi hết 20 giây | Người cuối cùng chưa bấm mà RỜI trận (rớt mạng, hoặc trốn thoát khỏi trận Thủ Lĩnh) thì `removeAlly` chỉ gỡ tên rồi thôi — không ai xét lại xem còn ai để chờ nữa không. Cả nhóm chờ một người không còn trong trận |
+| `deploy.sh` chạy tới bước khởi động lại rồi im, không in dòng kiểm tra nào | `pkill -f` soi dòng lệnh của MỌI tiến trình, kể cả `bash -c` đang chạy chính câu pkill đó — mẫu nằm nguyên văn trong dòng lệnh của nó. pkill tự giết phiên ssh của mình, ssh trả 255, `set -e` cắt script đúng trước khối KIỂM TRA `uptimeSec`. Deploy vẫn ăn nên không ai để ý, nhưng cái chốt chặn quan trọng nhất thì chưa bao giờ chạy. Viết mẫu kiểu `[g]ame` để nó không tự khớp chính mình |
 
 ---
 
@@ -155,14 +183,23 @@ phút một lần, đánh chung không cần nhóm**.
 **Xong thêm:** màn chờ vào trận · xoá đồ hàng loạt có lọc theo hạng · icon
 game-icons.net (53 hình) · tooltip Tippy · kéo thả túi đồ Sortable · bộ test ·
 tự điền bộ mang theo khi nó rỗng · bảng phần thưởng tô màu theo loại ·
-**sprite pixel art Ninja Adventure** (10 nhân vật, 16 quái, ô nền 6 vùng, cả
-trên bản đồ lẫn trong màn chiến đấu) · nâng bậc kỹ năng bằng điểm dư · Dị Điển
-trùng lặp nâng cấp kỹ năng đang gắn.
+**sprite pixel art Ninja Adventure** (10 nhân vật, 1 NPC, 16 quái, ô nền 7 vùng,
+cả trên bản đồ lẫn trong màn chiến đấu) · nâng bậc kỹ năng bằng điểm dư · Dị Điển
+trùng lặp nâng cấp kỹ năng đang gắn · **Bến Cảng Duskmoor — vùng an toàn có
+thương nhân mua bán đồ** (DESIGN.md §6c), nơi vàng cuối cùng có đường ra ·
+**giao diện nhóm** (chuột phải mời trên bản đồ, thẻ lời mời có đồng hồ, khung
+nhóm dưới HUD, tên đồng đội xanh lá) — chỗ bấm cuối cùng còn thiếu của một hệ
+thống server đã chạy đủ từ lâu · **cái giá của thất bại** (DESIGN.md §5.2f):
+thua mất 10% kinh nghiệm của cấp hiện tại, hồi sinh chỗ khác trên bản đồ, không
+tụt cấp và không mất đồ — lần đầu tiên trong game có lý do để bấm Trốn thoát. ·
+**quái Tinh Anh ngoài bản đồ** (2 con trên 15, đi lẻ, quầng tím, đánh tay đôi) ·
+**cơ chế riêng cho từng Thủ Lĩnh** (gọi quân · hoá cuồng · tự liền vết thương —
+sáu con sáu cách ghép) · **15 quái mỗi bản đồ** thay vì 6.
 
-**Chưa xong:** giao diện mời nhóm (API đã chạy, chưa có cách bấm chuột phải vào
-người chơi trên bản đồ) · PvP · quái Tinh Anh chưa xuất hiện ngoài bản đồ ·
-cơ chế riêng cho từng Thủ Lĩnh (triệu hồi tay sai, hoá cuồng dưới 30% máu) ·
-đổi class ở mốc cấp · Thiên Ân (Karma đầy) · chưa class nào dùng Karma.
+**Chưa xong:** **giao dịch giữa người chơi với nhau** (mua bán với
+NPC đã xong) · PvP · lá chắn miễn nhiễm vật lý cho Thủ Lĩnh (loại cơ chế thứ tư,
+cần class có sẵn đòn phép để đổi sang) · đổi class ở mốc cấp · Thiên Ân (Karma
+đầy) · chưa class nào dùng Karma.
 
 ---
 

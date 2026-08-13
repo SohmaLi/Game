@@ -48,6 +48,32 @@ function addExp(char, amount) {
   };
 }
 
+/**
+ * Trừ kinh nghiệm khi thua trận — cái giá duy nhất của việc ngã xuống.
+ *
+ * Mốc trừ tính theo cấp HIỆN TẠI (`expToNext(level)`) chứ không theo tổng kinh
+ * nghiệm đã tích: tổng thì cấp 50 mất gấp hàng trăm lần cấp 2 cho cùng một sai
+ * lầm, còn theo cấp hiện tại thì ai cũng mất đúng một phần chặng đường đang đi.
+ *
+ * KHÔNG BAO GIỜ tụt cấp. Đây là chốt chặn cứng chứ không phải lựa chọn cân bằng:
+ * mất một kỹ năng vừa học được vì một trận xui là thứ người chơi bỏ game luôn.
+ * Vì vậy `exp` chỉ trừ tới 0 — và cũng vì vậy `statPoints` không đụng tới.
+ *
+ * @returns { lost, exp, level, expNeeded } — `lost` là số THẬT bị trừ, có thể
+ *          nhỏ hơn dự tính khi người chơi vừa lên cấp và chưa tích lại được gì.
+ */
+function loseExp(char, pct) {
+  const need = expToNext(char.level);
+
+  // Cấp trần: `addExp` đã ép `exp` về 0 nên không còn gì để mất, và `need` là
+  // Infinity — chặn ở đây cho rõ ràng thay vì để phép nhân ra NaN/Infinity
+  const want = Number.isFinite(need) ? Math.round(need * pct) : 0;
+  const lost = Math.max(0, Math.min(want, char.exp || 0));
+
+  char.exp = (char.exp || 0) - lost;
+  return { lost, exp: char.exp, level: char.level, expNeeded: need };
+}
+
 /** Người chơi tự phân bổ điểm. Trả về null nếu không hợp lệ. */
 function spendStatPoint(char, stat) {
   const valid = ['str', 'int', 'vit', 'agi', 'wil'];
@@ -64,5 +90,5 @@ const CLASS_CHANGE_LEVELS = [10, 25, 50];
 
 module.exports = {
   MAX_LEVEL, STAT_POINTS_PER_LEVEL, CLASS_CHANGE_LEVELS,
-  expToNext, addExp, spendStatPoint,
+  expToNext, addExp, loseExp, spendStatPoint,
 };

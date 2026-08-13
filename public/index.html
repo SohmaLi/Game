@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/vendor/tippy.css?v=24">
-<link rel="stylesheet" href="/css/style.css?v=24">
-<link rel="stylesheet" href="/css/battle.css?v=24">
-<link rel="stylesheet" href="/css/panel.css?v=24">
-<link rel="stylesheet" href="/css/hud.css?v=24">
-<link rel="stylesheet" href="/css/ui.css?v=24">
-<link rel="stylesheet" href="/css/tree.css?v=24">
+<link rel="stylesheet" href="/vendor/tippy.css?v=28">
+<link rel="stylesheet" href="/css/style.css?v=28">
+<link rel="stylesheet" href="/css/battle.css?v=28">
+<link rel="stylesheet" href="/css/panel.css?v=28">
+<link rel="stylesheet" href="/css/hud.css?v=28">
+<link rel="stylesheet" href="/css/ui.css?v=28">
+<link rel="stylesheet" href="/css/tree.css?v=28">
+<link rel="stylesheet" href="/css/shop.css?v=28">
+<link rel="stylesheet" href="/css/party.css?v=28">
 </head>
 <body>
 
@@ -113,6 +115,30 @@
   </div>
 </div>
 
+<!-- Khung nhóm — nằm ngay dưới HUD, chỉ hiện khi thật sự có nhóm -->
+<div id="partyFrame" class="hidden">
+  <div class="pt-head">
+    <span class="pt-title">Nhóm</span>
+    <span class="pt-count" id="partyCount">1/5</span>
+    <button class="pt-leave" id="partyLeave" title="Rời khỏi nhóm">Rời</button>
+  </div>
+  <div class="pt-list" id="partyList"></div>
+</div>
+
+<!-- Thẻ lời mời vào nhóm — nổi lên chứ không chặn màn hình -->
+<div id="partyInvite" class="hidden">
+  <div class="pi-body">
+    <div class="pi-label">Lời mời vào nhóm</div>
+    <div class="pi-text" id="piText">—</div>
+    <div class="pi-actions">
+      <span class="pi-time" id="piTime">30s</span>
+      <button id="piDecline">Từ chối</button>
+      <button id="piAccept">Đồng ý</button>
+    </div>
+  </div>
+  <div class="pi-bar"><i id="piBar"></i></div>
+</div>
+
 <!-- Thanh kinh nghiệm — cố định ở đáy, LUÔN hiện kể cả trong lúc đánh nhau.
      Bấm vào phần thông tin sẽ mở bảng nhân vật. -->
 <div id="statusBar" class="hidden">
@@ -205,8 +231,54 @@
   </div>
 </div>
 
+<!-- ========================== CỬA HÀNG THƯƠNG NHÂN ========================== -->
+<div id="shop" class="hidden">
+  <div class="sh-box">
+    <header class="sh-head">
+      <h2 id="shopTitle">Thương nhân</h2>
+      <span class="sh-role" id="shopRole">—</span>
+      <span class="sh-head-gap"></span>
+      <span class="sh-gold-box"><i data-icon="ui-gold">◆</i> <span id="shopGold">0</span></span>
+      <button class="sh-close" id="shopClose">✕</button>
+    </header>
+
+    <p class="sh-greet" id="shopGreet">—</p>
+
+    <div class="sh-meta">
+      <span id="shopFee">Phí giao dịch <b>—</b></span>
+      <span class="sh-restock" id="shopRestock">—</span>
+    </div>
+
+    <div class="sh-tabs">
+      <button class="sh-tab active" data-tab="buy">Mua</button>
+      <button class="sh-tab" data-tab="sell">Bán</button>
+    </div>
+
+    <div class="sh-body">
+      <div class="sh-pane active" data-pane="buy">
+        <div class="sh-grid" id="shBuyGrid"></div>
+      </div>
+
+      <div class="sh-pane" data-pane="sell">
+        <div class="sh-sellbar">
+          <div class="sh-filters" id="shSellFilters"></div>
+          <div class="sh-sell-actions">
+            <span class="sh-sell-count" id="shSellCount">Chưa chọn món nào</span>
+            <button class="sh-sell-clear" id="shSellClear">Bỏ chọn</button>
+            <button class="sh-sell-btn" id="shSellBtn" disabled>Bán</button>
+          </div>
+        </div>
+        <div class="sh-grid" id="shSellGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Thông báo phần thưởng sau trận -->
 <div id="toasts"></div>
+
+<!-- Lời nhắc khi đứng cạnh người bán hàng -->
+<div id="npcPrompt" class="hidden"></div>
 
 <div id="hint" class="hidden">Dùng <b>WASD</b> hoặc <b>phím mũi tên</b> để di chuyển · chạm vào quái để vào trận</div>
 
@@ -268,17 +340,19 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/vendor/popper.min.js?v=24"></script>
-<script src="/vendor/tippy.min.js?v=24"></script>
-<script src="/vendor/sortable.min.js?v=24"></script>
-<script src="/js/icons.js?v=24"></script>
-<script src="/js/sprites.js?v=24"></script>
-<script src="/js/ui.js?v=24"></script>
-<script src="/js/account.js?v=24"></script>
-<script src="/js/hud.js?v=24"></script>
-<script src="/js/battle.js?v=24"></script>
-<script src="/js/panel.js?v=24"></script>
-<script src="/js/tree.js?v=24"></script>
-<script src="/js/game.js?v=24"></script>
+<script src="/vendor/popper.min.js?v=28"></script>
+<script src="/vendor/tippy.min.js?v=28"></script>
+<script src="/vendor/sortable.min.js?v=28"></script>
+<script src="/js/icons.js?v=28"></script>
+<script src="/js/sprites.js?v=28"></script>
+<script src="/js/ui.js?v=28"></script>
+<script src="/js/account.js?v=28"></script>
+<script src="/js/hud.js?v=28"></script>
+<script src="/js/battle.js?v=28"></script>
+<script src="/js/panel.js?v=28"></script>
+<script src="/js/tree.js?v=28"></script>
+<script src="/js/shop.js?v=28"></script>
+<script src="/js/party.js?v=28"></script>
+<script src="/js/game.js?v=28"></script>
 </body>
 </html>

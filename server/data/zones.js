@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Vùng bản đồ — 6 vùng phủ kín cấp 1 tới 60, mỗi vùng 10 cấp.
+ * Vùng bản đồ — 1 vùng an toàn + 6 vùng săn quái phủ kín cấp 1 tới 60.
  *
  * Vùng là thứ chia người chơi ra: mỗi vùng có phòng riêng, quái riêng, Thủ Lĩnh
  * riêng và bản đồ riêng. Người chơi tự chọn vùng trước khi vào game.
@@ -10,16 +10,43 @@
  * Không chặn người cấp cao quay về vùng thấp — muốn đi dạo chỗ dễ là quyền của
  * họ, chỉ có điều phần thưởng ở đó bèo bọt.
  *
+ * `safe: true` là vùng KHÔNG có quái và KHÔNG có Thủ Lĩnh — chỗ để đứng buôn
+ * bán và sắp xếp đồ đạc mà không bị con nào kéo vào trận giữa chừng. Phòng của
+ * vùng an toàn bỏ qua toàn bộ phần sinh quái (xem server/room.js).
+ *
+ * `elites` là quái hạng Tinh Anh đi lang thang lẫn với quái thường, nhưng chỉ
+ * vài con cùng lúc (`ROAMER.eliteMax`). Danh sách riêng chứ không trộn vào
+ * `monsters`: trộn chung thì mỗi lần đổ đầy bản đồ lại bốc trúng vài con, và
+ * "đáng để tìm" biến thành "đi đâu cũng vấp phải".
+ *
  * `seed` quyết định hình dạng bản đồ (server/map.js). Đổi seed là đổi bản đồ,
  * nên một khi đã có người chơi thì đừng đụng vào.
  */
 
 const ZONES = [
+  /**
+   * Đứng ĐẦU danh sách để màn chọn bản đồ mở ra là thấy ngay chỗ về nhà.
+   *
+   * Vị trí này cũng an toàn với `defaultFor`: hàm đó bỏ qua vùng an toàn, nếu
+   * không thì nó là vùng cấp-1 cuối cùng khớp điều kiện và mọi người chơi không
+   * chọn bản đồ đều bị thả vào thị trấn thay vì ra đồng cỏ.
+   */
+  {
+    id: 'duskmoor', name: 'Bến Cảng Duskmoor',
+    levelMin: 1, levelMax: 60, seed: 7_777,
+    safe: true,
+    desc: 'Không có gì ngoài kia bò được qua cổng thành. Chỗ duy nhất trên lục địa mà cất kiếm đi vẫn sống.',
+    monsters: [],
+    boss: null,
+    npcs: ['merchant'],
+    theme: { floorA: '#2a2318', floorB: '#2e2719', wall: '#4a3a22', wallTop: '#66502f', accent: '#ffd166' },
+  },
   {
     id: 'meadow', name: 'Đồng Cỏ Thanh Bình',
     levelMin: 1, levelMax: 10, seed: 1_337,
     desc: 'Cỏ cao tới gối và những con sói chưa biết sợ người.',
     monsters: ['grey_wolf', 'bandit'],
+    elites: ['cliff_bear'],
     boss: 'alpha_wolf',
     theme: { floorA: '#141a27', floorB: '#161c2a', wall: '#28324a', wallTop: '#35415e', accent: '#7ee89a' },
   },
@@ -28,6 +55,7 @@ const ZONES = [
     levelMin: 11, levelMax: 20, seed: 4_211,
     desc: 'Sương dày tới mức không thấy thứ đang bò trên cây.',
     monsters: ['mist_spider', 'grey_wolf', 'bandit'],
+    elites: ['fog_reaver'],
     boss: 'spider_matron',
     theme: { floorA: '#131f1c', floorB: '#152321', wall: '#24463c', wallTop: '#2f5c4d', accent: '#69d6a0' },
   },
@@ -36,6 +64,7 @@ const ZONES = [
     levelMin: 21, levelMax: 30, seed: 9_090,
     desc: 'Cát ở đây trắng vì nó không phải cát.',
     monsters: ['skeleton', 'bone_archer'],
+    elites: ['bone_champion'],
     boss: 'bone_general',
     theme: { floorA: '#241f18', floorB: '#28231b', wall: '#4a4132', wallTop: '#655944', accent: '#e8d9a8' },
   },
@@ -44,6 +73,7 @@ const ZONES = [
     levelMin: 31, levelMax: 40, seed: 15_517,
     desc: 'Lạnh đến mức tiếng động cũng đóng băng giữa chừng.',
     monsters: ['frost_revenant', 'bone_archer'],
+    elites: ['frost_warden'],
     boss: 'ice_troll',
     theme: { floorA: '#151e2c', floorB: '#182333', wall: '#2b4665', wallTop: '#3c6089', accent: '#8fd4ff' },
   },
@@ -52,6 +82,7 @@ const ZONES = [
     levelMin: 41, levelMax: 50, seed: 27_733,
     desc: 'Nơi cao nhất lục địa, và cũng là nơi ít người trở về nhất.',
     monsters: ['storm_cultist', 'frost_revenant'],
+    elites: ['thunder_zealot'],
     boss: 'storm_herald',
     theme: { floorA: '#1d1729', floorB: '#211a2f', wall: '#3d2b5c', wallTop: '#553d7d', accent: '#c4a2ff' },
   },
@@ -60,6 +91,7 @@ const ZONES = [
     levelMin: 51, levelMax: 60, seed: 51_601,
     desc: 'Bão Tố xé toạc một phế tích chôn vùi hàng ngàn năm — thứ bò ra từ khe nứt đó không thuộc về thế giới này.',
     monsters: ['void_wraith', 'void_eye'],
+    elites: ['void_sentinel'],
     boss: 'void_lord',
     theme: { floorA: '#182418', floorB: '#1b281b', wall: '#2c3a24', wallTop: '#3d4f30', accent: '#c48bff' },
   },
@@ -71,11 +103,17 @@ function get(id) {
   return BY_ID.get(id) || null;
 }
 
-/** Vùng mặc định cho một cấp — vùng cao nhất mà cấp đó đã mở. */
+/**
+ * Vùng mặc định cho một cấp — vùng SĂN QUÁI cao nhất mà cấp đó đã mở.
+ *
+ * Bỏ qua vùng an toàn: nó mở từ cấp 1 nên nếu tính vào đây thì ai không chọn
+ * bản đồ cũng bị thả vào thị trấn, nơi không có gì để đánh.
+ */
 function defaultFor(level) {
   const lv = level || 1;
-  let best = ZONES[0];
-  for (const z of ZONES) if (lv >= z.levelMin) best = z;
+  const wild = ZONES.filter((z) => !z.safe);
+  let best = wild[0];
+  for (const z of wild) if (lv >= z.levelMin) best = z;
   return best;
 }
 
@@ -87,6 +125,7 @@ function publicList() {
     id: z.id, name: z.name, desc: z.desc,
     levelMin: z.levelMin, levelMax: z.levelMax,
     boss: z.boss, accent: z.theme.accent,
+    safe: !!z.safe,
   }));
 }
 

@@ -41,7 +41,7 @@ function runOne(partySize, monsterCount, playerOpts = {}) {
   // Quái của vùng đầu tiên ở cấp gốc — đúng thứ người chơi mới gặp trong 10
   // phút đầu, khi còn chưa có mảnh trang bị nào
   const monsterDefs = Array.from({ length: monsterCount },
-    () => monsterData.randomFrom(zones.ZONES[0].monsters));
+    () => monsterData.randomFrom(zones.defaultFor(1).monsters));
 
   const battle = new Battle({ allies, monsterDefs, io, channel: 'sim', auto: false });
 
@@ -188,8 +188,14 @@ function report(label, runs, kind = 'field') {
   return winRate;
 }
 
+/**
+ * Vùng an toàn không có gì để đo: không quái, không Thủ Lĩnh. Bỏ qua ngay từ
+ * đây thay vì để `monsterData.get(null)` ném lỗi giữa bảng kết quả.
+ */
+const HUNTING = zones.ZONES.filter((z) => !z.safe);
+
 console.log('--- Quái thường theo vùng (nhân vật cấp trần của vùng, đủ trang bị) ---');
-for (const z of zones.ZONES) {
+for (const z of HUNTING) {
   const lv = z.levelMax;
   report(`${z.name} · 1 vs 2`, () => runBattle(
     [levelledPlayer(0, lv)],
@@ -197,8 +203,23 @@ for (const z of zones.ZONES) {
   ));
 }
 
+/**
+ * Quái Tinh Anh đi lang thang LẺ MỘT MÌNH (`Room.groupAround`) — nên chỉ đo
+ * đúng cảnh đó. Nó phải là thứ một người đủ trang bị dám đánh nhưng phải trả
+ * giá bằng máu: dễ quá thì chẳng khác quái thường, khó quá thì không ai dừng lại.
+ */
+console.log('\n--- Quái Tinh Anh (đi lẻ, đụng là đánh tay đôi) ---');
+for (const z of HUNTING) {
+  const lv = z.levelMax;
+  const elite = () => monsterData.scaled(monsterData.randomFrom(z.elites, 'elite'), lv);
+  report(`${z.name} · 1 người`, () => runBattle([levelledPlayer(0, lv)], [elite()]));
+  report(`${z.name} · 2 người`, () => runBattle(
+    Array.from({ length: 2 }, (_, i) => levelledPlayer(i, lv)), [elite()]
+  ));
+}
+
 console.log('\n--- Thủ Lĩnh (một mình vs cả nhóm 5) ---');
-for (const z of zones.ZONES) {
+for (const z of HUNTING) {
   const lv = z.levelMax;
   const boss = () => monsterData.scaled(monsterData.get(z.boss), lv);
   report(`${z.name} · 1 người`, () => runBattle([levelledPlayer(0, lv)], [boss()]), 'bossSolo');

@@ -33,7 +33,24 @@ module.exports = {
 
   // ---- Quái đi lang thang trên bản đồ ----
   ROAMER: {
-    count: 6,              // số quái cùng lúc trên bản đồ mỗi phòng
+    /**
+     * Số quái cùng lúc trên bản đồ mỗi phòng.
+     *
+     * Đo trên bản đồ 40×30 ô: ở mức 15, xác suất có ít nhất một con phát hiện
+     * ra bạn khi đứng tại một chỗ ngẫu nhiên là 47% (mức 6 chỉ 23%) — bản đồ
+     * sống hẳn lên. Rủi ro bị vây thì tăng chậm hơn nhiều: 11% gặp hai con, 2%
+     * gặp ba con, so với 4% và 0% ở mức 6. Một mình đánh hai con ở cấp trần
+     * vùng vẫn thắng 87–99%, nên không phải bù trừ ở chỗ nào khác.
+     */
+    count: 15,
+    /**
+     * Trần quái Tinh Anh cùng lúc — phần còn lại luôn là hạng Thường.
+     *
+     * 2 trên 15 là đủ để đi một vòng bản đồ thì gặp, mà không đủ để thành quái
+     * nền. Tinh Anh có máu ×2.2 và sát thương ×1.5: rải nhiều hơn thì vùng nào
+     * cũng hoá thành chỗ chỉ dành cho người đi nhóm.
+     */
+    eliteMax: 2,
     radius: 11,
     // Chậm hơn người chơi (150) rất nhiều để còn chạy thoát được. Ở mức 62 thì
     // quái bám dai tới mức đi ngang bản đồ gần như chắc chắn dính trận.
@@ -49,6 +66,39 @@ module.exports = {
     // Sau khi ra khỏi trận, người chơi được miễn va chạm một lúc để không bị
     // kéo vào trận mới ngay tại chỗ vừa đánh xong
     graceMs: 5_000,
+  },
+
+  // ---- Quái Tinh Anh ----
+  ELITE: {
+    // To hơn quái thường (11) nhưng chưa bằng Thủ Lĩnh (17) — nhìn cái bóng là
+    // đủ biết mình đang đứng trước con gì
+    radius: 14,
+    speed: 38,             // chậm hơn quái thường: chạy là thoát được
+    aggroRadius: 135,
+    spawnImmuneMs: 5_000,
+  },
+
+  // ---- Cái giá của thất bại ----
+  DEATH: {
+    /**
+     * Mất bao nhiêu phần kinh nghiệm CỦA CẤP HIỆN TẠI khi thua trận.
+     *
+     * Đo bằng `tools/simulate.js` chứ không đoán: một trận 2 quái ở cấp trần của
+     * vùng cho 13–20% kinh nghiệm một cấp, nên 10% ≈ đúng công của một trận vừa
+     * đánh — từ 0,25 trận ở cấp 1 tới 0,9 trận ở cấp 20. Đủ để phải cân nhắc bấm
+     * Trốn thoát, chưa tới mức thua một lần là muốn tắt game.
+     *
+     * KHÔNG bao giờ tụt cấp: trừ tới 0 rồi dừng. Người vừa lên cấp xong mà thua
+     * thì mất trắng 0 — cố ý, đó đúng là lúc họ đang đi thử một vùng mới.
+     */
+    expLossPct: 0.10,
+
+    /**
+     * Miễn va chạm sau khi hồi sinh — dài hơn lúc thắng (`ROAMER.graceMs` = 5s).
+     * Người vừa thua bị thả xuống một chỗ lạ giữa bản đồ; chưa kịp nhìn quanh đã
+     * dính con khác thì thành chuỗi thua liên tiếp không có lối ra.
+     */
+    graceMs: 10_000,
   },
 
   // ---- Thủ Lĩnh (boss) ----

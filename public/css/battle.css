@@ -340,6 +340,19 @@
 .reward .v.gold { color: #ffd166; }
 .reward .v.book { color: #d3b8f0; }
 .reward .v.none { color: #5a6478; font-weight: 400; }
+/* Đỏ, cùng màu với tiêu đề "Thất bại" — dòng duy nhất trong bảng bị trừ đi */
+.reward .v.loss { color: #ff6b6b; }
+
+/* Lời giải thích dưới bảng: căn trái vì đây là câu để ĐỌC, không phải con số để
+   liếc. Căn giữa như phần còn lại của bảng làm hai dòng chữ so le nhau. */
+.b-note {
+  margin-top: 12px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8b95ab;
+}
+.b-note b { color: #c9d1e0; }
 
 #bResultClose {
   width: 100%;

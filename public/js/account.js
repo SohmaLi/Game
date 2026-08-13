@@ -164,7 +164,7 @@ const Account = (() => {
   /* ------------------------------------------------ chọn bản đồ ------- */
 
   /**
-   * Sáu bản đồ, mỗi bản đồ 10 cấp, phủ kín cấp 1 tới 60.
+   * Một bến cảng an toàn + sáu bản đồ săn quái, mỗi bản 10 cấp, phủ kín 1 tới 60.
    *
    * Chỉ mở bản đồ mà nhân vật đủ cấp. Vẫn cho quay về bản đồ thấp — muốn đi
    * dạo chỗ dễ là quyền của người chơi, chỉ có điều phần thưởng ở đó bèo bọt.
@@ -182,17 +182,22 @@ const Account = (() => {
     for (const z of meta.zones || []) {
       const locked = character.level < z.levelMin;
       const el = document.createElement('div');
-      el.className = `zone-card${locked ? ' locked' : ''}`;
+      el.className = `zone-card${locked ? ' locked' : ''}${z.safe ? ' safe' : ''}`;
       el.style.setProperty('--accent', z.accent);
+
+      // Vùng an toàn không có Thủ Lĩnh và không giới hạn cấp — nói đúng thứ nó
+      // có, đừng để dòng "Thủ Lĩnh 5 phút một lần" chờ mãi không thấy đâu
       el.innerHTML = `
         <div class="zn-top">
           <span class="zn-name">${esc(z.name)}</span>
-          <span class="zn-range">Cấp ${z.levelMin}–${z.levelMax}</span>
+          <span class="zn-range">${z.safe ? 'Mọi cấp' : `Cấp ${z.levelMin}–${z.levelMax}`}</span>
         </div>
         <div class="zn-desc">${esc(z.desc)}</div>
         <div class="zn-foot">${locked
           ? `<span>🔒 Cần cấp ${z.levelMin}</span>`
-          : '<span>◆ Thủ Lĩnh xuất hiện 5 phút một lần</span><span class="zn-go">Vào →</span>'}</div>`;
+          : `<span>${z.safe
+              ? '☮ Không có quái · thương nhân mua bán đồ'
+              : '◆ Thủ Lĩnh xuất hiện 5 phút một lần'}</span><span class="zn-go">Vào →</span>`}</div>`;
 
       if (!locked) {
         el.onclick = () => onReady?.({

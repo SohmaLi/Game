@@ -1,0 +1,149 @@
+/* ============================== NHÓM ============================== */
+
+/**
+ * Tông xanh lá chạy suốt phần nhóm — cùng màu với tên đồng đội vẽ trên bản đồ,
+ * để nhìn một cái là ghép được tên trong khung với người đang chạy ngoài kia.
+ *
+ * Khung nhóm nằm NGAY DƯỚI HUD nhân vật, và chiều cao HUD thì co giãn theo
+ * hàng ô trạng thái. Neo theo `--hud-h` do `game.js` đo bằng
+ * `getBoundingClientRect` chứ không đoán một con số cứng: đoán là cách đã làm
+ * thông báo chui xuống dưới nút Balo một lần rồi.
+ */
+
+#partyFrame {
+  position: fixed;
+  top: calc(12px + var(--hud-h, 0px) + 8px);
+  left: 12px;
+  width: 232px;
+  padding: 8px 10px 9px;
+  background: rgba(13, 18, 29, .9);
+  border: 1px solid #24402f;
+  border-radius: 11px;
+  z-index: 34;
+  backdrop-filter: blur(6px);
+}
+#partyFrame.hidden { display: none; }
+
+.pt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1e2b23;
+}
+.pt-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #7ee89a;
+  text-transform: uppercase;
+}
+.pt-count { font-size: 11px; color: #6b7791; }
+
+.pt-leave {
+  padding: 2px 8px;
+  font-size: 10px;
+  color: #8b95ab;
+  background: transparent;
+  border: 1px solid #2b3651;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.pt-leave:hover { border-color: #a2564b; color: #ff9e8f; }
+
+.pt-list { display: flex; flex-direction: column; gap: 3px; }
+
+.pt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.pt-row.me { background: rgba(126, 232, 154, .08); }
+
+.pt-lead { width: 9px; font-size: 10px; color: #ffd166; }
+.pt-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cfe0ff;
+}
+.pt-row.me .pt-name { color: #9ff0b5; font-weight: 600; }
+.pt-lv { font-size: 10px; color: #6b7791; white-space: nowrap; }
+.pt-busy { font-size: 11px; color: #ff9e8f; }
+.pt-busy.hidden { display: none; }
+
+/* ------------------------- thẻ lời mời ------------------------- */
+
+/**
+ * Thẻ nổi ở ĐÁY màn hình, KHÔNG phải hộp thoại chặn màn hình: lời mời đến lúc
+ * nào không ai đoán trước được, thường là đang chạy giữa bầy quái, và phủ kín
+ * màn hình đúng lúc đó là cách bắt người chơi vào trận mà không nhìn thấy gì.
+ *
+ * Vì sao đáy chứ không phải giữa trên: HUD nhân vật rộng 232px neo ở trái, thẻ
+ * này rộng 320px neo giữa — dưới 808px bề ngang là hai cái chồng lên nhau, và
+ * cửa sổ 732px thì thẻ ăn mất nửa thanh máu. Đáy màn hình cũng là chỗ game đã
+ * đặt mọi lời nhắc khác, mắt người chơi biết sẵn đường nhìn.
+ */
+#partyInvite {
+  position: fixed;
+  bottom: calc(var(--sb-h, 44px) + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, calc(100vw - 24px));
+  overflow: hidden;
+  background: rgba(17, 24, 21, .96);
+  border: 1px solid #2f6b45;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+  z-index: 45;
+}
+#partyInvite.hidden { display: none; }
+
+.pi-body { padding: 11px 14px 12px; }
+
+.pi-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: #7ee89a;
+  text-transform: uppercase;
+}
+.pi-text { margin: 4px 0 10px; font-size: 13px; color: #e6e9ef; }
+.pi-text b { color: #9ff0b5; }
+
+.pi-actions { display: flex; align-items: center; gap: 8px; }
+.pi-time { flex: 1; font-size: 11px; color: #6b7791; }
+
+.pi-actions button {
+  padding: 5px 14px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2b3651;
+  border-radius: 8px;
+  color: #8b95ab;
+  cursor: pointer;
+}
+.pi-actions button:hover { border-color: #6b7791; color: #c9d1e0; }
+
+#piAccept { border-color: #2f6b45; color: #7ee89a; font-weight: 600; }
+#piAccept:hover { background: #17301f; color: #9ff0b5; }
+
+/* Thanh cạn dần — đọc được còn bao lâu mà không phải nhìn con số */
+.pi-bar { height: 2px; background: #1e2b23; }
+.pi-bar i {
+  display: block;
+  height: 100%;
+  background: #4caf72;
+  transition: width .25s linear;
+}
+
+@media (max-width: 560px) {
+  #partyFrame { width: 180px; }
+}

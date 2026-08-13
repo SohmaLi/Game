@@ -7,6 +7,7 @@ const roamer = require('./roamer');
 const inventory = require('./inventory');
 const progression = require('./progression');
 const itemData = require('./data/items');
+const npcData = require('./data/npcs');
 const classData = require('./data/classes');
 const tree = require('./data/skilltree');
 const skillData = require('./data/skills');
@@ -96,12 +97,40 @@ class Room {
     this.roamers = new Map();   // quái thường đang đi lang thang trên bản đồ
 
     /**
+     * Vùng an toàn: không quái, không Thủ Lĩnh, không trận nào nổ ra.
+     *
+     * Đọc một lần vào đây thay vì hỏi `this.zone.safe` ở từng chỗ — cái cờ này
+     * gác bốn đường khác nhau (đổ đầy quái, hẹn giờ Thủ Lĩnh, dò va chạm, đồng
+     * hồ gửi cho client) và bỏ sót một đường là người chơi bị kéo vào trận ngay
+     * giữa chợ.
+     */
+    this.safe = !!zone.safe;
+
+    /** Người bán hàng đứng yên một chỗ — không đánh nhau, không đi lại. */
+    this.npcs = npcData.forZone(zone);
+
+    /**
      * Thủ Lĩnh nằm ngoài `roamers`: nó có luật riêng (một con duy nhất, ở lại
      * bản đồ trong lúc đang bị đánh, hết giờ thì tự bỏ đi) nên trộn chung vào
      * đó chỉ tổ phải viết `if (boss)` ở mọi vòng lặp.
      */
     this.boss = null;
     this.nextBossAt = Date.now() + cfg.BOSS.intervalMs;
+
+    /**
+     * Mọi hẹn giờ rời rạc của phòng — dọn trận và đổ quái lại.
+     *
+     * Giữ tay cầm để `stopLoop` xoá được. Mỗi cái sống vài giây tới vài chục
+     * giây và ôm theo `this`, nên phòng bị `RoomManager` xoá trong khoảng đó thì
+     * cả bản đồ lẫn danh sách người chơi vẫn nằm nguyên trong bộ nhớ chờ nó chạy.
+     */
+    this.timers = new Set();
+  }
+
+  /** Người bán hàng ở gần một người chơi, null nếu đứng quá xa. */
+  npcNear(p, npcId) {
+    const npc = this.npcs.find((n) => n.id === npcId);
+    return npc && npcData.inTalkRange(npc, p) ? npc : null;
   }
 
   /** Mọi thứ có thể va chạm trên bản đồ — quái thường và Thủ Lĩnh. */
@@ -177,7 +206,17 @@ class Room {
       }
     }
     if (character?.bag?.length) player.inv.bag = character.bag;
-    if (character?.pos && character.pos.x > 0) {
+
+    /**
+     * Vị trí lưu chỉ dùng lại khi ĐỨNG ĐƯỢC ở đó.
+     *
+     * `pos_x/pos_y` lưu không kèm vùng, mà mỗi vùng có khối đá ở chỗ khác nhau.
+     * Thoát ở giữa đồng cỏ rồi vào thị trấn thì toạ độ cũ có thể rơi trúng một
+     * chiếc xe hàng — nhân vật nằm trong tường, đi hướng nào cũng bị va chạm
+     * chặn lại, không có cách nào tự gỡ. Chỗ cũ hỏng thì thà bắt đầu lại ở một
+     * ô trống ngẫu nhiên.
+     */
+    if (character?.pos && this.map.canStand(character.pos.x, character.pos.y, cfg.PLAYER_RADIUS)) {
       player.x = character.pos.x;
       player.y = character.pos.y;
     }
@@ -196,7 +235,7 @@ class Room {
     const p = this.players.get(socketId);
     if (p) {
       this.saveProgress(p);
-      this.party.leave(p);
+      this.dropFromParty(p);
 
       // Rời giữa trận: người cuối cùng thì hủy luôn trận, còn không thì chỉ
       // nhấc mình ra — để lại một cái xác tự đánh thường mỗi vòng thì vô lý
@@ -218,6 +257,36 @@ class Room {
       this.nextBossAt = Date.now() + cfg.BOSS.intervalMs;
       this.emptySince = Date.now();
     }
+  }
+
+  /**
+   * Gỡ một người khỏi nhóm rồi BÁO cho những người còn lại.
+   *
+   * Dùng chung cho cả hai đường ra khỏi nhóm: tự bấm "Rời nhóm" và mất kết nối.
+   * Đường mất kết nối trước đây chỉ gỡ tên trong bộ nhớ mà không báo ai — không
+   * lộ ra hồi chưa có bảng nhóm, nhưng giờ thì bảng của người ở lại treo tên
+   * người đã thoát cho tới thay đổi kế tiếp.
+   */
+  dropFromParty(p) {
+    const res = this.party.leave(p);
+    if (!res) return null;
+
+    /**
+     * Nhóm tan thì người còn lại cũng phải được gỡ cờ. Để `partyId` trỏ tới một
+     * nhóm đã bị xoá là cách chắc chắn nhất khiến họ không mời được ai nữa:
+     * `invite` thấy `from.partyId` rồi đi hỏi sức chứa của một nhóm không tồn tại.
+     */
+    if (res.orphan) {
+      const o = this.players.get(res.orphan);
+      if (o) o.partyId = null;
+    }
+
+    for (const id of res.party.members) {
+      const m = this.players.get(id);
+      if (m) this.sendCharacter(m);
+    }
+    this.io.to(res.party.members).emit('party:changed', { left: p.name });
+    return res;
   }
 
   battleHasOtherPlayers(battle, exceptId) {
@@ -243,6 +312,8 @@ class Room {
   }
 
   stopLoop() {
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
     if (!this.timer) return;
     clearInterval(this.timer);
     this.timer = null;
@@ -290,6 +361,7 @@ class Room {
    * chẳng còn nghĩa lý gì.
    */
   updateBoss(now) {
+    if (this.safe) return;
     if (this.boss) {
       // Đang có người đánh thì không bỏ đi giữa chừng
       if (!this.boss.battleId && now >= this.boss.expireAt) {
@@ -333,14 +405,27 @@ class Room {
 
   /* -------------------------------------------------- quái lang thang --- */
 
-  /** Đổ đầy bản đồ tới đủ số quái quy định. */
+  /** Đổ đầy bản đồ tới đủ số quái quy định. Vùng an toàn thì không con nào. */
   fillRoamers() {
+    if (this.safe) return;
     const players = [...this.players.values()];
+
     while (this.roamers.size < cfg.ROAMER.count) {
+      const alive = [...this.roamers.values()];
+
+      /**
+       * Bù cho đủ trần Tinh Anh TRƯỚC, rồi mới đổ quái thường.
+       *
+       * Làm ngược lại thì bản đồ đầy quái thường trước khi tới lượt Tinh Anh, và
+       * con Tinh Anh vừa bị hạ chỉ quay lại sau khi có người dọn bớt chỗ — tức
+       * là gần như không bao giờ.
+       */
+      const elite = alive.filter((r) => r.elite).length < cfg.ROAMER.eliteMax;
+
       // Đã đặt bao nhiêu trong đợt này (kể cả những con còn sót từ trước) thì
       // né bấy nhiêu — không thì nhiều con dễ dồn cục lại sau một trận lớn
       // nhấc cùng lúc 5-6 con khỏi bản đồ.
-      const r = roamer.spawn(this.zone, this.map, players, [...this.roamers.values()]);
+      const r = roamer.spawn(this.zone, this.map, players, alive, { elite });
       this.roamers.set(r.id, r);
     }
   }
@@ -353,6 +438,10 @@ class Room {
    * `player.contacts` để biết vì sao.
    */
   checkEncounters(now, players) {
+    // Không có gì để chạm phải, và quan trọng hơn: không đường nào để một con
+    // quái lọt vào đây do sai sót ở chỗ khác mà vẫn kéo được người chơi vào trận
+    if (this.safe) return;
+
     for (const p of players) {
       /**
        * Đang trong trận hoặc đang miễn va chạm thì XOÁ TRẮNG danh sách tiếp xúc.
@@ -383,20 +472,34 @@ class Room {
 
       if (!fresh.length) continue;
 
-      // Thủ Lĩnh được ưu tiên: chạm cả hai thì rõ ràng người chơi nhắm con to
+      // Con to được ưu tiên: chạm nhiều con cùng lúc thì rõ ràng người chơi
+      // nhắm con đáng kể nhất, không phải con quái thường vô tình đi ngang
       const hits = fresh.map((id) => this.mobById(id)).filter(Boolean);
-      const hit = hits.find((m) => m.boss) || hits[0];
+      const hit = hits.find((m) => m.boss) || hits.find((m) => m.elite) || hits[0];
       if (!hit) continue;
 
       if (hit.boss) this.engageBoss(hit, p);
-      else {
-        // Gom cả những con đứng gần điểm va chạm
-        const group = [...this.roamers.values()].filter(
-          (o) => !o.immune && Math.hypot(o.x - hit.x, o.y - hit.y) <= cfg.ROAMER.groupRadius
-        ).slice(0, 8);
-        this.startBattle(group, p);
-      }
+      else this.startBattle(this.groupAround(hit), p);
     }
+  }
+
+  /**
+   * Những con cùng nhảy vào trận với con vừa chạm phải.
+   *
+   * Quái thường: gom cả cụm đứng quanh đó — đi vào giữa bầy sói thì gặp cả bầy.
+   *
+   * Tinh Anh thì ĐI MỘT MÌNH. Nó đã có máu gấp 2,2 lần và sát thương gấp rưỡi
+   * một con thường; kéo thêm hai con nữa vào là một trận không ai đi lẻ thắng
+   * nổi, và con Tinh Anh đứng lẻ mới là thứ đáng dừng lại để đánh. Cùng lý do,
+   * một con Tinh Anh đứng gần cụm quái thường cũng không bị lôi vào trận của
+   * cụm đó — `roamer.spawn` đã cố giữ nó ở xa, nhưng nó vẫn tự đi lại được.
+   */
+  groupAround(hit) {
+    if (hit.elite) return [hit];
+    return [...this.roamers.values()].filter(
+      (o) => !o.immune && !o.elite
+        && Math.hypot(o.x - hit.x, o.y - hit.y) <= cfg.ROAMER.groupRadius
+    ).slice(0, 8);
   }
 
   /**
@@ -467,10 +570,12 @@ class Room {
       t: Date.now(),
       players,
       monsters,
-      // Đồng hồ Thủ Lĩnh, tính bằng giây để gói tin khỏi phình vì mấy chữ số lẻ
-      boss: this.boss
+      // Đồng hồ Thủ Lĩnh, tính bằng giây để gói tin khỏi phình vì mấy chữ số lẻ.
+      // Vùng an toàn gửi null để client giấu hẳn thanh đó đi, thay vì đếm ngược
+      // tới một con Thủ Lĩnh không bao giờ tới.
+      boss: this.safe ? null : (this.boss
         ? { up: true, name: this.boss.name, lv: this.boss.level }
-        : { up: false, in: Math.max(0, Math.ceil((this.nextBossAt - Date.now()) / 1000)) },
+        : { up: false, in: Math.max(0, Math.ceil((this.nextBossAt - Date.now()) / 1000)) }),
     };
   }
 
@@ -545,7 +650,7 @@ class Room {
       maxAllies: opts.boss ? cfg.BOSS.maxPlayers : this.maxPlayers,
       onEnd: (b, result, rewards) => {
         this.applyRewards(b, result, rewards);
-        setTimeout(() => this.endBattle(b), 4000);
+        this.timers.add(setTimeout(() => this.endBattle(b), 4000));
       },
       onLeave: (b, c) => this.releasePlayer(b, c),
     });
@@ -669,6 +774,7 @@ class Room {
    * dọn trận — nếu chờ tới lúc dọn thì người thoát sớm sẽ mất phần của mình.
    */
   applyRewards(battle, result, rewards) {
+    if (result === 'lose') return this.applyDefeat(battle);
     if (result !== 'win' || !rewards) return;
 
     for (const c of battle.allies) {
@@ -698,6 +804,34 @@ class Room {
         levelUp: levelUp.levelsGained > 0 ? levelUp : null,
       });
 
+      this.sendCharacter(p);
+    }
+  }
+
+  /**
+   * Cái giá của việc thua — trừ kinh nghiệm, không đụng tới gì khác.
+   *
+   * Mất `DEATH.expLossPct` kinh nghiệm của cấp hiện tại. KHÔNG tụt cấp, KHÔNG
+   * mất đồ, KHÔNG mất vàng: thua một trận phải làm người chơi tiếc, không phải
+   * làm họ mất thứ đã cày cả buổi để có.
+   *
+   * Chạy ngay lúc trận kết thúc chứ không đợi `endBattle` (4 giây sau) — cùng lý
+   * do với phần thưởng: ai thoát game trong bốn giây đó vẫn phải chịu phần mình.
+   * Việc thả người chơi về đâu thì ngược lại, phải đợi tới `endBattle`.
+   */
+  applyDefeat(battle) {
+    for (const c of battle.allies) {
+      const p = this.players.get(c.id);
+      if (!p) continue;
+
+      const loss = progression.loseExp(p, cfg.DEATH.expLossPct);
+      this.io.to(p.id).emit('defeat', {
+        expLost: loss.lost,
+        exp: loss.exp,
+        expNeeded: loss.expNeeded,
+        level: loss.level,
+        pct: Math.round(cfg.DEATH.expLossPct * 100),
+      });
       this.sendCharacter(p);
     }
   }
@@ -803,6 +937,17 @@ class Room {
   endBattle(battle) {
     if (!battle || !this.battles.has(battle.id)) return;
 
+    const lost = battle.result === 'lose';
+
+    /**
+     * Cả nhóm thua thì hồi sinh ở CÙNG MỘT CHỖ.
+     *
+     * Bốc điểm riêng cho từng người là ném năm người ra năm góc bản đồ, và việc
+     * đầu tiên họ phải làm sau khi thua là đi tìm nhau — đúng thứ hình phạt
+     * không ai muốn và cũng chẳng dạy được gì.
+     */
+    const respawn = lost ? this.map.randomSpawn(cfg.PLAYER_RADIUS) : null;
+
     // Nộ và Karma theo người chơi ra khỏi trận, rồi tiếp tục tan ngoài bản đồ
     for (const c of battle.allies) {
       const p = this.players.get(c.id);
@@ -812,8 +957,16 @@ class Room {
       p.battleId = null;
 
       // Miễn va chạm một lúc, nếu không người vừa thắng lại bị con quái đứng
-      // ngay cạnh kéo vào trận mới mà không kịp bước đi đâu
-      p.graceUntil = Date.now() + cfg.ROAMER.graceMs;
+      // ngay cạnh kéo vào trận mới mà không kịp bước đi đâu. Người THUA được lâu
+      // hơn: họ bị thả xuống một chỗ lạ, dính tiếp là thành chuỗi thua không lối ra
+      p.graceUntil = Date.now() + (lost ? cfg.DEATH.graceMs : cfg.ROAMER.graceMs);
+
+      // `contacts` không cần xoá tay ở đây: `checkEncounters` đã xoá trắng nó
+      // suốt thời gian miễn va chạm, và ta vừa đặt lại đồng hồ đó ngay trên
+      if (respawn) {
+        p.x = respawn.x;
+        p.y = respawn.y;
+      }
     }
 
     this.closeBossBattle(battle);
@@ -840,9 +993,9 @@ class Room {
       this.saveProgress(p);
     }
 
-    setTimeout(() => {
+    this.timers.add(setTimeout(() => {
       if (this.players.size > 0) this.fillRoamers();
-    }, cfg.ROAMER.respawnMs);
+    }, cfg.ROAMER.respawnMs));
   }
 
   info() {

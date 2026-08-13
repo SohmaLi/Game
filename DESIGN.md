@@ -34,12 +34,12 @@ nhiều vương quốc tranh giành ảnh hưởng. Phép thuật không phải 
 
 🔒 Người chơi chọn quốc gia. Ảnh hưởng: **lore + một đặc quyền riêng của mỗi nước.**
 
-| Quốc gia | Đặc trưng | Thái độ với phép thuật | 💡 Đặc quyền |
-|---|---|---|---|
-| **Vương quốc Corvane** | Quân sự, kỵ binh nặng, kỷ luật thép | Kiểm soát chặt, chỉ quân đội được dùng | **Kỷ Luật Thép** — +5% Giáp · phí sửa trang bị −30% |
-| **Học viện Sylvara** | Thành bang của học giả và pháp sư | Tôn sùng, nghiên cứu không giới hạn | **Tàng Thư Các** — +5% Mana tối đa · học sách Dị Điển rẻ hơn 30% |
-| **Liên minh Duskmoor** | Thương nhân, hải cảng, lính đánh thuê | Thực dụng — cái gì bán được thì dùng | **Mối Lợi** — +10% vàng rơi ra · phí giao dịch −50% |
-| **Đất hoang Vharn** | Bộ lạc, không vua, sống cùng thú hoang | Bản năng, không sách vở | **Bản Năng Hoang Dã** — +5% Nhanh Nhẹn · nhận ít hơn 10% sát thương từ Thú Vật |
+| Quốc gia                       | Đặc trưng                                   | Thái độ với phép thuật                      | 💡 Đặc quyền                                                                                     |
+| ------------------------------- | ---------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Vương quốc Corvane** | Quân sự, kỵ binh nặng, kỷ luật thép     | Kiểm soát chặt, chỉ quân đội được dùng | **Kỷ Luật Thép** — +5% Giáp · phí sửa trang bị −30%                                 |
+| **Học viện Sylvara**    | Thành bang của học giả và pháp sư       | Tôn sùng, nghiên cứu không giới hạn        | **Tàng Thư Các** — +5% Mana tối đa · học sách Dị Điển rẻ hơn 30%                |
+| **Liên minh Duskmoor**   | Thương nhân, hải cảng, lính đánh thuê | Thực dụng — cái gì bán được thì dùng   | **Mối Lợi** — +10% vàng rơi ra · phí giao dịch −50%                                  |
+| **Đất hoang Vharn**     | Bộ lạc, không vua, sống cùng thú hoang   | Bản năng, không sách vở                      | **Bản Năng Hoang Dã** — +5% Nhanh Nhẹn · nhận ít hơn 10% sát thương từ Thú Vật |
 
 💡 **Nguyên tắc cân bằng:** đặc quyền quốc gia phải **nhỏ và thiên về tiện ích**, không
 được định đoạt lối chơi. Nếu Corvane mạnh hơn rõ rệt trong chiến đấu thì 90% người chơi
@@ -56,6 +56,7 @@ chơi cảm thấy lựa chọn của mình có ý nghĩa mà không tạo ra "n
 ### 2.1 Nguyên tắc gốc
 
 🔒 Mọi người chơi bắt đầu như nhau. Khác biệt đến từ:
+
 1. **Đặc Ân** — ngẫu nhiên, khóa vĩnh viễn
 2. **Quốc gia** — tự chọn
 3. **Class** — tự chọn, đổi được ở mốc level
@@ -75,20 +76,20 @@ thứ 3 (hoặc khi người chơi bấm giữ) thì **khóa vĩnh viễn**.
 Sư lẫn Chiến Binh, chỉ nghiêng khác nhau. Người bốc trúng đặc ân "sai class" mà thấy mình
 yếu hơn hẳn thì sẽ bỏ game ngay ngày đầu.
 
-| # | Vì sao | Đặc Ân | Hiệu ứng | Nghiêng về |
-|---|---|---|---|---|
-| 1 | Lưỡi Kiếm | **Song Kích** | 15% cơ hội đòn đánh thường ra hai lần | Công |
-| 2 | Ngọn Lửa | **Cuồng Nộ** | Máu càng thấp sát thương càng cao (tối đa +30% khi dưới 30% HP) | Công |
-| 3 | Mũi Tên | **Chí Mạng** | +10% tỉ lệ chí mạng · +25% sát thương chí mạng | Công |
-| 4 | Rắn Độc | **Xâm Thực** | Đòn đánh gây thêm sát thương theo thời gian, cộng dồn 3 lớp | Công |
-| 5 | Tấm Khiên | **Kiên Định** | Giảm 12% sát thương vật lý nhận vào | Thủ |
-| 6 | Vòng Nguyệt Quế | **Hộ Tâm** | Giảm 12% sát thương phép nhận vào | Thủ |
-| 7 | Gương Bạc | **Phản Phệ** | Dội lại 15% sát thương nhận được cho kẻ tấn công | Thủ |
-| 8 | Phượng Hoàng | **Bất Diệt** | Một lần mỗi trận, hồi sinh với 25% HP khi gục | Thủ |
-| 9 | Cánh Gió | **Tốc Hành** | +15% Nhanh Nhẹn — đi trước trong thứ tự lượt | Tiện ích |
-| 10 | Bàn Tay Vàng | **Duyên Kho Báu** | +50% tỉ lệ rơi đồ (5% → 7.5% cho sách Dị Điển) | Tiện ích |
-| 11 | Suối Nguồn | **Cộng Hưởng** | Giảm 20% mana tiêu hao của kỹ năng chủ động | Hỗ trợ |
-| 12 | Vòng Tay | **Đồng Cảm** | Hồi 3% HP cho toàn đội mỗi lượt · chỉ có tác dụng khi đi nhóm | Hỗ trợ |
+| #  | Vì sao            | Đặc Ân                 | Hiệu ứng                                                                  | Nghiêng về |
+| -- | ------------------ | ------------------------- | --------------------------------------------------------------------------- | ------------ |
+| 1  | Lưỡi Kiếm       | **Song Kích**      | 15% cơ hội đòn đánh thường ra hai lần                              | Công        |
+| 2  | Ngọn Lửa         | **Cuồng Nộ**      | Máu càng thấp sát thương càng cao (tối đa +30% khi dưới 30% HP)  | Công        |
+| 3  | Mũi Tên          | **Chí Mạng**      | +10% tỉ lệ chí mạng · +25% sát thương chí mạng                    | Công        |
+| 4  | Rắn Độc         | **Xâm Thực**      | Đòn đánh gây thêm sát thương theo thời gian, cộng dồn 3 lớp    | Công        |
+| 5  | Tấm Khiên        | **Kiên Định**    | Giảm 12% sát thương vật lý nhận vào                                 | Thủ         |
+| 6  | Vòng Nguyệt Quế | **Hộ Tâm**        | Giảm 12% sát thương phép nhận vào                                    | Thủ         |
+| 7  | Gương Bạc       | **Phản Phệ**      | Dội lại 15% sát thương nhận được cho kẻ tấn công                | Thủ         |
+| 8  | Phượng Hoàng    | **Bất Diệt**      | Một lần mỗi trận, hồi sinh với 25% HP khi gục                        | Thủ         |
+| 9  | Cánh Gió         | **Tốc Hành**      | +15% Nhanh Nhẹn — đi trước trong thứ tự lượt                       | Tiện ích   |
+| 10 | Bàn Tay Vàng     | **Duyên Kho Báu** | +50% tỉ lệ rơi đồ (5% → 7.5% cho sách Dị Điển)                    | Tiện ích   |
+| 11 | Suối Nguồn       | **Cộng Hưởng**   | Giảm 20% mana tiêu hao của kỹ năng chủ động                         | Hỗ trợ     |
+| 12 | Vòng Tay          | **Đồng Cảm**     | Hồi 3% HP cho toàn đội mỗi lượt · chỉ có tác dụng khi đi nhóm | Hỗ trợ     |
 
 Phân bố: 4 công · 4 thủ · 2 tiện ích · 2 hỗ trợ.
 
@@ -103,13 +104,13 @@ cộng vào. Chiều sâu đến từ **chỉ số dẫn xuất** (9 dòng ở b
 **trang bị + bị động**. Nếu sau này thấy thiếu, cách rẻ hơn là cho mỗi chỉ số gốc
 ảnh hưởng thêm một thứ nữa — ví dụ Ý Chí thêm "giảm thời gian hồi chiêu".
 
-| Chỉ số | Ảnh hưởng |
-|---|---|
-| **Sức Mạnh** | Sát thương vật lý |
-| **Trí Tuệ** | Sát thương phép · Mana tối đa |
-| **Thể Chất** | HP tối đa · Giáp |
+| Chỉ số              | Ảnh hưởng                                          |
+| --------------------- | ----------------------------------------------------- |
+| **Sức Mạnh**  | Sát thương vật lý                                |
+| **Trí Tuệ**   | Sát thương phép · Mana tối đa                  |
+| **Thể Chất**  | HP tối đa · Giáp                                  |
 | **Nhanh Nhẹn** | **Thứ tự ra tay trong lượt** · tỉ lệ né |
-| **Ý Chí** | Kháng phép · hồi mana mỗi lượt |
+| **Ý Chí**     | Kháng phép · hồi mana mỗi lượt                 |
 
 ⚠️ **Nhanh Nhẹn là chỉ số nguy hiểm nhất về mặt cân bằng** trong hệ turn-based — nó quyết
 định ai đánh trước, mà đánh trước trong turn-based thường là thắng. Cần theo dõi kỹ để
@@ -123,11 +124,11 @@ không thành "cứ nhồi Nhanh Nhẹn là vô đối".
 
 🔒 Ra mắt 2 class, thêm sau:
 
-| Class | Nhánh | Vai trò | Tài nguyên | Lối chơi |
-|---|---|---|---|---|
-| **Chiến Binh** | sức lực | Cận chiến, chịu đòn | HP + **Nộ Khí** | Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh |
-| **Pháp Sư** | phép thuật | Sát thương phép | HP + **Mana** | Bùng nổ sớm, mỏng manh, phải tính toán mana |
-| *(chưa có)* | bóng tối | — | HP + **Karma** | Tích Karma bằng cách giết |
+| Class                 | Nhánh       | Vai trò                 | Tài nguyên           | Lối chơi                                             |
+| --------------------- | ------------ | ------------------------ | ---------------------- | ------------------------------------------------------ |
+| **Chiến Binh** | sức lực    | Cận chiến, chịu đòn | HP +**Nộ Khí** | Đánh thường tích Nộ, dùng Nộ tung chiêu mạnh |
+| **Pháp Sư**   | phép thuật | Sát thương phép      | HP +**Mana**     | Bùng nổ sớm, mỏng manh, phải tính toán mana     |
+| *(chưa có)*       | bóng tối   | —                       | HP +**Karma**    | Tích Karma bằng cách giết                          |
 
 💡 **Mỗi class chỉ dùng đúng một thanh tài nguyên ngoài HP.** Chiến Binh không có mana,
 Pháp Sư không có Nộ. Nếu để một class nhìn hai thanh mà chỉ dùng một thì thanh còn lại
@@ -138,13 +139,13 @@ Chiến Binh tiêu Nộ, không tiêu mana.
 
 🔒 Đổi được, **chỉ tại các mốc level**. 💡 Chi tiết:
 
-| Mốc | Level 10 · 25 · 50 |
-|---|---|
-| Chi phí | Vàng, tăng dần theo mốc |
-| Cây Nền | **Reset toàn bộ**, hoàn lại 100% điểm kỹ năng |
-| Cây Dị Điển | **Giữ nguyên sách đã gắn**, nhưng sách không hợp class mới sẽ bị vô hiệu (hiện mờ) |
-| Chỉ số | Giữ nguyên, không reset |
-| Đặc Ân · Quốc gia | Không đổi |
+| Mốc                   | Level 10 · 25 · 50                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| Chi phí               | Vàng, tăng dần theo mốc                                                                               |
+| Cây Nền              | **Reset toàn bộ**, hoàn lại 100% điểm kỹ năng                                               |
+| Cây Dị Điển        | **Giữ nguyên sách đã gắn**, nhưng sách không hợp class mới sẽ bị vô hiệu (hiện mờ) |
+| Chỉ số               | Giữ nguyên, không reset                                                                                |
+| Đặc Ân · Quốc gia | Không đổi                                                                                              |
 
 💡 Sách Dị Điển bị vô hiệu vẫn nằm trong ô — người chơi tự quyết định thay hay giữ (giữ
 để phòng khi đổi class về lại). Thay thì mất sách cũ theo quy tắc ở mục 3.4.
@@ -192,13 +193,13 @@ nhánh sẽ khiến người chơi tra "build chuẩn" trên mạng rồi làm t
  T16          └── chiêu tối thượng ──┘
 ```
 
-| | Chiến Binh | Pháp Sư |
-|---|---|---|
-| T1 | Chém Mạnh · Da Thịt Chai Sạn | Hỏa Cầu · Tinh Thần Tập Trung |
-| T4 | Xoáy Lốc · Gồng Mình | Băng Thương · Hồi Phục |
-| T8 | Cuồng Huyết · Khiêu Khích | Thấu Hiểu Ma Thuật · Khiên Phép |
-| T12 | Kết Liễu · Thành Lũy | Thiên Thạch · Suối Nguồn Vô Tận |
-| T16 | **Cuồng Chiến** | **Bùng Nổ Ma Lực** |
+|     | Chiến Binh                       | Pháp Sư                              |
+| --- | --------------------------------- | -------------------------------------- |
+| T1  | Chém Mạnh · Da Thịt Chai Sạn | Hỏa Cầu · Tinh Thần Tập Trung     |
+| T4  | Xoáy Lốc · Gồng Mình         | Băng Thương · Hồi Phục           |
+| T8  | Cuồng Huyết · Khiêu Khích    | Thấu Hiểu Ma Thuật · Khiên Phép  |
+| T12 | Kết Liễu · Thành Lũy         | Thiên Thạch · Suối Nguồn Vô Tận |
+| T16 | **Cuồng Chiến**           | **Bùng Nổ Ma Lực**            |
 
 **Khiêu Khích** là nút quan trọng nhất về mặt thiết kế: nó ép quái phải đánh
 Chiến Binh. Không có cơ chế đó thì vai trò "chịu đòn" chỉ là chữ trên giấy —
@@ -221,11 +222,11 @@ nhận rõ ràng khi thay ô đã có.
 
 🔒 Hai loại · 🔒 mang tối đa **10 kỹ năng** vào trận.
 
-| Loại | Cách hoạt động | Chiếm ô mang theo? |
-|---|---|---|
-| **Chủ động** | Chọn dùng trong lượt, tốn mana/nộ, có hồi chiêu | Có |
-| **Bị động (học được)** | Luôn có tác dụng | **Có** |
-| **Bị động (từ trang bị)** | Luôn có tác dụng | **Không** |
+| Loại                                | Cách hoạt động                                       | Chiếm ô mang theo? |
+| ------------------------------------ | -------------------------------------------------------- | -------------------- |
+| **Chủ động**                | Chọn dùng trong lượt, tốn mana/nộ, có hồi chiêu | Có                  |
+| **Bị động (học được)**  | Luôn có tác dụng                                     | **Có**        |
+| **Bị động (từ trang bị)** | Luôn có tác dụng                                     | **Không**     |
 
 💡 Lý do chia vậy: nếu đồ xịn ăn mất ô kỹ năng thì không ai dám mặc đồ xịn — vô lý. Còn nếu
 bị động học được mà miễn phí ô thì chẳng ai phải chọn lựa, cứ bật hết. Cách này bắt người
@@ -237,30 +238,30 @@ chơi **đánh đổi thật**: thêm một bị động mạnh = bỏ một chi
 
 🔒 **10 ô:**
 
-| # | Ô | Ghi chú |
-|---|---|---|
-| 1 | Vũ khí chính | Quyết định loại sát thương cơ bản |
-| 2 | Vũ khí phụ / Khiên | Chiến Binh cầm khiên · Pháp Sư cầm sách/ngọc |
-| 3 | Mũ | |
-| 4 | Giáp thân | Ô chỉ số lớn nhất |
-| 5 | Găng tay | |
-| 6 | Giày | Thường cho Nhanh Nhẹn |
-| 7 | Áo choàng | |
-| 8 | Dây chuyền | |
-| 9 | Nhẫn I | |
-| 10 | Nhẫn II | Hai ô nhẫn cho phép build lệch |
+| #  | Ô                     | Ghi chú                                              |
+| -- | ---------------------- | ----------------------------------------------------- |
+| 1  | Vũ khí chính        | Quyết định loại sát thương cơ bản            |
+| 2  | Vũ khí phụ / Khiên | Chiến Binh cầm khiên · Pháp Sư cầm sách/ngọc |
+| 3  | Mũ                    |                                                       |
+| 4  | Giáp thân            | Ô chỉ số lớn nhất                                |
+| 5  | Găng tay              |                                                       |
+| 6  | Giày                  | Thường cho Nhanh Nhẹn                              |
+| 7  | Áo choàng            |                                                       |
+| 8  | Dây chuyền           |                                                       |
+| 9  | Nhẫn I                |                                                       |
+| 10 | Nhẫn II               | Hai ô nhẫn cho phép build lệch                    |
 
 ### 4.1 Phân hạng
 
 🔒 Trang bị cao cấp có kỹ năng bị động. Năm hạng, đã dựng xong:
 
-| Hạng | Màu | Chỉ số chính | Số chỉ số | Bị động | Tỉ lệ rơi |
-|---|---|---|---|---|---|
-| Thường | Xám | ×1.00 | 1 | — | 61% |
-| Tinh Xảo | Trắng | ×1.12 | 2 | — | 28% |
-| **Hiếm** | Xanh dương | ×1.28 | 3 | **1** | 8.5% |
-| **Sử Thi** | Tím | ×1.45 | 4 | **1** | 2.4% |
-| **Truyền Thuyết** | Cam | ×1.70 | 4 | **2** | 0.3% |
+| Hạng                     | Màu         | Chỉ số chính | Số chỉ số | Bị động  | Tỉ lệ rơi |
+| ------------------------- | ------------ | --------------- | ------------ | ----------- | ------------ |
+| Thường                  | Xám         | ×1.00          | 1            | —          | 61%          |
+| Tinh Xảo                 | Trắng       | ×1.12          | 2            | —          | 28%          |
+| **Hiếm**           | Xanh dương | ×1.28          | 3            | **1** | 8.5%         |
+| **Sử Thi**         | Tím         | ×1.45          | 4            | **1** | 2.4%         |
+| **Truyền Thuyết** | Cam          | ×1.70          | 4            | **2** | 0.3%         |
 
 Ranh giới ở hạng **Hiếm** — từ đây đồ mới "có tính cách", trước đó chỉ là con số.
 
@@ -288,22 +289,22 @@ nhận trọn phần của nó, chỉ số phụ là phần cộng thêm.
 
 Kết quả sau khi sửa (mặc đủ 10 ô, cấp 1, trung bình 300 bộ):
 
-| | Máu | Sát thương | Giáp |
-|---|---|---|---|
-| Trần trụi | 118 | 23 | 6 |
-| Thường | 176 | 34 | 12 |
-| Tinh Xảo | 215 | 41 | 16 |
-| Hiếm | 253 | 45 | 19 |
-| Sử Thi | 266 | 49 | 21 |
-| Truyền Thuyết | 320 | 53 | 26 |
+|                 | Máu | Sát thương | Giáp |
+| --------------- | ---- | ------------- | ----- |
+| Trần trụi     | 118  | 23            | 6     |
+| Thường        | 176  | 34            | 12    |
+| Tinh Xảo       | 215  | 41            | 16    |
+| Hiếm           | 253  | 45            | 19    |
+| Sử Thi         | 266  | 49            | 21    |
+| Truyền Thuyết | 320  | 53            | 26    |
 
 ### 4.3 Tỉ lệ rơi
 
 | Hạng quái | Cơ hội rơi đồ | Số món tối đa | Sách Dị Điển |
-|---|---|---|---|
-| Thường | 30% | 1 | 🔒 5% |
-| Tinh Anh | 65% | 2 | 15% |
-| Thủ Lĩnh | 100% | 4 | 40% |
+| ----------- | ------------------ | ----------------- | ---------------- |
+| Thường    | 30%                | 1                 | 🔒 5%            |
+| Tinh Anh    | 65%                | 2                 | 15%              |
+| Thủ Lĩnh  | 100%               | 4                 | 40%              |
 
 **Kinh nghiệm và vàng chia đều cho nhóm; ĐỒ thì mỗi người bốc riêng.** Nếu chia
 đều thì nhóm 5 người mỗi người được 1/5 món — tức là chẳng ai nhận được gì.
@@ -331,14 +332,15 @@ tự bán hộ, vì tự quyết định thay người chơi với đồ của h
 Quái đi lang thang trên bản đồ. Chạm vào là vào trận — **cùng với những con
 đang đứng gần đó**, nên đi vào giữa bầy sói là gặp cả bầy.
 
-| Thông số | Giá trị | Lý do |
-|---|---|---|
-| Số quái trên bản đồ | 6 mỗi phòng | Đủ đông để luôn có việc làm, đủ thưa để né được |
-| Tốc độ quái | 44 px/s | Chậm hơn người chơi (150) — **phải né được thì mới có lựa chọn** |
-| Tầm phát hiện | 120 px | Trong tầm này quái đuổi theo, client vẽ dấu `!` đỏ |
-| Bán kính gom bầy | 95 px | Quái trong tầm này cùng nhảy vào trận |
-| Hồi sinh quái | 20 giây | Không hồi ngay tại chỗ vừa đánh |
-| Quái mới sinh | miễn va chạm 5 giây | Vẽ mờ, đứng yên — không kéo ai vào trận |
+| Thông số                | Giá trị                | Lý do                                                                                |
+| ------------------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Số quái trên bản đồ | **15** mỗi phòng | 47% chỗ đứng có ít nhất một con phát hiện ra bạn (mức 6 chỉ 23%)          |
+| Trong đó Tinh Anh       | tối đa 2               | Đi lẻ, quầng tím — xem §6.2                                                     |
+| Tốc độ quái           | 44 px/s                  | Chậm hơn người chơi (150) —**phải né được thì mới có lựa chọn** |
+| Tầm phát hiện          | 120 px                   | Trong tầm này quái đuổi theo, client vẽ dấu`!` đỏ                          |
+| Bán kính gom bầy       | 95 px                    | Quái trong tầm này cùng nhảy vào trận                                          |
+| Hồi sinh quái           | 20 giây                 | Không hồi ngay tại chỗ vừa đánh                                                |
+| Quái mới sinh           | miễn va chạm 5 giây   | Vẽ mờ, đứng yên — không kéo ai vào trận                                     |
 
 **Điều kiện nổ trận là quái VỪA chạm vào, không phải đang chạm.** Mỗi người chơi
 giữ danh sách những con đang đè lên mình; chỉ con mới xuất hiện trong danh sách
@@ -351,6 +353,16 @@ mới kéo được họ vào trận mới.
 
 > Cách cũ là dạt hết quái quanh đó ra chỗ khác. Nhìn rất kỳ — cả bản đồ nhảy
 > dựng lên sau mỗi trận. Quái không cần bay đi đâu cả, chỉ cần đừng chạm vào.
+
+**Đông hơn nhưng KHÔNG nguy hiểm hơn nhiều.** Đo trên bản đồ 40×30 ô, 15 con so
+với 6 con: xác suất bị hai con cùng phát hiện tăng từ 4% lên 11%, ba con từ 0%
+lên 2%. Một mình đánh hai con ở cấp trần vùng vẫn thắng 87–99%, nên không phải bù
+trừ ở chỗ nào khác — bản đồ chỉ sống hẳn lên chứ không hoá thành cái bẫy.
+
+⚠️ **Cái giá là băng thông:** gói `state` (15 lần/giây) phình từ ~790 lên ~1990
+byte, tức 12 → 29 KB/s cho mỗi người đang online. Chưa phải vấn đề ở quy mô hiện
+tại. Nếu tới lúc phải cắt: `n`, `c`, `mid`, `lv` của một con quái KHÔNG BAO GIỜ
+đổi mà vẫn được gửi lại mười lăm lần mỗi giây — đó là hơn một phần ba gói tin.
 
 ### 5.2 Vòng lượt — chọn đồng thời
 
@@ -372,12 +384,12 @@ ngay từ đầu sẽ **không phải viết lại** khi mở PvP 10 người sa
 
 🔒 Nhân vật có bốn thanh, hiện ở **góc trái trên**:
 
-| Thanh | Ai có | Vai trò |
-|---|---|---|
-| **HP** | Mọi class | Máu |
-| **Mana** | Class dùng phép (Pháp Sư) | Tiêu cho kỹ năng phép thuật |
+| Thanh              | Ai có                         | Vai trò                                                    |
+| ------------------ | ------------------------------ | ----------------------------------------------------------- |
+| **HP**       | Mọi class                     | Máu                                                        |
+| **Mana**     | Class dùng phép (Pháp Sư)  | Tiêu cho kỹ năng phép thuật                            |
 | **Nộ Khí** | Class dùng lực (Chiến Binh) | Tích khi đánh và khi bị đánh, tiêu cho chiêu mạnh |
-| **Karma** | Mọi class | 💡 xem dưới |
+| **Karma**    | Mọi class                     | 💡 xem dưới                                               |
 
 Class không dùng thanh nào thì thanh đó **mờ đi chứ không biến mất** — người chơi
 vẫn thấy hệ thống có thanh đó, chỉ là mình không dùng.
@@ -390,10 +402,10 @@ thì cứ nằm đó chờ dùng, còn Nộ và Karma tụt liên tục nên ph�
 Điều đó ép hai lối chơi này phải hung hăng và giữ nhịp, thay vì tích đầy rồi ngồi
 chờ thời cơ như Pháp Sư.
 
-| | Tích khi | Tan trong trận | Tan ngoài trận |
-|---|---|---|---|
-| Nộ Khí | đánh (+8) · bị đánh (+6) | −6 mỗi vòng | −4 mỗi giây |
-| Karma | giết quái (+25) · giết người (+40) | −3 mỗi vòng | −1.5 mỗi giây |
+|          | Tích khi                                | Tan trong trận | Tan ngoài trận |
+| -------- | ---------------------------------------- | --------------- | ---------------- |
+| Nộ Khí | đánh (+8) · bị đánh (+6)           | −6 mỗi vòng  | −4 mỗi giây   |
+| Karma    | giết quái (+25) · giết người (+40) | −3 mỗi vòng  | −1.5 mỗi giây |
 
 Karma tan chậm hơn Nộ vì nó đổi bằng mạng sống của kẻ địch — mất quá nhanh thì công
 sức săn giết thành vô nghĩa.
@@ -435,10 +447,10 @@ một khoảng không gian chung, không phải một đội — người mới 
 thẳng vào trận của người lạ. Nay mỗi nhóm có trận riêng, chạy song song trong
 cùng phòng; ai không ở trong trận vẫn đi lại bình thường trên bản đồ.
 
-| | Cùng nhóm | Khác nhóm |
-|---|---|---|
-| Một người chạm quái | **cả nhóm cùng vào trận** | chỉ người đó vào |
-| Trong lúc trận diễn ra | cùng đánh một màn | người kia đi lại bình thường, không thấy trận |
+|                           | Cùng nhóm                          | Khác nhóm                                             |
+| ------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| Một người chạm quái  | **cả nhóm cùng vào trận** | chỉ người đó vào                                  |
+| Trong lúc trận diễn ra | cùng đánh một màn               | người kia đi lại bình thường, không thấy trận |
 
 Mỗi trận có một kênh socket riêng, nên người ngoài trận không nhận gói tin của
 trận đó — vừa đúng luật chơi vừa đỡ băng thông.
@@ -446,12 +458,75 @@ trận đó — vừa đúng luật chơi vừa đỡ băng thông.
 Nhóm tối đa **5 người**, trùng với giới hạn PvE. Mời qua chuột phải vào người
 chơi trên bản đồ; lời mời hết hạn sau 30 giây.
 
+#### Cách bấm
+
+| Việc             | Ở đâu                                                                    |
+| ----------------- | --------------------------------------------------------------------------- |
+| Mời              | Chuột phải vào người chơi trên bản đồ →**Mời vào nhóm** |
+| Nhận / từ chối | Thẻ nổi ở đáy màn hình, có đồng hồ cạn dần 30 giây            |
+| Xem nhóm         | Khung dưới HUD: tên, cấp, ★ nhóm trưởng, ⚔ ai đang trong trận    |
+| Rời              | Nút**Rời** trên khung nhóm, hoặc chuột phải vào chính mình  |
+
+Đồng đội trên bản đồ vẽ tên **xanh lá** kèm vòng xanh dưới chân — giữa một chỗ
+đông người thì tên trắng nào cũng giống tên trắng nào, mà đây lại đúng là những
+người sẽ bị kéo vào trận cùng mình.
+
+Lý do không mời được hiện thẳng dưới tên trong menu (*đang trong trận*, *đang ở
+nhóm khác*, *nhóm đã đủ 5 người*) chứ không giấu trong một nút xám câm. Server
+vẫn kiểm tra lại từng điều kiện — cái menu đó do client vẽ ra thì client cũng bỏ
+qua được.
+
+⚠️ **Rời nhóm chỉ có MỘT đường ở server** (`Room.dropFromParty`), dùng chung cho
+cả tự bấm lẫn mất kết nối. Trước đây đường mất kết nối chỉ gỡ tên trong bộ nhớ
+mà không báo ai — không lộ ra hồi chưa có khung nhóm.
+
+### 5.2f Cái giá của thất bại
+
+🔒 Thua trận **mất 10% kinh nghiệm của cấp hiện tại**. Ngoài ra không mất gì.
+
+|                                 |                                                                    |
+| ------------------------------- | ------------------------------------------------------------------ |
+| Kinh nghiệm                    | −10% mốc của cấp đang đứng,**trừ tới 0 rồi dừng** |
+| Cấp độ                       | **không bao giờ tụt**                                     |
+| Trang bị · túi đồ · vàng | giữ nguyên tuyệt đối                                          |
+| Hồi sinh                       | một chỗ khác trên cùng bản đồ, cả nhóm cùng một điểm |
+| Miễn va chạm                  | 10 giây, gấp đôi lúc thắng                                   |
+
+**Vì sao 10%.** Đo bằng `tools/simulate.js`: một trận 2 quái ở cấp trần của vùng
+cho 13–20% kinh nghiệm một cấp. 10% ≈ đúng công của một trận vừa đánh — từ 0,25
+trận ở cấp 1 tới 0,9 trận ở cấp 20. Đủ đau để nút **Trốn thoát** trở thành một
+lựa chọn thật, chưa tới mức thua một lần là muốn tắt game.
+
+**Vì sao không mất đồ.** Món Truyền Thuyết rơi ra sau ba tiếng cày là thứ người
+chơi nhớ rất lâu. Lấy nó đi vì một trận xui không dạy được gì, chỉ dạy họ đừng
+mạo hiểm nữa — mà mạo hiểm chính là thứ game này bán.
+
+**Vì sao không tụt cấp.** Mất một kỹ năng vừa học được là mất luôn cả lối chơi
+đang xây dở. Đây là chốt chặn cứng trong `progression.loseExp`, không phải một
+con số để chỉnh.
+
+**Vì sao vừa lên cấp thì thua mất 0.** Trừ tới 0 rồi dừng, nên người vừa lên cấp
+xong không mất gì. Cố ý: đó đúng là lúc họ đang đi thử một vùng mới.
+
+⚠️ **Trốn thoát và bất phân thắng bại KHÔNG bị phạt.** Trốn phải rẻ hơn thua,
+nếu không thì nó chỉ là một cái nút không ai bấm.
+
+⚠️ **Cả nhóm thua thì hồi sinh CÙNG một chỗ.** Bốc điểm riêng cho từng người là
+ném năm người ra năm góc bản đồ, và việc đầu tiên họ phải làm sau khi thua là đi
+tìm nhau.
+
+❗ **Lỗ hổng đã biết: tắt game trước khi gục thì không mất gì.** Người cuối cùng
+rời trận đi qua `Room.dropBattle`, không qua `finish` — nên không có kết quả nào
+để phạt. Chưa vá vì cách vá hiển nhiên (rớt mạng = thua) sẽ phạt oan người mất
+mạng thật, mà đây là PvE không bảng xếp hạng nên lợi ích gian lận gần bằng 0.
+Chỉ trở thành vấn đề khi có PvP hoặc xếp hạng.
+
 ### 5.3 Quy mô
 
-| Chế độ | Người chơi | Quái | Trạng thái |
-|---|---|---|---|
-| **PvE** | 🔒 tối đa 5 | 💡 1–8 tùy trận | 🔒 **Làm trước** |
-| PvP | 🔒 tối đa 10 | — | 🔒 **Hoãn lại** |
+| Chế độ     | Người chơi  | Quái              | Trạng thái             |
+| ------------- | -------------- | ------------------ | ------------------------ |
+| **PvE** | 🔒 tối đa 5  | 💡 1–8 tùy trận | 🔒**Làm trước** |
+| PvP           | 🔒 tối đa 10 | —                 | 🔒**Hoãn lại**   |
 
 ---
 
@@ -461,21 +536,70 @@ chơi trên bản đồ; lời mời hết hạn sau 30 giây.
 
 🔒 Ba nhóm:
 
-| Nhóm | Ví dụ | Đặc trưng |
-|---|---|---|
-| **Thú Vật** | Sói xám, gấu vách đá, nhện hang | Nhanh, ít máu, đi theo bầy |
+| Nhóm                 | Ví dụ                                        | Đặc trưng                             |
+| --------------------- | ---------------------------------------------- | ---------------------------------------- |
+| **Thú Vật**   | Sói xám, gấu vách đá, nhện hang         | Nhanh, ít máu, đi theo bầy           |
 | **Con Người** | Cướp đường, lính đánh thuê, tà giáo | Có trang bị, biết dùng chiến thuật |
-| **Xác Sống** | Bộ hài cốt, thây ma, oán linh | Chậm, dai máu, gây hiệu ứng xấu |
+| **Xác Sống**  | Bộ hài cốt, thây ma, oán linh             | Chậm, dai máu, gây hiệu ứng xấu    |
 
 ### 6.2 Phân hạng
 
 🔒 Mọi quái có đánh thường + 1 kỹ năng chủ chốt · quái cấp cao có thêm kỹ năng.
 
-| Hạng | Kỹ năng | Máu ×  | Sát thương × | Tỉ lệ rơi sách | Vai trò |
-|---|---|---|---|---|---|
-| **Thường** | 2 | 1.0 | 1.0 | 🔒 5% | Quái nền, farm hàng ngày |
-| **Tinh Anh** | 3 | 2.2 | 1.5 | 💡 15% | Rải rác, đáng để tìm |
-| **Thủ Lĩnh** | 3 + đòn quét cả nhóm | 16 | 2.2 | 🔒 40% | Cần cả nhóm, một mình không hạ nổi |
+| Hạng                | Kỹ năng                         | Máu × | Sát thương × | Tỉ lệ rơi sách | Vai trò                                   |
+| -------------------- | --------------------------------- | ------- | ---------------- | ------------------ | ------------------------------------------ |
+| **Thường**   | 2                                 | 1.0     | 1.0              | 🔒 5%              | Quái nền, farm hàng ngày               |
+| **Tinh Anh**   | 3                                 | 2.2     | 1.5              | 🔒 15%             | Rải rác, đáng để tìm                |
+| **Thủ Lĩnh** | 3 + đòn quét + cơ chế riêng | 8       | 1.1              | 🔒 40%             | Cần cả nhóm, một mình không hạ nổi |
+
+#### Luật xuất hiện của Tinh Anh
+
+🔒 **Mỗi vùng đúng một bản mẫu Tinh Anh, tối đa 2 con cùng lúc trên 15 con.**
+
+|                         |                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| Hình                   | mượn hình quái thường cùng họ, vẽ 48px + quầng**tím** + dấu ◈ |
+| Bán kính · tốc độ | 14 · 38 — to hơn quái thường (11 · 44), chạy là thoát được          |
+| Đi cùng ai            | **KHÔNG AI.** Chạm vào nó là đánh tay đôi                         |
+| Bù lại khi bị hạ    | ngay lượt đổ đầy kế tiếp, TRƯỚC quái thường                         |
+
+**Vì sao Tinh Anh đi một mình** (`Room.groupAround`). Nó đã bằng hai con thường về
+máu và gấp rưỡi về sát thương; kéo thêm hai con nữa vào là một trận không ai đi
+lẻ thắng nổi. Mà con Tinh Anh đứng lẻ mới là thứ đáng dừng lại để đánh. Luật
+chạy cả hai chiều: chạm vào quái thường thì con Tinh Anh đứng cạnh cũng không bị
+lôi vào.
+
+**Đích cân bằng đo bằng `tools/simulate.js`:** một người đủ trang bị ở cấp trần
+vùng thắng **65–75%** và mất khoảng hai phần ba máu. Chỉ số gốc trong
+`data/monsters.js` được vặn cho tới khi ra đúng dải này ở CẢ SÁU VÙNG — đừng so
+mấy con số đó với nhau rồi kết luận con nào mạnh hơn.
+
+#### Cơ chế riêng của từng Thủ Lĩnh
+
+🔒 Không có phần này thì "Thủ Lĩnh" chỉ là con quái thường nhiều máu, và đánh con
+thứ sáu y hệt đánh con thứ nhất. Ba loại cơ chế, mỗi con một cách ghép:
+
+| Thủ Lĩnh           | Cơ chế                                 | Nội dung                                                                                         |
+| -------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Sói Đầu Đàn     | Gọi Bầy                                | mỗi 2 vòng gọi 2 Sói Xám, trần 6 con                                                        |
+| Nhện Mẫu           | Nở Trứng                               | mỗi 2 vòng gọi 2 Nhện Sương, trần 6 con                                                    |
+| Tướng Xương      | Dựng Đội Hình                        | mỗi 3 vòng gọi 3 Bộ Hài Cốt, trần 6 con                                                    |
+| Quỷ Băng           | Đóng Băng Vết Thương + Hoá Cuồng | hồi 6% máu mỗi vòng; dưới 45% máu thì sát thương ×2.2                                 |
+| Sứ Giả Bão        | Mắt Bão                                | dưới**60%** máu thì sát thương ×1.8 — nổi giận sớm rồi giữ nguyên tới cuối |
+| Chúa Tể Hư Không | Xé Khe Nứt + Cõi Trống Rỗng         | mỗi 4 vòng gọi 2 Mắt Hư Không (trần 4); dưới 30% máu ×1.5                              |
+
+- **Tay sai theo cấp của chính con Thủ Lĩnh**, không phải cấp gốc bản mẫu — nếu
+  không thì ở vùng cấp 60 nó gọi ra một bầy sói cấp 1 đứng làm cảnh
+- **Gọi quân có TRẦN đếm theo tổng cả trận**, không phải số đang sống. Đếm số
+  đang sống thì nhóm dọn sạch xong lại bị gọi tiếp, trận chạy tới vòng 50 rồi hoà
+- **Hoá cuồng nổ đúng một lần** và không tắt được
+- Cơ chế chạy **cuối vòng**, nên máu đem ra xét là máu sau khi cả nhóm đã ra tay,
+  và sự kiện đi kèm luôn gói `battle:resolve` của vòng vừa xong
+
+**Cơ chế mới là nguồn độ khó, không phải chỉ số gốc.** Trước khi có phần này,
+nhóm 5 người hạ mọi Thủ Lĩnh với 100% tỉ lệ thắng và còn 71–92% máu. Sau: 91–100%
+thắng, còn 46–83% máu, và nhóm 2 người thì không con nào hạ nổi. Chỉ số gốc của
+sáu con không đổi một chữ số nào.
 
 **Vì sao Thủ Lĩnh phải có đòn quét diện rộng.** Nó đứng một mình chống cả nhóm,
 mỗi vòng chỉ ra tay đúng một lần trong khi năm người ra tay năm lần. Không có
@@ -490,12 +614,12 @@ vùng cấp 10.
 
 #### Luật xuất hiện của Thủ Lĩnh
 
-| Thông số | Giá trị |
-|---|---|
-| Chu kỳ | 5 phút một con, mỗi vùng một con duy nhất |
-| Tự bỏ đi | sau 3 phút nếu không ai hạ được |
-| Miễn va chạm khi hiện ra | 5 giây |
-| Trần người cùng đánh | 10 |
+| Thông số                  | Giá trị                                       |
+| --------------------------- | ----------------------------------------------- |
+| Chu kỳ                     | 5 phút một con, mỗi vùng một con duy nhất |
+| Tự bỏ đi                 | sau 3 phút nếu không ai hạ được          |
+| Miễn va chạm khi hiện ra | 5 giây                                         |
+| Trần người cùng đánh  | 10                                              |
 
 **Trận Thủ Lĩnh KHÔNG cần nhóm.** Đây là điểm khác biệt duy nhất so với quái
 thường (🔒 mục 5.2e):
@@ -508,14 +632,16 @@ thường (🔒 mục 5.2e):
 - Hạ được thì nó biến mất và đồng hồ 5 phút đếm lại; thua hoặc trốn hết thì nó
   ở lại
 
-💡 **Còn bỏ ngỏ:** cơ chế riêng cho từng Thủ Lĩnh — *"mỗi 3 vòng triệu hồi 2 tay
-sai"*, *"dưới 30% máu thì hóa cuồng"*, *"miễn nhiễm vật lý cho tới khi phá lá chắn"*.
+💡 **Còn bỏ ngỏ:** lá chắn *"miễn nhiễm vật lý cho tới khi phá được"* — loại cơ
+chế thứ tư, chưa làm vì nó đòi người chơi phải có sẵn đòn phép để đổi sang, mà
+mới có hai class.
 
 ### 6.3 Sách kỹ năng
 
 🔒 Rơi từ quái, tỉ lệ gốc 5%, điền vào cây Dị Điển.
 
 💡 Bổ sung:
+
 - Sách **theo class** — sách Pháp Sư thì Chiến Binh không đọc được (nhưng bán/trao đổi được)
 - Sách có hạng; hạng cao rơi từ quái hạng cao
 - Gắn vào ô đã có sách → **xóa vĩnh viễn** sách cũ (🔒 mục 3.4)
@@ -524,17 +650,18 @@ sai"*, *"dưới 30% máu thì hóa cuồng"*, *"miễn nhiễm vật lý cho t�
 
 ## 6b. Vùng bản đồ
 
-🔒 **Sáu vùng, mỗi vùng 10 cấp, phủ kín cấp 1 tới 60.** Người chơi chọn vùng
-ngay sau khi chọn nhân vật, trước khi vào game.
+🔒 **Một bến cảng an toàn + sáu vùng săn quái, mỗi vùng 10 cấp, phủ kín cấp 1
+tới 60.** Người chơi chọn vùng ngay sau khi chọn nhân vật, trước khi vào game.
 
-| # | Vùng | Cấp | Quái | Thủ Lĩnh |
-|---|---|---|---|---|
-| 1 | **Đồng Cỏ Thanh Bình** | 1–10 | Sói Xám · Cướp Đường | Sói Đầu Đàn |
-| 2 | **Rừng Sương Mù** | 11–20 | Nhện Sương · Sói Xám · Cướp Đường | Nhện Mẫu |
-| 3 | **Hoang Mạc Xương Trắng** | 21–30 | Bộ Hài Cốt · Xạ Thủ Xương | Tướng Xương |
-| 4 | **Vực Băng Vĩnh Cửu** | 31–40 | Oán Hồn Băng · Xạ Thủ Xương | Quỷ Băng |
-| 5 | **Đỉnh Bão Tố** | 41–50 | Tín Đồ Bão · Oán Hồn Băng | Sứ Giả Bão |
-| 6 | **Đền Đài Hư Không** | 51–60 | Chiến Binh Hư Không · Mắt Hư Không | Chúa Tể Hư Không |
+| #  | Vùng                               | Cấp      | Quái                                         | Thủ Lĩnh           |
+| -- | ----------------------------------- | --------- | --------------------------------------------- | -------------------- |
+| ☮ | **Bến Cảng Duskmoor**       | mọi cấp | *không có*                                | *không có*       |
+| 1  | **Đồng Cỏ Thanh Bình**    | 1–10     | Sói Xám · Cướp Đường                  | Sói Đầu Đàn     |
+| 2  | **Rừng Sương Mù**         | 11–20    | Nhện Sương · Sói Xám · Cướp Đường | Nhện Mẫu           |
+| 3  | **Hoang Mạc Xương Trắng** | 21–30    | Bộ Hài Cốt · Xạ Thủ Xương             | Tướng Xương      |
+| 4  | **Vực Băng Vĩnh Cửu**     | 31–40    | Oán Hồn Băng · Xạ Thủ Xương           | Quỷ Băng           |
+| 5  | **Đỉnh Bão Tố**           | 41–50    | Tín Đồ Bão · Oán Hồn Băng             | Sứ Giả Bão        |
+| 6  | **Đền Đài Hư Không**    | 51–60    | Chiến Binh Hư Không · Mắt Hư Không     | Chúa Tể Hư Không |
 
 **Vùng chia người chơi ra, không chỉ đổi cảnh.** Mỗi vùng có phòng riêng, bản đồ
 riêng, bảng màu riêng và đồng hồ Thủ Lĩnh riêng. Hai người ở hai vùng khác nhau
@@ -548,6 +675,24 @@ sửa vài dòng JS là gửi lên vùng cấp 50 với nhân vật cấp 1.
 **Bản đồ sinh từ `seed` của vùng** nên cùng một vùng luôn ra đúng một hình dạng
 dù server khởi động lại bao nhiêu lần. Đổi `seed` là đổi bản đồ — đã có người
 chơi thì đừng đụng vào.
+
+### 6b.0 Vùng an toàn
+
+`safe: true` trong `server/data/zones.js` tắt bốn đường một lúc: đổ đầy quái,
+hẹn giờ Thủ Lĩnh, dò va chạm, và đồng hồ Thủ Lĩnh gửi cho client. **Bỏ sót một
+đường là người chơi bị kéo vào trận ngay giữa chợ**, nên cả bốn đều đọc chung
+một cờ `room.safe` thay vì hỏi lại `zone.safe` ở từng chỗ.
+
+Bản đồ thị trấn dựng bằng `buildTown` chứ không phải `buildWild`: một quảng
+trường rộng, quanh rìa là xe hàng dựng thành cụm nhỏ. Ba luật giữ cho nó luôn
+đi lại được mà **không cần chạy thuật toán kiểm tra liên thông**:
+
+1. Cụm tối đa 2 ô — không cụm nào đủ dài để quây kín một góc.
+2. Chừa 2 ô sát viền, nên lúc nào cũng có một vòng hành lang chạy quanh.
+3. Chừa hẳn quảng trường 11×11 quanh thương nhân.
+
+Vùng an toàn **không nằm trong `zones.defaultFor()`** — nó mở từ cấp 1, nên tính
+vào đó thì ai không chọn bản đồ cũng bị thả vào thị trấn, nơi không có gì để đánh.
 
 ### 6b.1 Quái tăng theo cấp vùng
 
@@ -574,20 +719,69 @@ cũ, nên phần đầu game không đổi.
 
 ---
 
+## 6c. Mua bán với thương nhân
+
+🔒 **Ganne Vạn Hải** đứng giữa quảng trường Bến Cảng Duskmoor. Đứng cạnh rồi bấm
+**E** để mở hai tab **Mua** và **Bán**.
+
+Trước khi có ông ta, vàng chỉ có đường vào: đánh xong cộng thêm, không bao giờ
+tiêu đi đâu được. Một con số chỉ tăng thì sau vài giờ chơi nó thôi mang ý nghĩa.
+
+### 6c.1 Ba luật chi phối mọi con số
+
+**1. Quầy hàng KHÔNG bán đồ hạng cao.** Chỉ Thường · Tinh Xảo · Hiếm. Mua được
+đồ Sử Thi và Truyền Thuyết thì cả hệ thống rớt đồ mất ý nghĩa — đi săn Thủ Lĩnh
+làm gì khi đứng ở chợ bấm nút là có?
+
+**2. Bán rẻ hơn mua rất nhiều.** `BUY_MULT = 3.2` cộng phí hai đầu cho ra chênh
+lệch 4–5 lần, đủ chặn cái vòng lặp mua đi bán lại để đẻ vàng từ không khí.
+
+**3. Quầy hàng không quay lại được.** Hạt giống buộc vào **(nhân vật, khung 10
+phút)**, nên thoát phòng rồi vào lại vẫn thấy đúng những món cũ. Không có ràng
+buộc đó thì quầy biến thành máy quay xổ số: cứ ra vào tới lúc hiện ra món vừa ý,
+và luật số 1 cũng chẳng chặn được gì vì quay đủ lâu là gom được cả bộ Hiếm.
+
+### 6c.2 Giá
+
+```
+giá gốc = 9 × cấp × hệ_số_hạng        (Thường 1 · Tinh Xảo 1,7 · Hiếm 3,4 · Sử Thi 7 · Truyền Thuyết 15)
+bán     = giá gốc × (1 − phí)
+mua     = giá gốc × 3,2 × (1 + phí)
+```
+
+**Phí giao dịch 25%**, và Duskmoor trả đúng một nửa. Đây là chỗ
+`tradeFeePercent` trong `data/nations.js` cuối cùng có tác dụng thật — trước đó
+nó chỉ là một dòng mô tả trên màn tạo nhân vật, không nơi nào trong game đọc tới.
+
+Giá hiện luôn trên từng dòng thay vì để client tự nhân: hai bản công thức ở hai
+nơi là kiểu lệch nhau âm thầm mà **chỉ người chơi Duskmoor mới phát hiện ra**.
+
+### 6c.3 Chống gian lận
+
+**Mọi lệnh mua bán đều kiểm tra khoảng cách ở server** (`room.npcNear`), không
+tin cái nút mà client vẽ ra — sửa vài dòng JS là gọi thẳng `shop:buy` từ giữa
+Vực Băng, và ý nghĩa duy nhất của việc đi bộ về thị trấn biến mất.
+
+**Bán không bao giờ đụng tới đồ đang mặc**, cùng lý do với `inventory.discardMany`:
+tick chọn mười mấy ô rồi bấm bán, một cái tick lỡ tay mà lột luôn món trên người
+thì không có đường cứu.
+
+---
+
 ## 7. Thứ tự xây dựng
 
-| GĐ | Nội dung | Trạng thái |
-|---|---|---|
-| **0** | Khung mạng, phòng, di chuyển đồng bộ | ✅ **Xong** — đang chạy |
-| **1** | Tài khoản, đăng nhập, lưu nhân vật vào MySQL | ✅ **Xong** — cả giao diện lẫn lưu tiến trình |
-| **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | ✅ **Xong** — tối đa 3 nhân vật/tài khoản |
-| **3** | **Chiến đấu turn-based PvE** — layout, vòng lượt, 4 loại quái | ✅ **Xong** — chạy trên production |
-| **5** | Trang bị 10 ô + rơi đồ + 5 hạng + bảng nhân vật | ✅ **Xong** — chạy trên production |
-| **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động | ✅ **Xong** |
-| **6** | Cây Dị Điển + sách kỹ năng | ✅ **Xong** — 10 ô, sách có kỹ năng thật |
-| **7** | Quái Tinh Anh / Thủ Lĩnh + cơ chế riêng | |
-| **8** | Đổi class ở mốc level | |
-| **9** | *PvP — hoãn, làm sau cùng* | |
+| GĐ         | Nội dung                                                                            | Trạng thái                                              |
+| ----------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| **0** | Khung mạng, phòng, di chuyển đồng bộ                                           | ✅**Xong** — đang chạy                           |
+| **1** | Tài khoản, đăng nhập, lưu nhân vật vào MySQL                                | ✅**Xong** — cả giao diện lẫn lưu tiến trình |
+| **2** | Tạo nhân vật: 12 Đặc Ân (bốc + 3 lần rút lại) · 4 quốc gia · 5 chỉ số | ✅**Xong** — tối đa 3 nhân vật/tài khoản     |
+| **3** | **Chiến đấu turn-based PvE** — layout, vòng lượt, 4 loại quái         | ✅**Xong** — chạy trên production                |
+| **5** | Trang bị 10 ô + rơi đồ + 5 hạng + bảng nhân vật                             | ✅**Xong** — chạy trên production                |
+| **4** | Cây Nền 2 class + hệ mana/nộ + kỹ năng chủ động                             | ✅**Xong**                                          |
+| **6** | Cây Dị Điển + sách kỹ năng                                                    | ✅**Xong** — 10 ô, sách có kỹ năng thật      |
+| **7** | Quái Tinh Anh / Thủ Lĩnh + cơ chế riêng                                        |                                                           |
+| **8** | Đổi class ở mốc level                                                            |                                                           |
+| **9** | *PvP — hoãn, làm sau cùng*                                                     |                                                           |
 
 **Đã lưu xuống database:** cấp, kinh nghiệm, vàng, 5 chỉ số + điểm chưa tiêu,
 lớp, Cây Nền đã học, bộ chiêu mang theo, 10 ô Dị Điển, sách chưa gắn, 10 ô trang
@@ -606,11 +800,11 @@ gõ tên nhân vật, cướp mất cái đó là gây khó chịu vô cớ.
 
 Chuột phải vào trang bị / vật phẩm / kỹ năng mở menu nhỏ:
 
-| Mục | Ghi chú |
-|---|---|
-| 🔍 Xem chi tiết | Cửa sổ đầy đủ: chỉ số, bị động, ô lắp |
-| ⬆ Mặc vào / ↩ Tháo ra | Tuỳ món đang ở túi hay đang mặc |
-| 🗑 Vứt bỏ | **Luôn hỏi lại.** Đồ hạng Hiếm trở lên cảnh báo mạnh hơn |
+| Mục                       | Ghi chú                                                                    |
+| -------------------------- | --------------------------------------------------------------------------- |
+| 🔍 Xem chi tiết           | Cửa sổ đầy đủ: chỉ số, bị động, ô lắp                          |
+| ⬆ Mặc vào / ↩ Tháo ra | Tuỳ món đang ở túi hay đang mặc                                      |
+| 🗑 Vứt bỏ                | **Luôn hỏi lại.** Đồ hạng Hiếm trở lên cảnh báo mạnh hơn |
 
 Nguyên tắc: mọi hành động không hoàn tác được đều phải qua hộp xác nhận. Mất một
 món Truyền Thuyết vì lỡ tay là chuyện người chơi sẽ nhớ rất lâu.
@@ -623,6 +817,7 @@ Không cản trở giai đoạn 1–3, quyết sau cũng được:
 
 1. ❓ Đổi quốc gia có được không? (đề xuất: **không**)
 2. ❓ Level tối đa và tốc độ lên cấp
-3. ❓ Có giao dịch giữa người chơi không? (ảnh hưởng thiết kế Duskmoor)
+3. ❓ Có giao dịch **giữa người chơi với nhau** không? (mua bán với NPC đã xong
+   ở §6c — câu hỏi còn lại là đổi đồ trực tiếp hoặc chợ ký gửi)
 4. ❓ Bản đồ: một thế giới chung hay chia khu vực theo level?
-5. ❓ Chết thì mất gì — kinh nghiệm, vàng, hay không mất gì?
+5. ✅ ~~Chết thì mất gì~~ — **kinh nghiệm, và chỉ kinh nghiệm.** Xem §5.2f.

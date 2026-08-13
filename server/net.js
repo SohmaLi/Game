@@ -10,6 +10,9 @@ const progression = require('./progression');
 const tree = require('./data/skilltree');
 const classData = require('./data/classes');
 const skillData = require('./data/skills');
+const npcData = require('./data/npcs');
+const shop = require('./shop');
+const party = require('./party');
 
 /** Làm sạch tên người chơi trước khi cho vào hệ thống. */
 function sanitizeName(raw) {
@@ -72,7 +75,18 @@ function attach(io) {
           zone: {
             id: zone.id, name: zone.name, desc: zone.desc,
             levelMin: zone.levelMin, levelMax: zone.levelMax, theme: zone.theme,
+            safe: !!zone.safe,
           },
+          /**
+           * Người bán hàng gửi MỘT LẦN cùng bản đồ, không nhét vào `state`.
+           *
+           * Họ đứng yên vĩnh viễn — bắn lại toạ độ 15 lần mỗi giây chỉ để nói
+           * rằng không có gì thay đổi là đúng thứ lãng phí mà cả file này đang
+           * cố tránh.
+           */
+          npcs: room.npcs.map((n) => ({ id: n.id, name: n.name, role: n.role, sprite: n.sprite, x: n.x, y: n.y })),
+          talkRadius: npcData.TALK_RADIUS,
+          maxParty: party.MAX_PARTY,
           tickHz: cfg.TICK_HZ,
           character,
           // Người mới vào phòng luôn ở chế độ khám phá — không bị kéo vào trận
@@ -134,7 +148,9 @@ function attach(io) {
         return ack?.({ ok: false, error: 'Đang trong trận — đánh xong rồi làm.' });
       }
 
-      const res = fn(p, payload);
+      // `room` là tham số thứ ba để mấy việc cần biết mình đang đứng ở đâu
+      // (mua bán với người bán hàng) dùng chung được cái vỏ gác này
+      const res = fn(p, payload, room);
       if (res?.ok) {
         room.sendCharacter(p);
         room.saveProgress(p);
@@ -270,6 +286,43 @@ function attach(io) {
       return { ok: true, replaced: old?.name || null };
     }));
 
+    /* ------------------------------------------------ mua bán ---------- */
+
+    /**
+     * Mọi việc với người bán hàng đều phải ĐỨNG CẠNH ông ta.
+     *
+     * Kiểm tra khoảng cách ở server chứ không tin cái nút mà client vẽ ra: sửa
+     * vài dòng JS là gọi thẳng `shop:buy` từ giữa Vực Băng, và cái ý nghĩa duy
+     * nhất của việc đi bộ về thị trấn biến mất.
+     */
+    const atShop = (fn) => invAction((p, d, room) => {
+      const npc = room.npcNear(p, d.npcId || 'merchant');
+      if (!npc) return { ok: false, error: 'Phải đứng cạnh người bán hàng.' };
+
+      const res = fn(p, d, npc);
+      // Trả kèm quầy hàng đã cập nhật: giá bán phụ thuộc túi đồ vừa đổi, nên
+      // client mà tự sửa tại chỗ thì lệch ngay sau món thứ hai
+      return res?.ok ? { ...res, state: shop.stateFor(p, npc) } : res;
+    });
+
+    socket.on('shop:state', (payload = {}, ack) => {
+      const room = manager.roomOf(socket);
+      const p = room?.players.get(socket.id);
+      if (!p) return ack?.({ ok: false, error: 'Chưa ở trong phòng nào.' });
+
+      const npc = room.npcNear(p, payload.npcId || 'merchant');
+      if (!npc) return ack?.({ ok: false, error: 'Phải đứng cạnh người bán hàng.' });
+
+      ack?.({ ok: true, state: shop.stateFor(p, npc) });
+    });
+
+    socket.on('shop:buy', atShop((p, d) => shop.buy(p, d.uid, inventory)));
+
+    // Client gửi thẳng danh sách uid, cùng lý do với `inv:discardMany`: server
+    // không nhận điều kiện lọc kiểu "bán hết hạng Thường", vì một lỗi lọc ở
+    // server là quét sạch túi của người chơi. Lọc là việc của giao diện.
+    socket.on('shop:sell', atShop((p, d) => shop.sell(p, d.uids)));
+
     socket.on('character:get', (payload, ack) => {
       const room = manager.roomOf(socket);
       const p = room?.players.get(socket.id);
@@ -300,7 +353,12 @@ function attach(io) {
 
       const res = room.party.invite(from, to);
       if (res.ok) {
-        io.to(to.id).emit('party:invited', { fromId: from.id, fromName: from.name });
+        // Gửi kèm hạn lời mời thay vì để client tự viết 30 giây: đổi hằng số ở
+        // `party.js` mà quên sửa client thì đồng hồ đếm ngược chạy tới 0 trong
+        // khi lời mời còn sống, hoặc tệ hơn là ngược lại
+        io.to(to.id).emit('party:invited', {
+          fromId: from.id, fromName: from.name, ttl: party.INVITE_TTL,
+        });
       }
       ack?.(res);
     });
@@ -333,20 +391,10 @@ function attach(io) {
       const me = room?.players.get(socket.id);
       if (!me) return ack?.({ ok: false });
 
-      const res = room.party.leave(me);
+      // Cùng một đường với lúc mất kết nối (`Room.dropFromParty`) — hai bản sao
+      // của cùng một việc là hai chỗ để quên cập nhật một người
+      room.dropFromParty(me);
       room.sendCharacter(me);
-      if (res?.party) {
-        for (const id of res.party.members) {
-          const m = room.players.get(id);
-          if (m) room.sendCharacter(m);
-        }
-        io.to(res.party.members).emit('party:changed', { left: me.name });
-      }
-      // Nhóm tan thì người còn lại cũng phải được cập nhật
-      if (res?.orphan) {
-        const o = room.players.get(res.orphan);
-        if (o) { o.partyId = null; room.sendCharacter(o); }
-      }
       ack?.({ ok: true });
     });
 
