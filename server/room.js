@@ -10,6 +10,7 @@ const itemData = require('./data/items');
 const npcData = require('./data/npcs');
 const classData = require('./data/classes');
 const tree = require('./data/skilltree');
+const respec = require('./respec');
 const skillData = require('./data/skills');
 const statsLib = require('./stats');
 const { PartyManager } = require('./party');
@@ -186,6 +187,8 @@ class Room {
         : Array(tree.CODEX_SLOTS).fill(null),
       books: character?.books || [],
       skillRanks: character?.skillRanks || {},
+      bookRanks: character?.bookRanks || {},
+      mastery: character?.mastery || {},
 
       partyId: null,   // nhóm đang tham gia
       battleId: null,  // trận đang đánh, null khi đang khám phá
@@ -646,6 +649,7 @@ class Room {
       monsterDefs,
       io: this.io,
       channel,
+      zone: this.zone,
       boss: !!opts.boss,
       maxAllies: opts.boss ? cfg.BOSS.maxPlayers : this.maxPlayers,
       onEnd: (b, result, rewards) => {
@@ -853,7 +857,7 @@ class Room {
   modsOf(p) {
     return statsLib.mergeMods(
       inventory.bonuses(p.inv),
-      tree.bonuses(p.className, p.learned)
+      tree.bonuses(p.className, p.learned, p.mastery)
     );
   }
 
@@ -903,9 +907,12 @@ class Room {
       classes: classData.all().map((c) => ({ id: c.id, name: c.name, role: c.role, desc: c.desc })),
       tree: p.className ? tree.publicTree(p.className, p) : [],
       skillPoints: p.className
-        ? tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks)
+        ? tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks, p.bookRanks, p.mastery)
         : tree.pointsEarned(p.level),
       maxSkillRank: tree.MAX_SKILL_RANK,
+      mastery: tree.publicMastery(p),
+      masteryCapacity: tree.MASTERY_CAPACITY,
+      respecPrice: respec.prices(p.level),
       learned: p.learned,
       carried: p.carried,
       maxLoadout: skillData.MAX_LOADOUT,

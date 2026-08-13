@@ -17,6 +17,8 @@ const boons = require('../server/data/boons');
 const zones = require('../server/data/zones');
 const inventory = require('../server/inventory');
 const items = require('../server/data/items');
+const statsLib = require('../server/stats');
+const tree = require('../server/data/skilltree');
 
 const RUNS = parseInt(process.argv[2], 10) || 300;
 
@@ -117,7 +119,13 @@ for (const b of boons.BOONS) {
  * cùng cấp. Đây mới là đối thủ thật của quái vùng cao — so quái cấp 50 với một
  * nhân vật trần trụi chỉ số gốc thì con số nào cũng vô nghĩa.
  */
-function levelledPlayer(i, level) {
+/**
+ * Tinh Thông của một Chiến Binh cấp 60 dồn hết 21 điểm dư — kịch bản NẶNG nhất
+ * mà hệ này tạo ra. Đo đúng nó để biết trần trên, không đo một mức nửa vời.
+ */
+const MASTERY_MAX = { mst_body: 5, mst_force: 5, mst_guard: 2, mst_edge: 1 };   // đúng 21 điểm
+
+function levelledPlayer(i, level, mastery = null) {
   const pts = 3 * (level - 1);
   const stats = { str: 5, int: 5, vit: 5, agi: 5, wil: 5 };
   stats.str += Math.round(pts * 0.40);
@@ -128,9 +136,14 @@ function levelledPlayer(i, level) {
   const inv = inventory.create();
   for (const slot of items.SLOT_IDS) inv.equipped[slot] = items.generate(level, {});
 
+  // Tinh Thông đi CHUNG một bảng cộng thêm với trang bị, đúng như `Room.modsOf`
+  const equip = mastery
+    ? statsLib.mergeMods(inventory.bonuses(inv), tree.bonuses(null, [], mastery))
+    : inventory.bonuses(inv);
+
   return {
     id: `p${i}`, name: `NguoiChoi${i}`, level, stats,
-    equip: inventory.bonuses(inv),
+    equip,
     nation: null, boonId: null, className: null,
   };
 }
@@ -216,6 +229,19 @@ for (const z of HUNTING) {
   report(`${z.name} · 2 người`, () => runBattle(
     Array.from({ length: 2 }, (_, i) => levelledPlayer(i, lv)), [elite()]
   ));
+}
+
+/**
+ * Tinh Thông là CHỖ CHỨA điểm thừa, không phải một tầng sức mạnh mới. Hai bảng
+ * dưới đây phải gần nhau: chênh vài phần trăm thắng là đúng ý đồ, chênh hai
+ * chục phần trăm nghĩa là mỗi nấc đang cho quá nhiều.
+ */
+console.log('\n--- Tinh Thông: dồn hết 21 điểm dư (so với không có gì) ---');
+for (const z of HUNTING) {
+  const lv = z.levelMax;
+  const elite = () => monsterData.scaled(monsterData.randomFrom(z.elites, 'elite'), lv);
+  report(`${z.name} · Tinh Anh · trắng`, () => runBattle([levelledPlayer(0, lv)], [elite()]));
+  report(`${z.name} · Tinh Anh · full`, () => runBattle([levelledPlayer(0, lv, MASTERY_MAX)], [elite()]));
 }
 
 console.log('\n--- Thủ Lĩnh (một mình vs cả nhóm 5) ---');

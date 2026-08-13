@@ -210,6 +210,75 @@ Chém Mạnh giá 25 phải đợi tới vòng 4, mà trận với quái thườ
 vòng — chiêu đặc trưng của Chiến Binh gần như không bao giờ dùng được. Đã chỉnh
 lên tích 16/đòn, tan 4/vòng: dùng được từ vòng 2.
 
+### 3.3c Tinh Thông — chỗ tiêu điểm kỹ năng dư
+
+🔒 Đếm cho hết mọi chỗ tiêu điểm của một Chiến Binh **cấp 60**:
+
+| Chỗ tiêu | Điểm |
+|---|---:|
+| Cây Nền (9 nút) | 15 |
+| Nâng bậc 6 chiêu chủ động (4 nấc × 6) | 24 |
+| **Tổng** | **39** |
+| Nhận được tới cấp 60 | 60 |
+| **Dư ra, không tiêu vào đâu được** | **21** |
+
+Đúng con số người chơi báo lại. Ai không lấp đầy 10 ô Dị Điển bằng chiêu nâng
+bậc được thì dư còn nhiều hơn.
+
+🔒 **Sáu dòng, mỗi dòng 5 nấc, giá tăng dần `1 · 1 · 2 · 2 · 3`.**
+
+| Dòng | Mỗi nấc | Đi hết dòng |
+|---|---|---|
+| Thể Phách | +1% Máu tối đa | +5% |
+| Cường Kích | +1% Sát thương vật lý | +5% |
+| Ma Lực | +1% Sát thương phép | +5% |
+| Kiên Giáp | +1,5% Giáp | +7,5% |
+| Huyền Kháng | +1,5% Kháng phép | +7,5% |
+| Tinh Chuẩn | +0,5% Tỉ lệ chí mạng | +2,5% |
+
+Một dòng đi hết tốn **9 điểm**, cả sáu dòng tốn **54** — nhiều gấp đôi rưỡi số
+điểm dư, nên không ai gom đủ. 21 điểm mua được đúng **hai dòng đầy và một chút**.
+
+💡 Vì sao giá tăng dần chứ không phẳng: giá phẳng thì 21 điểm rải đều cả sáu
+dòng, và ai cấp 60 cũng giống hệt nhau. Giá tăng dần ép chọn.
+
+⚠️ **Bẫy đã vấp — đo mới biết.** Bản đầu để giá phẳng 1 điểm/nấc và mỗi nấc
+2–2,5%. `tools/simulate.js` cho ra:
+
+| Vùng | Tinh Anh đi lẻ, không Tinh Thông | dồn hết 21 điểm |
+|---|---:|---:|
+| Đồng Cỏ | 61% | **82%** |
+| Vực Băng | 63% | **79%** |
+| Đền Đài Hư Không | 71% | **86%** |
+
+Cộng gần hai chục điểm phần trăm — đó không còn là chỗ chứa điểm thừa, đó là
+một tầng sức mạnh mới. Hạ mỗi nấc xuống một nửa **và** đổi sang giá tăng dần
+đưa mức chênh về **+4 đến +12 điểm phần trăm** (trung bình ~7). Đó mới là con
+số đúng: đáng đầu tư, không trivial hoá nội dung cấp trần.
+
+### 3.3d Rửa điểm
+
+🔒 Hai loại điểm, hai nút riêng, **trả bằng vàng**:
+
+| Rửa | Trả lại | Giá (cấp 10 · 30 · 60) |
+|---|---|---|
+| **Chỉ số** | mọi chỉ số về 5, hoàn lại `3 × (cấp − 1)` điểm | 600 · 5.400 · 21.600 |
+| **Kỹ năng** | Cây Nền + bậc từng chiêu + Tinh Thông về 0 | 1.000 · 9.000 · 36.000 |
+
+Giá tăng theo **bình phương cấp** vì vàng kiếm được cũng tăng nhanh hơn tuyến
+tính (53 vàng/con ở vùng cấp 10, 986 ở vùng cấp 60). Quy ra số quái phải hạ,
+giá gần như phẳng ở mọi cấp: 11–30 con cho chỉ số, 19–50 con cho kỹ năng.
+
+💡 Vì sao không miễn phí: rửa miễn phí thì không còn quyết định nào là quyết
+định — cứ đổi qua đổi lại trước mỗi trận. Vì sao phải có: cả hai loại điểm đều
+tiêu là mất, mà người chơi chỉ biết mình dồn sai sau vài chục giờ. Không có
+đường sửa thì lựa chọn duy nhất là bỏ nhân vật làm lại từ cấp 1.
+
+🔒 **Rửa kỹ năng KHÔNG đụng tới Dị Điển.** Sách đã gắn là tài sản, không phải
+lựa chọn phân bổ. Bộ mang theo giữ lại đúng những chiêu vẫn còn mở — xoá trắng
+thì người chơi vào trận sau khi rửa chỉ còn hai chiêu bẩm sinh mà không hiểu
+vì sao.
+
 ### 3.4 Quy tắc ô Dị Điển
 
 🔒 Ô đã gắn **thay đổi được**, nhưng **thay thì xóa vĩnh viễn** kỹ năng đang gắn.
@@ -217,6 +286,34 @@ lên tích 16/đòn, tan 4/vòng: dùng được từ vòng 2.
 💡 Hệ quả cần lường trước: người chơi sẽ **sợ gắn nhầm** và để trống ô, chờ sách tốt hơn.
 Cách giảm bớt: cho **xem trước đầy đủ** hiệu ứng sách trước khi gắn, và hiện cảnh báo xác
 nhận rõ ràng khi thay ô đã có.
+
+#### Bốn đường ra của một cuốn sách
+
+Mười ô, mà sách thì rơi mãi — nên mỗi cuốn phải có chỗ để đi. Luật nằm trong
+`server/codex.js`, `net.js` chỉ là cửa vào.
+
+| Thao tác | Điều kiện | Chuyện xảy ra |
+|---|---|---|
+| **Gắn** vào ô trống | kỹ năng đó **chưa chiếm ô nào** | chiêu tự vào bộ mang theo nếu còn chỗ |
+| **Gắn đè** lên ô đã có | như trên | sách cũ xoá vĩnh viễn, chiêu cũ rời bộ mang theo |
+| **Tiêu để nâng bậc** | trùng kỹ năng **đang gắn**, chưa kịch bậc | +1 bậc, **miễn phí** — không tốn điểm kỹ năng |
+| **Gỡ khỏi ô** | ô đang có sách | sách xoá vĩnh viễn, bậc mua bằng điểm hoàn lại |
+| **Vứt** / **Bán** | sách **chưa gắn** | bán được cho thương nhân ở Duskmoor |
+
+🔒 **Một kỹ năng chỉ chiếm MỘT ô.** Bậc tra theo `skillId`, nên ô thứ hai của cùng
+một chiêu không cho thêm gì cả: cùng chiêu đó, cùng bậc đó, chỉ mất một ô trong
+mười — và giao diện không có cách nào cho thấy điều đó, hai ô hiện y hệt nhau.
+
+🔒 **Bậc lên bằng sách không tính là điểm kỹ năng đã tiêu.** Đây là lý do tồn tại
+của `book_ranks` trong database: `skill_ranks` ghi tổng số bậc, `book_ranks` ghi
+phần trong đó đến từ sách. Không tách hai thứ này thì mỗi cuốn Dị Điển "miễn phí"
+lại lặng lẽ lấy mất một điểm kỹ năng, mãi mãi.
+
+🔒 **Gỡ ô thì bậc phải quên hẳn** — nhưng chỉ khi kỹ năng không còn đường nào khác
+để dùng (Cây Nền có sẵn chiêu đó, hay một ô khác cũng gắn nó). Để bậc nằm lại là
+khoá vĩnh viễn một khoản điểm vào thứ không dùng được nữa; xoá lúc còn dùng được
+là cướp không của người chơi. Phần bậc đến từ sách mất theo, không đổi ngược thành
+điểm — nếu không thì gắn → tiêu sách → gỡ là một cỗ máy in điểm kỹ năng.
 
 ### 3.5 Phân loại kỹ năng
 
@@ -542,6 +639,34 @@ Chỉ trở thành vấn đề khi có PvP hoặc xếp hạng.
 | **Con Người** | Cướp đường, lính đánh thuê, tà giáo | Có trang bị, biết dùng chiến thuật |
 | **Xác Sống**  | Bộ hài cốt, thây ma, oán linh             | Chậm, dai máu, gây hiệu ứng xấu    |
 
+### 6.1b Đồ rơi: cấp theo NGƯỜI CHƠI, hạng theo BẢN ĐỒ
+
+🔒 Hai thứ tách nhau vì chúng trả lời hai câu khác nhau: **cấp** là "món này có
+dùng được không", **hạng** là "món này có đáng không".
+
+⚠️ **Bẫy đã vấp:** trước đây cả hai đều bám theo con quái vừa hạ, nên một người
+cấp 60 đi ngang Đồng Cỏ chỉ nhặt được đồ cấp 5 — rác tuyệt đối, nhặt lên chỉ để
+vứt, và cả vùng đó thành chỗ chết. Cùng lúc đó, phẩm chất ở vùng dễ với vùng khó
+y hệt nhau: đứng chỗ an toàn cày lâu cũng ra Truyền Thuyết.
+
+Mỗi vùng có `difficulty` 1–6, quy ra hệ số nhân vào trọng số của Hiếm · Sử Thi ·
+Truyền Thuyết (`zones.qualityOf`, cùng chỗ với Duyên Kho Báu). Đo 200.000 lần bốc:
+
+| Vùng | Hệ số | Thường | Tinh Xảo | Hiếm | Sử Thi | T.Thuyết |
+|---|---:|---:|---:|---:|---:|---:|
+| Đồng Cỏ | 1,00 | 60,2% | 27,1% | 9,7% | 2,6% | 0,45% |
+| Rừng Sương Mù | 1,45 | 57,0% | 25,6% | 13,1% | 3,7% | 0,56% |
+| Hoang Mạc | 1,90 | 53,9% | 24,4% | 16,3% | 4,7% | 0,70% |
+| Vực Băng | 2,35 | 51,5% | 22,9% | 19,3% | 5,5% | 0,83% |
+| Đỉnh Bão Tố | 2,80 | 49,0% | 22,1% | 21,9% | 6,2% | 0,91% |
+| Đền Đài Hư Không | 3,25 | 46,8% | 21,1% | 24,3% | 6,8% | 1,06% |
+
+💡 Kinh nghiệm và vàng **vẫn** theo con quái, không theo người chơi — nếu không
+thì Đồng Cỏ nuôi được nhân vật lên tới cấp 60.
+
+💡 Truyền Thuyết ở vùng khó nhất vẫn chỉ hơn 1%: đủ để đáng đi tìm, không đủ để
+thành thứ nhặt hàng ngày.
+
 ### 6.2 Phân hạng
 
 🔒 Mọi quái có đánh thường + 1 kỹ năng chủ chốt · quái cấp cao có thêm kỹ năng.
@@ -755,6 +880,27 @@ nó chỉ là một dòng mô tả trên màn tạo nhân vật, không nơi nà
 
 Giá hiện luôn trên từng dòng thay vì để client tự nhân: hai bản công thức ở hai
 nơi là kiểu lệch nhau âm thầm mà **chỉ người chơi Duskmoor mới phát hiện ra**.
+
+### 6c.2b Bán sách Dị Điển
+
+🔒 Mười ô Dị Điển, mà sách thì rơi mãi. Sách trùng một kỹ năng **chưa gắn ô nào**
+từng là rác tuyệt đối: gắn thì phí ô, tiêu nâng bậc thì không được, vứt cũng
+không xong.
+
+```
+giá sách = 9 × cấp NGƯỜI BÁN × hệ_số_hạng     (quái thường 4 · Tinh Anh 8 · Thủ Lĩnh 16)
+```
+
+💡 Theo cấp người bán chứ không theo con quái đã rơi ra nó, vì hai lý do. Sách
+cũ trong database không lưu cấp — tính theo nó là cả kho của người chơi cũ bỗng
+đáng một đồng. Và một cuốn Dị Điển đáng bao nhiêu là tuỳ nó làm được gì cho anh
+**bây giờ**, không phải tuỳ con quái đã chết từ ba chục cấp trước.
+
+🔒 Hạng vẫn kể: sách Thủ Lĩnh đắt gấp **4 lần** sách quái thường — đúng tỉ lệ
+hiếm 40% so với 5%.
+
+🔒 **Chỉ bán được sách CHƯA gắn.** Sách trong ô là kỹ năng đang dùng, muốn bán
+thì gỡ ra trước — và gỡ ra là xoá vĩnh viễn.
 
 ### 6c.3 Chống gian lận
 

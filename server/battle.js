@@ -6,6 +6,7 @@ const monsterData = require('./data/monsters');
 const boons = require('./data/boons');
 const nations = require('./data/nations');
 const loot = require('./loot');
+const zones = require('./data/zones');
 const classData = require('./data/classes');
 const tree = require('./data/skilltree');
 
@@ -123,12 +124,18 @@ class Battle {
    *                   false: không đặt hẹn giờ nào — dùng cho trình mô phỏng cân bằng,
    *                   nơi cần chạy hàng trăm trận trong một giây.
    */
-  constructor({ allies, monsterDefs, io, channel, onEnd, onLeave, boss = false, maxAllies = 10, auto = true }) {
+  constructor({ allies, monsterDefs, io, channel, onEnd, onLeave, zone = null, boss = false, maxAllies = 10, auto = true }) {
     this.id = `b${nextBattleId++}`;
     this.io = io;
     this.channel = channel;
     this.onEnd = onEnd;
     this.onLeave = onLeave;
+    /**
+     * Vùng diễn ra trận đánh. Chỉ dùng lúc chia chiến lợi phẩm: HẠNG đồ rơi ra
+     * bám theo độ khó của vùng (`zones.qualityOf`), trong khi CẤP đồ bám theo
+     * cấp người nhận. Trận nào không khai vùng thì rơi như vùng dễ nhất.
+     */
+    this.zone = zone;
     /**
      * Trận Thủ Lĩnh mở cho mọi người: ai chạm vào cũng nhảy vào giữa chừng
      * được, và ai trốn thoát thì chỉ mình người đó rút — không kéo theo những
@@ -773,7 +780,11 @@ class Battle {
         const nation = nations.get(ally.nation);
         const goldBonus = nation?.privilege.effect.goldPercent || 0;
 
-        const roll = loot.rollBattleLoot(killed, { luck, goldBonus, partySize });
+        const roll = loot.rollBattleLoot(killed, {
+          luck, goldBonus, partySize,
+          playerLevel: ally.level,
+          quality: zones.qualityOf(this.zone),
+        });
         exp = roll.exp;
         gold = Math.max(gold, roll.gold);
         perPlayer[ally.id] = { gold: roll.gold, drops: roll.drops, books: roll.books };

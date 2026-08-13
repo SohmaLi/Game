@@ -34,6 +34,7 @@ const ZONES = [
   {
     id: 'duskmoor', name: 'Bến Cảng Duskmoor',
     levelMin: 1, levelMax: 60, seed: 7_777,
+    difficulty: 0,   // không có quái nên không rơi gì — khai cho khỏi phải đoán
     safe: true,
     desc: 'Không có gì ngoài kia bò được qua cổng thành. Chỗ duy nhất trên lục địa mà cất kiếm đi vẫn sống.',
     monsters: [],
@@ -44,6 +45,7 @@ const ZONES = [
   {
     id: 'meadow', name: 'Đồng Cỏ Thanh Bình',
     levelMin: 1, levelMax: 10, seed: 1_337,
+    difficulty: 1,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Cỏ cao tới gối và những con sói chưa biết sợ người.',
     monsters: ['grey_wolf', 'bandit'],
     elites: ['cliff_bear'],
@@ -53,6 +55,7 @@ const ZONES = [
   {
     id: 'mistwood', name: 'Rừng Sương Mù',
     levelMin: 11, levelMax: 20, seed: 4_211,
+    difficulty: 2,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Sương dày tới mức không thấy thứ đang bò trên cây.',
     monsters: ['mist_spider', 'grey_wolf', 'bandit'],
     elites: ['fog_reaver'],
@@ -62,6 +65,7 @@ const ZONES = [
   {
     id: 'bonewaste', name: 'Hoang Mạc Xương Trắng',
     levelMin: 21, levelMax: 30, seed: 9_090,
+    difficulty: 3,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Cát ở đây trắng vì nó không phải cát.',
     monsters: ['skeleton', 'bone_archer'],
     elites: ['bone_champion'],
@@ -71,6 +75,7 @@ const ZONES = [
   {
     id: 'frostmaw', name: 'Vực Băng Vĩnh Cửu',
     levelMin: 31, levelMax: 40, seed: 15_517,
+    difficulty: 4,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Lạnh đến mức tiếng động cũng đóng băng giữa chừng.',
     monsters: ['frost_revenant', 'bone_archer'],
     elites: ['frost_warden'],
@@ -80,6 +85,7 @@ const ZONES = [
   {
     id: 'stormpeak', name: 'Đỉnh Bão Tố',
     levelMin: 41, levelMax: 50, seed: 27_733,
+    difficulty: 5,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Nơi cao nhất lục địa, và cũng là nơi ít người trở về nhất.',
     monsters: ['storm_cultist', 'frost_revenant'],
     elites: ['thunder_zealot'],
@@ -89,6 +95,7 @@ const ZONES = [
   {
     id: 'voidshrine', name: 'Đền Đài Hư Không',
     levelMin: 51, levelMax: 60, seed: 51_601,
+    difficulty: 6,   // phẩm chất đồ rơi — xem QUALITY_STEP
     desc: 'Bão Tố xé toạc một phế tích chôn vùi hàng ngàn năm — thứ bò ra từ khe nứt đó không thuộc về thế giới này.',
     monsters: ['void_wraith', 'void_eye'],
     elites: ['void_sentinel'],
@@ -96,6 +103,24 @@ const ZONES = [
     theme: { floorA: '#182418', floorB: '#1b281b', wall: '#2c3a24', wallTop: '#3d4f30', accent: '#c48bff' },
   },
 ];
+
+/**
+ * PHẨM CHẤT ĐỒ RƠI THEO VÙNG (DESIGN.md §6.1b).
+ *
+ * Cấp món đồ bám theo **cấp người chơi**, còn **hạng** thì bám theo vùng. Hai
+ * thứ tách nhau vì chúng trả lời hai câu khác nhau: cấp là "món này có dùng
+ * được không", hạng là "món này có đáng không".
+ *
+ * Trước đây cả hai đều bám theo con quái, nên một người cấp 60 đi ngang Đồng Cỏ
+ * nhặt được toàn đồ cấp 5 — rác tuyệt đối, nhặt lên chỉ để vứt. Còn bây giờ
+ * vùng dễ vẫn cho đồ mặc được, chỉ là gần như không bao giờ lên hạng cao; muốn
+ * đồ Sử Thi với Truyền Thuyết thì phải đi vào chỗ khó.
+ *
+ * Hệ số nhân vào trọng số của Hiếm · Sử Thi · Truyền Thuyết, cùng chỗ với Duyên
+ * Kho Báu. Bảng tỉ lệ thật đo bằng `tools/simulate.js`, ghi ở DESIGN.md §6.1b.
+ */
+const QUALITY_STEP = 0.45;
+const qualityOf = (zone) => 1 + Math.max(0, (zone?.difficulty || 1) - 1) * QUALITY_STEP;
 
 const BY_ID = new Map(ZONES.map((z) => [z.id, z]));
 
@@ -129,4 +154,7 @@ function publicList() {
   }));
 }
 
-module.exports = { ZONES, get, defaultFor, canEnter, publicList, all: () => ZONES };
+module.exports = {
+  ZONES, QUALITY_STEP, qualityOf,
+  get, defaultFor, canEnter, publicList, all: () => ZONES,
+};

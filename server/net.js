@@ -12,6 +12,8 @@ const classData = require('./data/classes');
 const skillData = require('./data/skills');
 const npcData = require('./data/npcs');
 const shop = require('./shop');
+const codex = require('./codex');
+const respec = require('./respec');
 const party = require('./party');
 
 /** Làm sạch tên người chơi trước khi cho vào hệ thống. */
@@ -220,7 +222,7 @@ function attach(io) {
       const rank = tree.rankOf(skillId, p.skillRanks);
       if (rank >= tree.MAX_SKILL_RANK) return { ok: false, error: `Đã đạt bậc tối đa (${tree.MAX_SKILL_RANK}).` };
 
-      const left = tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks);
+      const left = tree.pointsLeft(p.className, p.level, p.learned, p.skillRanks, p.bookRanks, p.mastery);
       if (left < 1) return { ok: false, error: 'Không đủ điểm kỹ năng.' };
 
       p.skillRanks = { ...p.skillRanks, [skillId]: rank + 1 };
@@ -228,24 +230,30 @@ function attach(io) {
     }));
 
     /**
-     * Tiêu một cuốn sách Dị Điển CHƯA gắn để nâng bậc kỹ năng cùng tên ĐANG gắn
-     * trong một ô Dị Điển khác. Chỉ có tác dụng với sách trùng kỹ năng đang
-     * dùng — sách của kỹ năng chưa gắn ô nào thì vẫn phải gắn vào ô trống trước.
+     * Đầu tư một điểm vào một dòng Tinh Thông — chỗ tiêu cuối cùng của điểm dư
+     * (skilltree.js). Không cần chọn lớp: Tinh Thông là chung cho mọi lớp, và
+     * chặn nó sau `class:choose` chỉ tổ khoá điểm của người chưa kịp chọn.
      */
-    socket.on('codex:upgrade', invAction((p, d) => {
-      const book = (p.books || []).find((b) => b.uid === d.uid);
-      if (!book) return { ok: false, error: 'Không tìm thấy sách.' };
+    socket.on('mastery:learn', invAction((p, d) => {
+      const why = tree.masteryBlocked(d.lineId, p);
+      if (why) return { ok: false, error: why };
 
-      const socketed = (p.codex || []).some((b) => b?.skillId === book.skillId);
-      if (!socketed) return { ok: false, error: 'Kỹ năng này chưa gắn vào ô Dị Điển nào — gắn vào ô trống trước.' };
-
-      const rank = tree.rankOf(book.skillId, p.skillRanks);
-      if (rank >= tree.MAX_SKILL_RANK) return { ok: false, error: `Kỹ năng đã đạt bậc tối đa (${tree.MAX_SKILL_RANK}).` };
-
-      p.skillRanks = { ...p.skillRanks, [book.skillId]: rank + 1 };
-      p.books = p.books.filter((b) => b.uid !== d.uid);
-      return { ok: true, skillId: book.skillId, rank: rank + 1 };
+      const tier = tree.masteryTier(d.lineId, p.mastery) + 1;
+      p.mastery = { ...p.mastery, [d.lineId]: tier };
+      return { ok: true, lineId: d.lineId, tier };
     }));
+
+    /**
+     * Bốn thao tác Dị Điển — luật nằm trong `server/codex.js`, đây chỉ là cửa vào.
+     *
+     * `upgrade` tiêu một cuốn sách trùng để nâng bậc kỹ năng đang gắn; `socket`
+     * gắn vào ô (đè lên ô cũ là xoá vĩnh viễn sách cũ, DESIGN.md §3.4, client
+     * phải hỏi lại); `unsocket` gỡ khỏi ô; `discard` vứt sách chưa gắn.
+     */
+    socket.on('codex:upgrade', invAction((p, d) => codex.upgrade(p, d.uid)));
+    socket.on('codex:socket', invAction((p, d) => codex.socketBook(p, d.slot, d.uid)));
+    socket.on('codex:unsocket', invAction((p, d) => codex.unsocket(p, d.slot)));
+    socket.on('codex:discard', invAction((p, d) => codex.discard(p, d.uids)));
 
     socket.on('loadout:set', invAction((p, d) => {
       const unlocked = tree.unlockedSkills(p.className, p.learned, p.codex);
@@ -260,31 +268,12 @@ function attach(io) {
     }));
 
     /**
-     * Gắn sách vào ô Dị Điển. Ô đã có sách thì sách cũ bị **xoá vĩnh viễn**
-     * (DESIGN.md §3.4) — client phải hỏi lại trước khi gọi.
+     * Rửa điểm — trả lại điểm chỉ số hoặc điểm kỹ năng, tính phí bằng vàng.
+     * Luật và giá nằm trong `server/respec.js`. Client phải hỏi lại: đây là
+     * hành động không hoàn tác được, và nó tiêu vàng.
      */
-    socket.on('codex:socket', invAction((p, d) => {
-      const slot = parseInt(d.slot, 10);
-      if (!(slot >= 0 && slot < tree.CODEX_SLOTS)) return { ok: false, error: 'Ô không hợp lệ.' };
-
-      const book = (p.books || []).find((b) => b.uid === d.uid);
-      if (!book) return { ok: false, error: 'Không tìm thấy sách.' };
-
-      const old = p.codex[slot];
-      p.codex[slot] = book;
-      p.books = p.books.filter((b) => b.uid !== d.uid);
-
-      // Sách cũ biến mất, và chiêu của nó cũng rời khỏi bộ mang theo
-      if (old?.skillId) p.carried = p.carried.filter((id) => id !== old.skillId);
-
-      // Gắn sách xong mà chiêu vẫn nằm ngoài trận thì gắn để làm gì. Giống hệt
-      // lúc học một nút chủ động trong Cây Nền: còn chỗ thì mang theo luôn.
-      if (book.skillId && !p.carried.includes(book.skillId)
-          && p.carried.length < skillData.MAX_LOADOUT) {
-        p.carried.push(book.skillId);
-      }
-      return { ok: true, replaced: old?.name || null };
-    }));
+    socket.on('respec:stats', invAction((p) => respec.resetStats(p)));
+    socket.on('respec:skills', invAction((p) => respec.resetSkills(p)));
 
     /* ------------------------------------------------ mua bán ---------- */
 
@@ -322,6 +311,7 @@ function attach(io) {
     // không nhận điều kiện lọc kiểu "bán hết hạng Thường", vì một lỗi lọc ở
     // server là quét sạch túi của người chơi. Lọc là việc của giao diện.
     socket.on('shop:sell', atShop((p, d) => shop.sell(p, d.uids)));
+    socket.on('shop:sellBooks', atShop((p, d) => shop.sellBooks(p, d.uids)));
 
     socket.on('character:get', (payload, ack) => {
       const room = manager.roomOf(socket);

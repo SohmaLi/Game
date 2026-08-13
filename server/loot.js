@@ -38,9 +38,12 @@ const ITEM_DROP_MAX = {
  * @param opts.luck   hệ số Duyên Kho Báu (1 = không có)
  * @param opts.goldBonus  đặc quyền Duskmoor (0.1 = +10%)
  * @param opts.partySize  chia đều phần thưởng cho cả nhóm
+ * @param opts.playerLevel  CẤP của người nhận — quyết định cấp món đồ rơi ra
+ * @param opts.quality  hệ số phẩm chất của vùng (`zones.qualityOf`)
  */
 function rollBattleLoot(killed, opts = {}) {
   const luck = opts.luck || 1;
+  const quality = opts.quality || 1;
   const goldBonus = opts.goldBonus || 0;
   const partySize = Math.max(1, opts.partySize || 1);
 
@@ -59,11 +62,22 @@ function rollBattleLoot(killed, opts = {}) {
 
     const tier = monsterData.TIER[def.tier];
 
-    // --- trang bị ---
+    /**
+     * --- trang bị ---
+     *
+     * CẤP món đồ bám theo cấp NGƯỜI NHẬN, không theo con quái. Trước đây bám
+     * theo quái, nên một người cấp 60 đi ngang Đồng Cỏ chỉ nhặt được đồ cấp 5:
+     * rác tuyệt đối, nhặt lên chỉ để vứt, và cả vùng đó thành chỗ chết.
+     *
+     * HẠNG thì ngược lại — bám theo vùng qua `quality`. Vùng dễ vẫn cho đồ mặc
+     * được, chỉ là gần như không bao giờ lên hạng cao. Muốn Sử Thi với Truyền
+     * Thuyết thì phải đi vào chỗ khó, chứ không phải đứng chỗ an toàn cày lâu.
+     */
     if (Math.random() < ITEM_DROP_RATE[def.tier] * luck) {
       const count = 1 + Math.floor(Math.random() * ITEM_DROP_MAX[def.tier]);
+      const level = Math.max(1, opts.playerLevel || def.level);
       for (let i = 0; i < count; i++) {
-        drops.push(items.generate(def.level, { luck }));
+        drops.push(items.generate(level, { luck, quality }));
       }
     }
 

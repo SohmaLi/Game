@@ -63,7 +63,9 @@ server/
   roamer.js            quái đi lang thang trên bản đồ khám phá (kể cả Thủ Lĩnh)
   map.js               sinh bản đồ theo seed của vùng — hoang dã hoặc thị trấn
   stats.js             CÔNG THỨC sát thương và chỉ số (chỉnh cân bằng ở đây)
-  shop.js              giá cả, quầy hàng, mua bán với thương nhân
+  shop.js              giá cả, quầy hàng, mua bán đồ và SÁCH với thương nhân
+  codex.js             Dị Điển: gắn · gỡ · vứt · tiêu sách trùng nâng bậc
+  respec.js            rửa điểm chỉ số / điểm kỹ năng, tính phí bằng vàng
   inventory.js         túi đồ, 10 ô trang bị
   loot.js              rớt đồ và sách
   progression.js       cấp độ, kinh nghiệm, điểm chỉ số
@@ -167,6 +169,10 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Thêm quái mới vào `data/monsters.js` là bộ test hình đỏ ngay | Đúng ý đồ — nhưng quái Tinh Anh MƯỢN hình quái thường qua trường `sprite`, nên chỗ kiểm phải tra `m.sprite \|\| m.id`, không phải `m.id`. Sinh lại atlas chỉ vì thêm một con quái là chuốc lấy rủi ro lệch cặp `atlas.png`/`atlas.json` |
 | Thủ Lĩnh gọi quân lượt hai thì combatant mới trùng id với lượt một | Đếm chỉ số bằng `enemies.length` — con lượt một đã chết nhưng vẫn nằm trong danh sách, và `byId` trả về con tìm thấy trước. Phải có bộ đếm riêng chỉ tăng (`nextEnemyIndex`) |
 | Thêm vùng mới xong, CẢ BẢN ĐỒ hoá thành bụi cây trên nền đen | `sprites.js`/`icons.js` từng ghi cứng `?v=21` — một số phiên bản THỨ HAI tách rời `?v=N` của `index.html`. Thêm quái/vùng làm atlas cao thêm, `groundY` dời từ 192 xuống 272; bump index.html mà số kia đứng yên nên trình duyệt ghép **JSON mới với PNG cũ còn trong cache**, toạ độ ô nền rơi trúng hàng vật cản. `atlas.png` + `atlas.json` là MỘT CẶP, phải bust cùng lúc — nay hai file tự đọc `?v=` từ `src` của chính thẻ `<script>`, khỏi có số thứ hai để quên |
+| Hai ô Dị Điển gắn CÙNG một kỹ năng | Bậc tra theo `skillId`, nên ô thứ hai không cho thêm gì: cùng chiêu đó, cùng bậc đó, chỉ mất một ô trong mười. Hai ô hiện y hệt nhau nên giao diện không có cách nào cho thấy. Nay `codex.socketBook` từ chối và chỉ thẳng sang đường đúng (`codex:upgrade`) |
+| Tiêu sách Dị Điển trùng để nâng bậc thì mất một điểm kỹ năng | `rankPointsSpent` cộng theo TOÀN BỘ bảng bậc, không phân biệt bậc nào mua bằng điểm, bậc nào lên bằng sách. Cả giao diện lẫn chú thích code đều nói việc đó miễn phí, mà mỗi cuốn lại lặng lẽ lấy thêm học phí một điểm. Phải có `book_ranks` tách riêng phần đến từ sách |
+| Gỡ sách khỏi ô Dị Điển làm rớt luôn chiêu vẫn mở từ Cây Nền | `releaseSkill` nhấc chiêu khỏi `carried` TRƯỚC khi xét xem nó còn đường nào khác để dùng không. Phải xét `unlockedSkills` trước — còn dùng được thì không đụng gì cả |
+| Cấp 60 dư 21 điểm kỹ năng không tiêu vào đâu | Cây Nền 15 + nâng bậc 24 = 39, mà cấp 60 nhận 60. Hệ Tinh Thông là chỗ chứa — nhưng giá phẳng 1 điểm/nấc biến nó thành một tầng sức mạnh mới (+20 điểm phần trăm thắng). Giá tăng dần `1·1·2·2·3` cộng với hạ mỗi nấc xuống một nửa mới đưa về đúng mức chứa điểm thừa |
 | Đã chọn chiêu xong vẫn ngồi hết 20 giây | Người cuối cùng chưa bấm mà RỜI trận (rớt mạng, hoặc trốn thoát khỏi trận Thủ Lĩnh) thì `removeAlly` chỉ gỡ tên rồi thôi — không ai xét lại xem còn ai để chờ nữa không. Cả nhóm chờ một người không còn trong trận |
 | `deploy.sh` chạy tới bước khởi động lại rồi im, không in dòng kiểm tra nào | `pkill -f` soi dòng lệnh của MỌI tiến trình, kể cả `bash -c` đang chạy chính câu pkill đó — mẫu nằm nguyên văn trong dòng lệnh của nó. pkill tự giết phiên ssh của mình, ssh trả 255, `set -e` cắt script đúng trước khối KIỂM TRA `uptimeSec`. Deploy vẫn ăn nên không ai để ý, nhưng cái chốt chặn quan trọng nhất thì chưa bao giờ chạy. Viết mẫu kiểu `[g]ame` để nó không tự khớp chính mình |
 
@@ -195,6 +201,12 @@ tụt cấp và không mất đồ — lần đầu tiên trong game có lý do 
 **quái Tinh Anh ngoài bản đồ** (2 con trên 15, đi lẻ, quầng tím, đánh tay đôi) ·
 **cơ chế riêng cho từng Thủ Lĩnh** (gọi quân · hoá cuồng · tự liền vết thương —
 sáu con sáu cách ghép) · **15 quái mỗi bản đồ** thay vì 6.
+
+**Xong đợt này:** **bốn đường ra cho sách Dị Điển** (gỡ khỏi ô · vứt · bán cho
+thương nhân · chặn gắn trùng) · **Tinh Thông** — sáu dòng chỉ số nhỏ, giá tăng
+dần, chỗ tiêu 21 điểm dư ở cấp 60 · **rửa điểm chỉ số và điểm kỹ năng** bằng
+vàng · **đồ rơi theo cấp NGƯỜI CHƠI, hạng theo ĐỘ KHÓ BẢN ĐỒ** (DESIGN.md §6.1b)
+· bảng bị động ghi thẳng hiệu quả ra dòng, khỏi phải rê chuột.
 
 **Chưa xong:** **giao dịch giữa người chơi với nhau** (mua bán với
 NPC đã xong) · PvP · lá chắn miễn nhiễm vật lý cho Thủ Lĩnh (loại cơ chế thứ tư,

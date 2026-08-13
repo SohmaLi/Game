@@ -133,11 +133,22 @@ function pickWeighted(entries, rnd = Math.random) {
   return entries[entries.length - 1].v;
 }
 
-/** Bốc hạng theo trọng số. `luck` nhân vào trọng số của các hạng cao. */
-function rollRarity(luck = 1, rnd = Math.random) {
+/**
+ * Bốc hạng theo trọng số. `luck` nhân vào trọng số của các hạng cao.
+ *
+ * `quality` là hệ số của VÙNG, nhân vào cùng chỗ với `luck` (DESIGN.md §6.1b):
+ * bản đồ càng khó thì đồ rơi ra càng dễ lên hạng. Hai hệ số nhân với nhau chứ
+ * không cộng — Duyên Kho Báu ở Đền Đài Hư Không phải hơn hẳn Duyên Kho Báu ở
+ * Đồng Cỏ, không thì Đặc Ân đó mất giá đúng ở nơi người chơi cần nó nhất.
+ *
+ * Hạng Thường và Tinh Xảo cố ý KHÔNG được nhân: chúng là mốc so sánh: nhân cả
+ * bảng lên thì tỉ lệ giữ nguyên y hệt và cả hai hệ số hoá thành vô nghĩa.
+ */
+function rollRarity(luck = 1, rnd = Math.random, quality = 1) {
+  const boost = (luck || 1) * (quality || 1);
   return pickWeighted(RARITY_ORDER.map((id) => ({
     v: id,
-    w: RARITIES[id].weight * (id === 'common' || id === 'fine' ? 1 : luck),
+    w: RARITIES[id].weight * (id === 'common' || id === 'fine' ? 1 : boost),
   })), rnd);
 }
 
@@ -155,7 +166,7 @@ function rollRarity(luck = 1, rnd = Math.random) {
  */
 function generate(level = 1, opts = {}) {
   const rnd = opts.rng || Math.random;
-  const rarityId = opts.rarity || rollRarity(opts.luck || 1, rnd);
+  const rarityId = opts.rarity || rollRarity(opts.luck || 1, rnd, opts.quality || 1);
   const rarity = RARITIES[rarityId];
 
   const pool = opts.slot ? (BASE_BY_SLOT[opts.slot] || BASES) : BASES;

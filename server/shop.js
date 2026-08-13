@@ -54,6 +54,32 @@ function feeFor(nationId) {
 const sellPrice = (item, nationId) => Math.max(1, Math.round(value(item) * (1 - feeFor(nationId))));
 const buyPrice = (item, nationId) => Math.max(1, Math.round(value(item) * BUY_MULT * (1 + feeFor(nationId))));
 
+/* -------------------------------------------------------- sách Dị Điển ---- */
+
+/**
+ * Sách Dị Điển trùng lặp chất đống nhanh hơn số ô để gắn — mười ô, mà sách thì
+ * rơi mãi. Trước đây sách trùng một kỹ năng chưa gắn ô nào là rác tuyệt đối:
+ * gắn thì phí ô, tiêu thì không được, vứt cũng không xong.
+ *
+ * Giá tính theo CẤP NGƯỜI BÁN chứ không theo con quái đã rơi ra nó, vì hai lý
+ * do. Thứ nhất, sách cũ lưu trong database không có trường cấp — tính theo nó
+ * là hàng nghìn cuốn của người chơi cũ bỗng đáng giá một đồng. Thứ hai, một
+ * cuốn Dị Điển đáng bao nhiêu là tuỳ nó làm được gì cho anh BÂY GIỜ, không phải
+ * tuỳ con quái đã chết từ ba chục cấp trước.
+ *
+ * Hạng quái vẫn có mặt: sách rơi từ Thủ Lĩnh hiếm gấp tám lần sách quái thường
+ * (40% so với 5%), nên nó phải bán được nhiều hơn hẳn.
+ */
+const BOOK_TIER_VALUE = { common: 4, elite: 8, boss: 16 };
+
+function bookValue(book, level = 1) {
+  const mult = BOOK_TIER_VALUE[book?.tier] || BOOK_TIER_VALUE.common;
+  return Math.max(1, Math.round(GOLD_PER_LEVEL * Math.max(1, level) * mult));
+}
+
+const bookSellPrice = (book, level, nationId) =>
+  Math.max(1, Math.round(bookValue(book, level) * (1 - feeFor(nationId))));
+
 /* ------------------------------------------------------------ quầy hàng --- */
 
 const STOCK_SIZE = 6;
@@ -162,6 +188,13 @@ function stateFor(p, npc, now = Date.now()) {
     stock: stockFor(p, now).map((it) => ({ ...it, price: buyPrice(it, p.nation) })),
     bag: (p.inv?.bag || []).map((it) => ({ ...it, price: sellPrice(it, p.nation) })),
     bagSize: p.inv?.bag?.length || 0,
+    // Chỉ sách CHƯA gắn. Sách đang nằm trong ô Dị Điển là kỹ năng đang dùng,
+    // không phải hàng hoá — muốn bán thì gỡ ra trước, và gỡ ra là xoá luôn.
+    books: (p.books || []).map((b) => ({
+      uid: b.uid, name: b.name, from: b.from, tier: b.tier,
+      skillId: b.skillId, desc: b.desc,
+      price: bookSellPrice(b, p.level, p.nation),
+    })),
   };
 }
 
@@ -213,8 +246,31 @@ function sell(p, uids) {
   };
 }
 
+/**
+ * Bán sách Dị Điển CHƯA gắn.
+ *
+ * Không đụng tới `p.codex` — sách đã gắn là kỹ năng đang dùng, và một cái tick
+ * lỡ tay mà bán mất chiêu đang mang vào trận thì không có đường cứu. Muốn bán
+ * thì gỡ khỏi ô trước, đó là một hành động riêng và có hỏi lại.
+ */
+function sellBooks(p, uids) {
+  const wanted = new Set(Array.isArray(uids) ? uids : []);
+  if (!wanted.size) return { ok: false, error: 'Chưa chọn cuốn nào.' };
+
+  const sold = (p.books || []).filter((b) => wanted.has(b.uid));
+  if (!sold.length) return { ok: false, error: 'Không tìm thấy cuốn nào chưa gắn.' };
+
+  const gold = sold.reduce((sum, b) => sum + bookSellPrice(b, p.level, p.nation), 0);
+  p.books = p.books.filter((b) => !wanted.has(b.uid));
+  p.gold += gold;
+
+  return { ok: true, gold, sold: sold.map((b) => ({ uid: b.uid, name: b.name, tier: b.tier })) };
+}
+
 module.exports = {
   GOLD_PER_LEVEL, RARITY_VALUE, BASE_FEE, BUY_MULT, STOCK_SIZE, RESTOCK_MS,
-  value, feeFor, sellPrice, buyPrice, stockFor, rollStock, nextRestockIn,
-  stateFor, buy, sell,
+  BOOK_TIER_VALUE,
+  value, feeFor, sellPrice, buyPrice, bookValue, bookSellPrice,
+  stockFor, rollStock, nextRestockIn,
+  stateFor, buy, sell, sellBooks,
 };

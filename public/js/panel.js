@@ -225,10 +225,18 @@ const Panel = (() => {
       return;
     }
 
+    /**
+     * Hiệu quả viết THẲNG ra dòng, không giấu trong tooltip.
+     *
+     * Trước đây dòng này chỉ có tên bị động và một con số trần: "Gai Nhọn +18%"
+     * — 18% của cái gì thì phải rê chuột vào mới biết. Mà rê chuột thì mỗi lần
+     * chỉ đọc được một dòng, đúng thứ mà một bảng tổng hợp sinh ra để tránh.
+     */
     box.innerHTML = list.map((p) => `
       <div class="passive-row" title="${esc(p.desc)}">
-        <span>
+        <span class="passive-main">
           <span class="passive-name">${esc(p.name)}${p.stacks > 1 ? ` ×${p.stacks}` : ''}</span>
+          <span class="passive-effect">${esc(p.effect || p.value)}</span>
           <span class="passive-from">${esc(p.sources.join(', '))}</span>
         </span>
         <span class="passive-val">${esc(p.value)}</span>
@@ -311,6 +319,7 @@ const Panel = (() => {
       box.appendChild(row);
     }
 
+
     const c = data.combat;
     $('pCombat').innerHTML = [
       ['Máu tối đa', c.hpMax],
@@ -325,6 +334,53 @@ const Panel = (() => {
     ].map(([k, v]) =>
       `<div class="stat-row"><span class="stat-label">${k}</span><span class="stat-val">${v}</span></div>`
     ).join('');
+
+    renderRespec(box);
+  }
+
+  /**
+   * Nút rửa chỉ số, đặt ngay dưới năm dòng chỉ số.
+   *
+   * Điểm chỉ số tiêu là mất, mà người chơi chỉ biết mình dồn sai sau vài chục
+   * giờ. Không có đường sửa thì lựa chọn duy nhất là bỏ nhân vật làm lại từ
+   * cấp 1. Giá hiện sẵn trên nút — bắt bấm rồi mới biết mình không đủ vàng là
+   * cách chắc chắn nhất để người chơi ngại bấm.
+   */
+  function renderRespec(box) {
+    const price = data.respecPrice?.stats;
+    if (!price) return;
+
+    const afford = (data.gold || 0) >= price;
+    const btn = document.createElement('button');
+    btn.className = 'respec-btn';
+    btn.disabled = !afford;
+    btn.innerHTML = `Rửa điểm chỉ số <b>${price.toLocaleString('vi-VN')}</b>
+      <i class="respec-gold" data-icon="ui-gold">◆</i>`;
+    btn.title = afford
+      ? 'Đưa cả năm chỉ số về 5 và trả lại toàn bộ điểm đã cộng'
+      : `Cần ${price.toLocaleString('vi-VN')} vàng, còn ${(data.gold || 0).toLocaleString('vi-VN')}`;
+    btn.onclick = () => confirmRespec(price);
+    Icons.paint(btn);
+    box.appendChild(btn);
+  }
+
+  async function confirmRespec(price) {
+    const ok = await UI.confirm({
+      title: 'Rửa điểm chỉ số?',
+      message: `Cả năm chỉ số về <b>5</b>, toàn bộ điểm đã cộng trả lại để phân bổ từ đầu.<br><br>
+        Tốn <b style="color:#ffd166">${price.toLocaleString('vi-VN')} vàng</b>.<br><br>
+        <span class="warn">Trang bị, kỹ năng và Dị Điển không bị đụng tới.</span>`,
+      confirmLabel: `Rửa — ${price.toLocaleString('vi-VN')} vàng`,
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('respec:stats', {}, (res) => {
+      if (!res?.ok) return toast('warn', 'Không rửa được', res?.error || '');
+      toast('levelup', `Trả lại ${res.points} điểm chỉ số`,
+        `−${res.price.toLocaleString('vi-VN')} vàng`);
+    });
+
   }
 
   function renderBag() {

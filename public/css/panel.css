@@ -358,9 +358,14 @@
   font-size: 12px;
 }
 .passive-row:last-child { border-bottom: 0; }
+
+/* Ba dòng xếp dọc: tên · hiệu quả · nguồn. Hiệu quả nằm giữa vì đó là thứ
+   người chơi mở bảng này ra để đọc — trước đây nó bị giấu trong tooltip. */
+.passive-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .passive-name { color: #d3b8f0; font-weight: 600; }
+.passive-effect { font-size: 11px; color: #7ee89a; line-height: 1.45; }
 .passive-from { font-size: 10px; color: #6b7791; }
-.passive-val { color: #7ee89a; font-weight: 600; white-space: nowrap; }
+.passive-val { color: #7ee89a; font-weight: 600; white-space: nowrap; align-self: center; }
 .passive-empty { font-size: 12px; color: #6b7791; line-height: 1.6; }
 
 /* ============ HUY HIỆU ĐỘ TRỄ (góc phải trên) ============ */
@@ -612,3 +617,29 @@
   margin: 0;
 }
 .slot-drop .slot-icon .gi { width: 26px; height: 26px; }
+
+/* ---------------------------------------------------- rửa điểm --------- */
+/* Giá hiện thẳng trên nút. Bắt người chơi bấm rồi mới biết mình không đủ vàng
+   là cách chắc chắn nhất để họ ngại bấm lần sau. */
+.respec-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #5a3a4a;
+  background: #241923;
+  color: #e8b3ab;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.respec-btn:hover:not(:disabled) { background: #33212e; border-color: #7a4d61; }
+.respec-btn:disabled { opacity: .45; cursor: default; }
+.respec-btn b { color: #ffd166; }
+.respec-gold { width: 13px; height: 13px; color: #ffd166; }
+.mst-respec .respec-btn { margin-top: 0; width: auto; flex: 0 0 auto; }

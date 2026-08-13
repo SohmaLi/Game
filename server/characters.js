@@ -59,6 +59,8 @@ function present(row) {
     codex: parseJson(row.codex, null),
     books: parseJson(row.books, []),
     skillRanks: parseJson(row.skill_ranks, {}),
+    bookRanks: parseJson(row.book_ranks, {}),
+    mastery: parseJson(row.mastery, {}),
     equipped: parseJson(row.equipped, null),
     bag: parseJson(row.bag, []),
     playedAt: row.played_at,
@@ -185,7 +187,7 @@ async function saveProgress(characterId, p) {
        class = ?, level = ?, exp = ?, gold = ?,
        stat_str = ?, stat_int = ?, stat_vit = ?, stat_agi = ?, stat_wil = ?, stat_points = ?,
        pos_x = ?, pos_y = ?,
-       learned = ?, carried = ?, codex = ?, books = ?, equipped = ?, bag = ?, skill_ranks = ?,
+       learned = ?, carried = ?, codex = ?, books = ?, equipped = ?, bag = ?, skill_ranks = ?, book_ranks = ?, mastery = ?,
        played_at = NOW()
      WHERE id = ?`,
     [
@@ -199,6 +201,8 @@ async function saveProgress(characterId, p) {
       JSON.stringify(p.inv?.equipped || {}),
       JSON.stringify(p.inv?.bag || []),
       JSON.stringify(p.skillRanks || {}),
+      JSON.stringify(p.bookRanks || {}),
+      JSON.stringify(p.mastery || {}),
       characterId,
     ]
   );

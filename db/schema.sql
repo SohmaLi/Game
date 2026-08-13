@@ -98,4 +98,6 @@ ALTER TABLE characters
   ADD COLUMN IF NOT EXISTS equipped   JSON NULL COMMENT '10 ô trang bị',
   ADD COLUMN IF NOT EXISTS bag        JSON NULL COMMENT 'túi đồ',
   ADD COLUMN IF NOT EXISTS skill_ranks JSON NULL COMMENT 'bậc từng kỹ năng, key=skillId — điểm dư sau khi mở hết Cây Nền',
+  ADD COLUMN IF NOT EXISTS mastery     JSON NULL COMMENT 'nấc từng dòng Tinh Thông, key=lineId — chỗ tiêu điểm kỹ năng dư ở cấp cao',
+  ADD COLUMN IF NOT EXISTS book_ranks  JSON NULL COMMENT 'trong số bậc trên, bao nhiêu bậc lên bằng SÁCH trùng — phần đó không tính là điểm kỹ năng đã tiêu',
   ADD COLUMN IF NOT EXISTS played_at  TIMESTAMP NULL DEFAULT NULL COMMENT 'lần chơi gần nhất';

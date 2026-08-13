@@ -65,6 +65,7 @@ const Tree = (() => {
 
     if (tab === 'tree') renderTree();
     else if (tab === 'loadout') renderLoadout();
+    else if (tab === 'mastery') renderMastery();
     else renderCodex();
   }
 
@@ -447,6 +448,105 @@ const Tree = (() => {
     return parts.join(' · ') || 'miễn phí';
   };
 
+  /* ------------------------------------------------ Tinh Thông ------- */
+
+  /**
+   * Chỗ tiêu cuối cùng của điểm kỹ năng.
+   *
+   * Cây Nền tốn 15 điểm, nâng bậc hết sáu chiêu tốn 24 — cấp 60 nhận 60 điểm
+   * nên dư 21 điểm không tiêu vào đâu được. Bảng này phải nói thẳng con số đó
+   * ra ngay dòng đầu, nếu không người chơi vẫn ngồi nhìn "0 điểm kỹ năng" ở
+   * góc mà không biết mình đang thừa hay thiếu.
+   */
+  function renderMastery() {
+    const pane = $('paneMastery');
+    const lines = data.mastery || [];
+    const pts = data.skillPoints || 0;
+    const spent = lines.reduce((s, m) => s + (m.costs || []).slice(0, m.tier).reduce((a, b) => a + b, 0), 0);
+
+    pane.innerHTML = `
+      <p class="load-info">
+        <b>Tinh Thông</b> — chỗ tiêu điểm kỹ năng sau khi Cây Nền đã mở hết và các chiêu đã kịch bậc.
+        <br>Giá mỗi nấc tăng dần <b>1 · 1 · 2 · 2 · 3</b>: đi hết một dòng tốn <b>9 điểm</b>,
+        cả sáu dòng tốn <b>${data.masteryCapacity || 54}</b> — không ai gom đủ, nên phải chọn.
+        <br><span class="load-hint">Đã dồn ${spent} điểm · còn ${pts} điểm chưa tiêu.</span>
+      </p>
+
+      <div class="mst-grid">
+        ${lines.map((m) => {
+          const full = m.tier >= m.maxTier;
+          const can = !m.blocked;
+          const pips = Array.from({ length: m.maxTier }, (_, i) =>
+            `<i class="mst-pip${i < m.tier ? ' on' : ''}">${m.costs?.[i] ?? 1}</i>`).join('');
+          return `
+            <div class="mst-line ${full ? 'full' : (can ? 'can' : 'blocked')}" data-line="${m.id}">
+              <div class="mst-head">
+                <span class="mst-name">${esc(m.name)}</span>
+                <span class="mst-tier">${m.tier}/${m.maxTier}</span>
+              </div>
+              <div class="mst-pips">${pips}</div>
+              <div class="mst-now">${m.value ? esc(m.value) : '<span class="dim">chưa đầu tư</span>'}</div>
+              <div class="mst-desc">${esc(m.desc)}</div>
+              <button class="mst-btn" data-buy="${m.id}" ${can ? '' : 'disabled'}>
+                ${full ? 'Đã kịch nấc' : (can ? `${esc(m.per)} — ${m.cost}đ` : esc(m.blocked))}
+              </button>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    // Rửa kỹ năng nằm ở đây chứ không ở tab Cây Nền: đây là tab duy nhất nhìn
+    // thấy được TOÀN BỘ chỗ điểm đã đi đâu, nên cũng là chỗ hợp lý để lấy lại
+    const price = data.respecPrice?.skills;
+    if (price) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mst-respec';
+      wrap.innerHTML = `
+        <div>
+          <b>Rửa điểm kỹ năng</b>
+          <span>Cây Nền, bậc từng chiêu và Tinh Thông về 0, trả lại toàn bộ điểm.
+            Dị Điển đang gắn <b>không</b> bị đụng tới.</span>
+        </div>
+        <button class="respec-btn" ${(data.gold || 0) >= price ? '' : 'disabled'}>
+          ${price.toLocaleString('vi-VN')} <i class="respec-gold" data-icon="ui-gold">◆</i>
+        </button>`;
+      Icons.paint(wrap);
+      wrap.querySelector('button').onclick = () => confirmRespecSkills(price);
+      pane.appendChild(wrap);
+    }
+
+    pane.querySelectorAll('[data-buy]').forEach((btn) => {
+      btn.onclick = () => buyMastery(btn.dataset.buy);
+    });
+  }
+
+  async function confirmRespecSkills(price) {
+    const ok = await UI.confirm({
+      title: 'Rửa điểm kỹ năng?',
+      message: `Toàn bộ Cây Nền, bậc từng chiêu và Tinh Thông về <b>0</b>, điểm trả lại hết
+        để phân bổ từ đầu.<br><br>
+        Tốn <b style="color:#ffd166">${price.toLocaleString('vi-VN')} vàng</b>.<br><br>
+        <span class="warn">Sách Dị Điển đang gắn giữ nguyên — chỉ những chiêu học từ Cây Nền
+        mới rời khỏi bộ mang theo.</span>`,
+      confirmLabel: `Rửa — ${price.toLocaleString('vi-VN')} vàng`,
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('respec:skills', {}, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không rửa được', res?.error || '');
+      Panel.toast('levelup', `Trả lại ${res.points} điểm kỹ năng`,
+        `−${res.price.toLocaleString('vi-VN')} vàng`);
+    });
+  }
+
+  function buyMastery(lineId) {
+    socket.emit('mastery:learn', { lineId }, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không đầu tư được', res?.error || '');
+      const line = (data.mastery || []).find((m) => m.id === lineId);
+      Panel.toast('levelup', `${line?.name || 'Tinh Thông'} nấc ${res.tier}`, line?.per || '');
+    });
+  }
+
   /* ------------------------------------------------ Dị Điển ---------- */
 
   function renderCodex() {
@@ -461,8 +561,11 @@ const Tree = (() => {
     pane.innerHTML = `
       <p class="load-info">
         <b>${data.codexSlots || 10} ô Dị Điển</b> — điền bằng sách rơi từ quái.
-        <br><span style="color:#ff9aa8">Gắn đè lên ô đã có sẽ xoá vĩnh viễn sách cũ.</span>
-        <br>Sách trùng kỹ năng đang gắn tiêu được để nâng bậc kỹ năng đó, thay vì nằm không.
+        <br>Mỗi kỹ năng chỉ chiếm <b>một ô</b>: ô thứ hai của cùng một chiêu không cho thêm gì cả.
+        <br>Sách trùng kỹ năng đang gắn tiêu được để nâng bậc — <b>miễn phí</b>, không tốn điểm kỹ năng.
+        <br><span style="color:#ff9aa8">Gắn đè, hay gỡ khỏi ô, đều xoá vĩnh viễn sách cũ.</span>
+        Sách <b>chưa gắn</b> thì bán được cho thương nhân ở Bến Cảng Duskmoor.
+        <br><span class="load-hint">Chuột phải vào một ô hoặc một cuốn sách để xem chi tiết, gỡ, hoặc vứt.</span>
       </p>
 
       <div class="codex-grid">
@@ -487,12 +590,17 @@ const Tree = (() => {
       </h3>
       ${books.length ? `<div class="pool">
         ${books.map((b) => {
-          const dup = socketedIds.has(b.skillId);
+          const at = slots.findIndex((s) => s?.skillId === b.skillId);
+          const dup = at >= 0;
+          // Kỹ năng đã kịch bậc thì cuốn trùng không còn tác dụng gì — nói
+          // thẳng ra, đừng để người chơi bấm rồi mới ăn câu từ chối của server
+          const maxed = dup && (slots[at].rank || 1) >= (slots[at].maxRank || 5);
           return `
           <div class="pool-item ${dup ? 'dup' : ''}" data-book="${b.uid}" title="${esc(b.desc || '')}">
             <div class="sk-name">${esc(b.name || 'Sách')}</div>
-            <div class="sk-cost">từ ${esc(b.from || '?')}</div>
-            ${dup ? `<button class="up-btn" data-upgrade="${b.uid}">Sách trùng — nâng bậc</button>` : ''}
+            <div class="sk-cost">từ ${esc(b.from || '?')}${dup ? ` · đang gắn ở ô ${at + 1}` : ''}</div>
+            ${dup && !maxed ? `<button class="up-btn" data-upgrade="${b.uid}">Sách trùng — nâng bậc</button>` : ''}
+            ${maxed ? '<div class="sk-cost" style="color:#8b95ab">Đã kịch bậc — bán hoặc vứt</div>' : ''}
           </div>`;
         }).join('')}
       </div>` : `<p class="books-empty">
@@ -528,6 +636,16 @@ const Tree = (() => {
         if (!picked) {
           if (old) return skillDetail(old, `Dị Điển · Ô ${slot + 1}`);
           return Panel.toast('warn', 'Chưa chọn sách', 'Bấm một cuốn ở danh sách dưới trước');
+        }
+
+        // Chặn ngay ở đây thay vì để server từ chối: người chơi vừa bấm hai
+        // lần mới nhận được câu "không được", trong khi cái nút đúng
+        // ("nâng bậc") đang nằm ngay trên cuốn sách họ vừa chọn
+        const chosen = books.find((b) => b.uid === picked);
+        const dupAt = slots.findIndex((b, i) => b?.skillId === chosen?.skillId && i !== slot);
+        if (dupAt >= 0) {
+          return Panel.toast('warn', `Kỹ năng này đã gắn ở ô ${dupAt + 1}`,
+            'Ô thứ hai không cho thêm gì — tiêu cuốn này để nâng bậc thay vì gắn');
         }
 
         if (old) {
@@ -572,6 +690,13 @@ const Tree = (() => {
       });
     }
 
+    items.push({
+      icon: Icons.svg('ui-trash') || '🗑',
+      label: 'Vứt cuốn này',
+      danger: true,
+      onClick: () => discardBook(book),
+    });
+
     UI.menu(e, {
       title: book.name,
       subtitle: socketed ? 'Trùng kỹ năng đang gắn' : 'Chưa gắn ô nào',
@@ -587,7 +712,53 @@ const Tree = (() => {
       title: book.name,
       subtitle: `Đang gắn ở ô ${slot + 1}${book.rank > 1 ? ` · Bậc ${book.rank}/${book.maxRank}` : ''}`,
       color: '#d3b8f0',
-      items: [{ icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(book, `Dị Điển · Ô ${slot + 1}`) }],
+      items: [
+        { icon: Icons.svg('ui-detail') || '🔍', label: 'Xem chi tiết', onClick: () => skillDetail(book, `Dị Điển · Ô ${slot + 1}`) },
+        { icon: Icons.svg('ui-trash') || '🗑', label: 'Gỡ khỏi ô — xoá sách', danger: true, onClick: () => unsocket(book, slot) },
+      ],
+    });
+  }
+
+  /**
+   * Gỡ sách khỏi ô. Sách đi luôn, nên hỏi lại — và nói rõ cả hai thứ sẽ mất
+   * theo: chiêu rời khỏi bộ mang theo, và bậc đã nâng bằng điểm quay về túi
+   * còn bậc nâng bằng sách thì mất hẳn.
+   */
+  async function unsocket(book, slot) {
+    const ranked = (book.rank || 1) > 1;
+    const ok = await UI.confirm({
+      title: 'Gỡ sách khỏi ô này?',
+      message: `Ô ${slot + 1}: <b style="color:#d3b8f0">${UI.esc(book.name)}</b><br><br>
+        <span class="warn">Sách bị xoá vĩnh viễn — không lấy lại được, và quầy hàng không bán sách.</span>
+        ${ranked ? `<br><br>Kỹ năng này đang ở <b>Bậc ${book.rank}/${book.maxRank}</b>.
+          Bậc mua bằng điểm kỹ năng sẽ được hoàn lại; bậc nâng bằng sách trùng thì mất theo.` : ''}
+        <br><br>Muốn giữ lại thì bán ở chỗ thương nhân — nhưng chỉ bán được sách CHƯA gắn.`,
+      confirmLabel: 'Gỡ và xoá',
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('codex:unsocket', { slot }, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không gỡ được', res?.error || '');
+      Panel.toast('item', 'Đã gỡ khỏi Dị Điển', res.removed || '');
+    });
+  }
+
+  /** Vứt một cuốn sách CHƯA gắn. */
+  async function discardBook(book) {
+    const ok = await UI.confirm({
+      title: 'Vứt cuốn này?',
+      message: `<b style="color:#d3b8f0">${UI.esc(book.name)}</b> — từ ${UI.esc(book.from || '?')}<br><br>
+        <span class="warn">Xoá vĩnh viễn, không lấy lại được.</span><br><br>
+        Đứng cạnh thương nhân ở Bến Cảng Duskmoor thì bán được lấy vàng, thay vì vứt không.`,
+      confirmLabel: 'Vứt đi',
+      danger: true,
+    });
+    if (!ok) return;
+
+    socket.emit('codex:discard', { uids: [book.uid] }, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Không vứt được', res?.error || '');
+      Panel.toast('item', 'Đã vứt sách', book.name || '');
     });
   }
 

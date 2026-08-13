@@ -159,12 +159,36 @@ function activePassives(inv) {
     desc: e.desc,
     sources: e.sources,
     stacks: e.sources.length,
-    // Quy đổi thành chuỗi đọc được: hầu hết bị động là phần trăm
-    value: Object.entries(e.effect)
-      .map(([k, v]) => (k === 'manaRegen' ? `+${v}` : `+${Math.round(v * 100)}%`))
-      .join(' · '),
+    value: Object.entries(e.effect).map(([k, v]) => fmtEffect(k, v)).join(' · '),
+    // Cùng con số đó nhưng GỌI TÊN thứ nó cộng vào — xem `fmtEffect`
+    effect: Object.entries(e.effect).map(([k, v]) => `${fmtEffect(k, v)} ${EFFECT_NAME[k] || k}`).join(' · '),
   }));
 }
+
+/**
+ * Tên tiếng Việt của từng loại hiệu ứng bị động.
+ *
+ * Bảng này tồn tại vì con số trần trụi không nói lên điều gì: "Gai Nhọn +18%"
+ * là 18% của cái gì? Người chơi phải rê chuột vào từng dòng mới biết, mà rê
+ * chuột thì không đọc được cả bảng cùng lúc — đúng thứ mà một bảng tổng hợp
+ * sinh ra để làm.
+ */
+const EFFECT_NAME = {
+  critChance: 'tỉ lệ chí mạng',
+  critDamage: 'sát thương chí mạng',
+  dodge: 'tỉ lệ né',
+  armorPercent: 'Giáp',
+  resistPercent: 'Kháng phép',
+  hpPercent: 'Máu tối đa',
+  regenPercent: 'máu hồi mỗi vòng',
+  manaRegen: 'mana hồi mỗi vòng',
+  reflect: 'sát thương dội lại',
+  lifesteal: 'sát thương hoá thành máu',
+};
+
+/** `manaRegen` là số nguyên, mọi thứ còn lại là phần trăm. */
+const fmtEffect = (key, v) =>
+  (key === 'manaRegen' ? `+${v}` : `+${Math.round(v * 100)}%`);
 
 /** Điểm sức mạnh thô, chỉ để so sánh nhanh hai món trong giao diện. */
 function itemScore(item) {

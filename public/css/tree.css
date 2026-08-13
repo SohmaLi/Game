@@ -325,6 +325,81 @@
   border-radius: 9px;
 }
 
+/* ---------------------------------------------------- Tinh Thông ------- */
+/* Chỗ tiêu điểm kỹ năng dư ở cấp cao. Sáu dòng xếp lưới tự co — mỗi thẻ phải
+   nói đủ ba thứ mà không cần hover: đang ở nấc mấy, đang hưởng bao nhiêu, và
+   nấc kế tiếp tốn mấy điểm. */
+.mst-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 10px;
+}
+.mst-line {
+  background: #131b2c;
+  border: 1px solid #2b3651;
+  border-radius: 10px;
+  padding: 11px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.mst-line.can { border-color: #35507a; }
+.mst-line.full { border-color: #46c46b; background: #12211a; }
+
+.mst-head { display: flex; align-items: baseline; justify-content: space-between; }
+.mst-name { font-size: 13px; font-weight: 600; color: #dbe4f5; }
+.mst-tier { font-size: 11px; color: #6b7791; font-variant-numeric: tabular-nums; }
+
+/* Mỗi ô là một nấc, con số trong ô là GIÁ của nấc đó — giá tăng dần nên
+   không nói ra thì người chơi tưởng nấc nào cũng 1 điểm. */
+.mst-pips { display: flex; gap: 4px; }
+.mst-pip {
+  flex: 1;
+  height: 18px;
+  border-radius: 4px;
+  background: #0e1524;
+  border: 1px solid #2b3651;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-style: normal;
+  color: #4a5878;
+}
+.mst-pip.on { background: #1d4f33; border-color: #46c46b; color: #a8f0c0; }
+
+.mst-now { font-size: 12px; font-weight: 600; color: #7ee89a; min-height: 16px; }
+.mst-now .dim { color: #56607a; font-weight: 400; }
+.mst-desc { font-size: 11px; color: #8b95ab; line-height: 1.5; flex: 1; }
+
+.mst-btn {
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 7px;
+  border: 1px solid #35507a;
+  background: #16233a;
+  color: #cfe0ff;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mst-btn:hover:not(:disabled) { background: #1d3053; }
+.mst-btn:disabled { opacity: .5; cursor: default; border-color: #2b3651; color: #6b7791; }
+
+/* Rửa điểm kỹ năng — nằm cuối tab Tinh Thông, tách khỏi lưới bằng một đường kẻ
+   để không ai bấm nhầm nó khi đang mua nấc. */
+.mst-respec {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid #2b3651;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: space-between;
+}
+.mst-respec b { color: #dbe4f5; font-size: 12.5px; }
+.mst-respec span { display: block; font-size: 11px; color: #8b95ab; line-height: 1.5; margin-top: 3px; }
+.mst-respec span b { color: #ff9aa8; font-size: 11px; }
+
 @media (max-width: 760px) {
   .t-grid { min-height: 0; }
   .node { position: static !important; width: auto; margin-bottom: 6px; }

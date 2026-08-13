@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Cửa hàng của thương nhân — hai tab Mua và Bán.
+ * Cửa hàng của thương nhân — ba tab: Mua · Bán đồ · Bán sách.
  *
  * Cùng nguyên tắc với bảng nhân vật: KHÔNG giữ trạng thái riêng. Mỗi thao tác
  * gửi lên server, server trả về nguyên cả quầy hàng và cả túi đồ kèm giá, rồi
@@ -41,6 +41,15 @@ const Shop = (() => {
    */
   const picked = new Set();
 
+  /**
+   * Sách đang tick để bán — bộ RIÊNG với đồ.
+   *
+   * Dùng chung một `Set` thì tick vài món ở tab Bán đồ, chuyển sang tab Bán
+   * sách bấm "Bán" là bán luôn cả đống đồ vừa tick mà bảng xác nhận không hề
+   * nhắc tới. Hai danh sách, hai nút, không dính vào nhau.
+   */
+  const pickedBooks = new Set();
+
   let ticker = null;   // đồng hồ đếm ngược tới lượt đổi hàng
   let tips = [];
 
@@ -58,6 +67,8 @@ const Shop = (() => {
 
     $('shSellClear').onclick = () => { picked.clear(); render(); };
     $('shSellBtn').onclick = sellPicked;
+    $('shBookClear').onclick = () => { pickedBooks.clear(); render(); };
+    $('shBookBtn').onclick = sellPickedBooks;
   }
 
   /* ------------------------------------------------ mở / đóng --------- */
@@ -67,6 +78,7 @@ const Shop = (() => {
   function open(theNpc) {
     npc = theNpc;
     picked.clear();
+    pickedBooks.clear();
     tab = 'buy';
     Panel.close();
     Tree.close();
@@ -83,6 +95,7 @@ const Shop = (() => {
     clearInterval(ticker);
     ticker = null;
     picked.clear();
+    pickedBooks.clear();
     data = null;
     npc = null;
   }
@@ -137,6 +150,7 @@ const Shop = (() => {
     renderRestock();
     renderBuy();
     renderSell();
+    renderBooks();
   }
 
   /**
@@ -286,6 +300,142 @@ const Shop = (() => {
       render();
     };
     box.appendChild(all);
+  }
+
+  /* ------------------------------------------------ bán sách --------- */
+
+  /** Màu theo hạng con quái đã rơi ra cuốn sách — cùng bảng với quầng quái trên bản đồ. */
+  const BOOK_TIER = {
+    common: { name: 'Quái thường', color: '#9aa5ba' },
+    elite: { name: 'Tinh Anh', color: '#c48bff' },
+    boss: { name: 'Thủ Lĩnh', color: '#ffd166' },
+  };
+  const BOOK_TIER_ORDER = ['common', 'elite', 'boss'];
+  const tierOf = (b) => BOOK_TIER[b.tier] || BOOK_TIER.common;
+
+  /**
+   * Sách Dị Điển chất đống nhanh hơn số ô để gắn — mười ô, mà sách rơi mãi.
+   * Đây là đường ra duy nhất cho những cuốn trùng một kỹ năng chưa gắn ô nào:
+   * gắn thì phí ô, tiêu nâng bậc thì không được, và trước đây vứt cũng không xong.
+   */
+  function renderBooks() {
+    const box = $('shBookGrid');
+    box.innerHTML = '';
+
+    const books = data.books || [];
+    const have = new Set(books.map((b) => b.uid));
+    for (const uid of [...pickedBooks]) if (!have.has(uid)) pickedBooks.delete(uid);
+
+    renderBookFilters(books);
+
+    const total = books.filter((b) => pickedBooks.has(b.uid)).reduce((s, b) => s + b.price, 0);
+    $('shBookCount').textContent = pickedBooks.size
+      ? `Đã chọn ${pickedBooks.size} cuốn · +${total.toLocaleString('vi-VN')} vàng`
+      : 'Chưa chọn cuốn nào';
+    $('shBookBtn').disabled = pickedBooks.size === 0;
+    $('shBookBtn').textContent = pickedBooks.size ? `Bán ${pickedBooks.size} cuốn` : 'Bán';
+
+    if (!books.length) {
+      box.innerHTML = `<p class="sh-empty">Không có cuốn nào chưa gắn.<br>
+        Sách đang nằm trong ô Dị Điển là kỹ năng đang dùng — muốn bán thì gỡ khỏi ô trước.</p>`;
+      return;
+    }
+
+    for (const b of books) {
+      const on = pickedBooks.has(b.uid);
+      const t = tierOf(b);
+      const row = document.createElement('button');
+      row.className = `sh-row${on ? ' picked' : ''}`;
+      row.style.borderColor = t.color;
+      row.innerHTML = `
+        <span class="sh-ico" style="color:#d3b8f0">${Icons.svg('ui-book') || '✦'}</span>
+        <span class="sh-info">
+          <span class="sh-name" style="color:#d3b8f0">${esc(b.name || 'Dị Điển')}</span>
+          <span class="sh-sub" style="color:${t.color}">${esc(t.name)} · từ ${esc(b.from || '?')}</span>
+        </span>
+        <span class="sh-price">+${b.price.toLocaleString('vi-VN')} <i class="sh-gold" data-icon="ui-gold">◆</i></span>`;
+
+      Icons.paint(row);
+      row.title = b.desc || '';
+      row.onclick = () => {
+        on ? pickedBooks.delete(b.uid) : pickedBooks.add(b.uid);
+        render();
+      };
+      box.appendChild(row);
+    }
+  }
+
+  function renderBookFilters(books) {
+    const box = $('shBookFilters');
+    box.innerHTML = '';
+    if (!books.length) return;
+
+    const counts = new Map();
+    for (const b of books) counts.set(b.tier || 'common', (counts.get(b.tier || 'common') || 0) + 1);
+
+    for (const t of BOOK_TIER_ORDER) {
+      const n = counts.get(t) || 0;
+      if (!n) continue;
+      const btn = document.createElement('button');
+      btn.className = 'sh-filter';
+      btn.style.color = BOOK_TIER[t].color;
+      btn.style.borderColor = BOOK_TIER[t].color;
+      btn.textContent = `${BOOK_TIER[t].name} (${n})`;
+      btn.onclick = () => {
+        const ids = books.filter((b) => (b.tier || 'common') === t).map((b) => b.uid);
+        const allOn = ids.every((id) => pickedBooks.has(id));
+        for (const id of ids) allOn ? pickedBooks.delete(id) : pickedBooks.add(id);
+        render();
+      };
+      box.appendChild(btn);
+    }
+
+    const all = document.createElement('button');
+    all.className = 'sh-filter all';
+    all.textContent = `Cả kho (${books.length})`;
+    all.onclick = () => {
+      const allOn = books.every((b) => pickedBooks.has(b.uid));
+      pickedBooks.clear();
+      if (!allOn) for (const b of books) pickedBooks.add(b.uid);
+      render();
+    };
+    box.appendChild(all);
+  }
+
+  /**
+   * Bán sách không lấy lại được, và sách Thủ Lĩnh rơi với tỉ lệ 40% từ một con
+   * năm phút mới có một lần — nói thẳng con số đó ra trong bảng xác nhận, đừng
+   * để người chơi phát hiện sau khi đã bấm.
+   */
+  async function sellPickedBooks() {
+    const chosen = (data.books || []).filter((b) => pickedBooks.has(b.uid));
+    if (!chosen.length) return;
+
+    const gold = chosen.reduce((s, b) => s + b.price, 0);
+    const byTier = BOOK_TIER_ORDER
+      .map((t) => [t, chosen.filter((b) => (b.tier || 'common') === t).length])
+      .filter(([, n]) => n > 0)
+      .map(([t, n]) => `<span style="color:${BOOK_TIER[t].color}">${n} ${BOOK_TIER[t].name}</span>`)
+      .join(' · ');
+
+    const precious = chosen.filter((b) => b.tier === 'boss' || b.tier === 'elite').length;
+
+    const ok = await UI.confirm({
+      title: `Bán ${chosen.length} cuốn Dị Điển?`,
+      message: `${byTier}<br><br>Nhận về <b style="color:#ffd166">${gold.toLocaleString('vi-VN')} vàng</b>.${precious
+        ? `<br><br><span class="warn">Trong đó <b>${precious}</b> cuốn rơi từ Tinh Anh hoặc Thủ Lĩnh — loại hiếm nhất, và quầy hàng không bán lại sách.</span>`
+        : ''}`,
+      confirmLabel: `Bán lấy ${gold.toLocaleString('vi-VN')} vàng`,
+    });
+    if (!ok) return;
+
+    socket.emit('shop:sellBooks', { npcId: npc?.id, uids: [...pickedBooks] }, (res) => {
+      if (!res?.ok) return Panel.toast?.('warn', 'Không bán được', res?.error || '');
+      pickedBooks.clear();
+      apply(res.state);
+      Panel.toast?.('levelup', `Đã bán ${res.sold.length} cuốn`,
+        `+${res.gold.toLocaleString('vi-VN')} vàng`);
+    });
   }
 
   /* ------------------------------------------------ thao tác ---------- */
