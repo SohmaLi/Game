@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frozen — Game 2D Online</title>
-<link rel="stylesheet" href="/vendor/tippy.css?v=30">
-<link rel="stylesheet" href="/css/style.css?v=30">
-<link rel="stylesheet" href="/css/battle.css?v=30">
-<link rel="stylesheet" href="/css/panel.css?v=30">
-<link rel="stylesheet" href="/css/hud.css?v=30">
-<link rel="stylesheet" href="/css/ui.css?v=30">
-<link rel="stylesheet" href="/css/tree.css?v=30">
-<link rel="stylesheet" href="/css/shop.css?v=30">
-<link rel="stylesheet" href="/css/party.css?v=30">
+<link rel="stylesheet" href="/vendor/tippy.css?v=31">
+<link rel="stylesheet" href="/css/style.css?v=31">
+<link rel="stylesheet" href="/css/battle.css?v=31">
+<link rel="stylesheet" href="/css/panel.css?v=31">
+<link rel="stylesheet" href="/css/hud.css?v=31">
+<link rel="stylesheet" href="/css/ui.css?v=31">
+<link rel="stylesheet" href="/css/tree.css?v=31">
+<link rel="stylesheet" href="/css/shop.css?v=31">
+<link rel="stylesheet" href="/css/party.css?v=31">
+<link rel="stylesheet" href="/css/quests.css?v=31">
 </head>
 <body>
 
@@ -157,6 +158,10 @@
       <i class="sb-ico" data-icon="ui-skills">✦</i><span class="sb-btn-label">Kỹ năng</span>
       <span class="sb-badge hidden" id="sbSkillPts">0</span>
     </button>
+    <button id="openQuests" class="sb-btn" title="Nhật Ký nhiệm vụ (J)">
+      <i class="sb-ico" data-icon="ui-detail">✎</i><span class="sb-btn-label">Nhật Ký</span>
+      <span class="sb-badge hidden" id="sbQuests">0</span>
+    </button>
     <button id="quit" class="sb-btn danger" title="Thoát về màn chọn nhân vật"><i class="sb-ico" data-icon="ui-quit">⏻</i></button>
   </div>
 </div>
@@ -209,6 +214,25 @@
 
 
 <!-- ========================== CÂY KỸ NĂNG ========================== -->
+<!-- ========================== NHẬT KÝ NHIỆM VỤ ========================== -->
+<div id="quests" class="hidden">
+  <div class="q-box">
+    <header class="q-head">
+      <h2>Nhật Ký</h2>
+      <span class="q-reset" id="qReset">—</span>
+      <button class="q-close" id="questClose">✕</button>
+    </header>
+
+    <div class="q-tabs">
+      <button class="q-tab active" data-qtab="daily">Hàng ngày</button>
+      <button class="q-tab" data-qtab="zone">Theo vùng</button>
+      <button class="q-tab" data-qtab="milestone">Cột mốc</button>
+    </div>
+
+    <div class="q-body" id="qBody"></div>
+  </div>
+</div>
+
 <div id="tree" class="hidden">
   <div class="t-box">
     <header class="t-head">
@@ -355,19 +379,20 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/vendor/popper.min.js?v=30"></script>
-<script src="/vendor/tippy.min.js?v=30"></script>
-<script src="/vendor/sortable.min.js?v=30"></script>
-<script src="/js/icons.js?v=30"></script>
-<script src="/js/sprites.js?v=30"></script>
-<script src="/js/ui.js?v=30"></script>
-<script src="/js/account.js?v=30"></script>
-<script src="/js/hud.js?v=30"></script>
-<script src="/js/battle.js?v=30"></script>
-<script src="/js/panel.js?v=30"></script>
-<script src="/js/tree.js?v=30"></script>
-<script src="/js/shop.js?v=30"></script>
-<script src="/js/party.js?v=30"></script>
-<script src="/js/game.js?v=30"></script>
+<script src="/vendor/popper.min.js?v=31"></script>
+<script src="/vendor/tippy.min.js?v=31"></script>
+<script src="/vendor/sortable.min.js?v=31"></script>
+<script src="/js/icons.js?v=31"></script>
+<script src="/js/sprites.js?v=31"></script>
+<script src="/js/ui.js?v=31"></script>
+<script src="/js/account.js?v=31"></script>
+<script src="/js/hud.js?v=31"></script>
+<script src="/js/battle.js?v=31"></script>
+<script src="/js/panel.js?v=31"></script>
+<script src="/js/tree.js?v=31"></script>
+<script src="/js/shop.js?v=31"></script>
+<script src="/js/party.js?v=31"></script>
+<script src="/js/quests.js?v=31"></script>
+<script src="/js/game.js?v=31"></script>
 </body>
 </html>

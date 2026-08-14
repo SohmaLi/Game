@@ -71,6 +71,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     if (Shop.isOpen()) { Shop.close(); return; }
     if (Tree.isOpen()) { Tree.close(); return; }
+    if (Quests.isOpen()) { Quests.close(); return; }
     if (Panel.isOpen()) { Panel.close(); return; }
   }
   // Nói chuyện với người bán hàng. Nhả hết phím trước khi mở, nếu không nhân
@@ -98,7 +99,15 @@ window.addEventListener('keydown', (e) => {
     sendInputIfChanged();
     return;
   }
-  if (Panel.isOpen() || Tree.isOpen()) return; // đang mở bảng thì không điều khiển nhân vật
+  if (e.code === 'KeyJ' && state.me) {
+    e.preventDefault();
+    Quests.toggle();
+    for (const key of Object.keys(keys)) keys[key] = false;
+    sendInputIfChanged();
+    return;
+  }
+  // Đang mở bảng thì không điều khiển nhân vật
+  if (Panel.isOpen() || Tree.isOpen() || Quests.isOpen()) return;
 
   const k = KEYMAP[e.code];
   if (!k) return;
@@ -172,6 +181,7 @@ function connect({ token, characterId, zone }) {
         Tree.init(socket);
         Shop.init(socket);
         Party.init(socket);
+        Quests.init(socket);
       }
       Battle.setMyId(res.you);
       Party.setMe(res.you, res.maxParty);
@@ -179,6 +189,7 @@ function connect({ token, characterId, zone }) {
         Panel.update(res.characterState);
         Tree.update(res.characterState);
         Party.update(res.characterState);
+        Quests.update(res.characterState);
       }
       // Vào phòng đúng lúc cả nhóm đang đánh nhau thì hiện luôn màn chiến đấu
       if (res.battle) Battle.onState(res.battle);
@@ -272,6 +283,7 @@ function leaveGame() {
   Battle.close();
   Panel.close();
   Tree.close();
+  Quests.close();
   Shop.close();
   Party.hide();
   UI.closeMenu();

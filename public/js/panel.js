@@ -47,7 +47,7 @@ const Panel = (() => {
   function init(sock) {
     socket = sock;
 
-    socket.on('character', (c) => { update(c); Tree.update(c); });
+    socket.on('character', (c) => { update(c); Tree.update(c); Quests.update(c); });
     socket.on('reward', (r) => showRewards(r));
 
     $('openPanel').onclick = toggle;
@@ -156,7 +156,7 @@ const Panel = (() => {
   }
 
   function isOpen() { return !$('panel').classList.contains('hidden'); }
-  function open() { Tree.close(); $('panel').classList.remove('hidden'); render(); }
+  function open() { Tree.close(); Quests.close(); $('panel').classList.remove('hidden'); render(); }
   // Đóng bảng là thoát luôn chế độ chọn: mở lại mà vẫn còn 20 ô đang tick từ
   // lúc nào không nhớ là công thức để bấm Xoá nhầm
   function close() {

@@ -11,6 +11,7 @@ const npcData = require('./data/npcs');
 const classData = require('./data/classes');
 const tree = require('./data/skilltree');
 const respec = require('./respec');
+const quests = require('./quests');
 const skillData = require('./data/skills');
 const statsLib = require('./stats');
 const { PartyManager } = require('./party');
@@ -189,6 +190,7 @@ class Room {
       skillRanks: character?.skillRanks || {},
       bookRanks: character?.bookRanks || {},
       mastery: character?.mastery || {},
+      quests: quests.normalize(character?.quests),
 
       partyId: null,   // nhóm đang tham gia
       battleId: null,  // trận đang đánh, null khi đang khám phá
@@ -791,6 +793,11 @@ class Room {
 
       const levelUp = progression.addExp(p, rewards.exp);
 
+      // Đếm quái cho Nhật Ký. Đặt ở đây vì đây là chỗ DUY NHẤT một trận thắng
+      // đi qua — nhét vào `battle.finish` thì trận của trình mô phỏng cân bằng
+      // cũng cộng vào nhiệm vụ của một nhân vật không tồn tại.
+      quests.recordKills(p, rewards.killed);
+
       const kept = [];
       const lost = [];
       for (const item of mine.drops) {
@@ -913,6 +920,7 @@ class Room {
       mastery: tree.publicMastery(p),
       masteryCapacity: tree.MASTERY_CAPACITY,
       respecPrice: respec.prices(p.level),
+      quests: quests.stateFor(p),
       learned: p.learned,
       carried: p.carried,
       maxLoadout: skillData.MAX_LOADOUT,

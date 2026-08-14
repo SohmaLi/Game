@@ -957,6 +957,84 @@ món Truyền Thuyết vì lỡ tay là chuyện người chơi sẽ nhớ rất
 
 ---
 
+## 8b. Nhật Ký — hệ nhiệm vụ
+
+Lỗ hổng nó lấp: vào game là đứng giữa đồng cỏ, không mục tiêu, không ai giao
+việc. Mọi thứ khác trong game đều là **cơ chế** — đánh, nhặt, cộng điểm — nhưng
+không có gì trả lời câu "giờ tôi nên làm gì".
+
+### 8b.1 Ba ràng buộc định hình toàn bộ thiết kế
+
+🔒 **Không đi bộ giữa các vùng.** Đổi vùng là quay về màn chọn bản đồ, và
+`Room.dropFromParty` sẽ đá người chơi khỏi nhóm (CLAUDE.md §5a). Nên **không có
+nhiệm vụ nào bắt quay về Duskmoor để trả**: một việc như vậy trả giá bằng cả
+nhóm 5 người vừa lập.
+
+→ **Nhận và trả thưởng đều ngay trong bảng Nhật Ký, ở bất cứ đâu.** NPC Quản Sự
+ở Duskmoor chỉ giới thiệu hệ thống, không giữ độc quyền gì.
+
+🔒 **Server là nơi duy nhất đếm.** Client không bao giờ gửi "tôi vừa hạ 20 con
+sói" — nó chỉ được phép gửi "tôi bấm nhận thưởng việc X". Cùng lý do với mọi thứ
+khác trong game này.
+
+🔒 **Chỉ đếm những thứ server ĐÃ quan sát được.** Không thêm một đường theo dõi
+mới nào chỉ để phục vụ nhiệm vụ: mỗi loại mục tiêu phải khớp với một chỗ server
+vốn đã biết. Năm loại, không hơn:
+
+| Loại | Đếm gì | Server đã biết ở đâu |
+|---|---|---|
+| `kill` | hạ N con một bản mẫu cụ thể | `battle.finish` → danh sách `killed` |
+| `tier` | hạ N con hạng Tinh Anh / Thủ Lĩnh | cùng chỗ, đọc `tier` |
+| `level` | đạt cấp N | `progression.addExp` |
+| `codex` | gắn đủ N ô Dị Điển | `p.codex` |
+| `equip` | mặc đủ N ô trang bị | `p.inv.equipped` |
+
+### 8b.2 Ba loại việc
+
+| Loại | Số lượng | Làm lại được? | Vai trò |
+|---|---|---|---|
+| **Việc vùng** | 3 mỗi vùng săn (18) | không | dẫn đường xuyên suốt một vùng |
+| **Việc hàng ngày** | 3, đổi mỗi ngày | mỗi ngày một lần | lý do quay lại hôm sau |
+| **Cột mốc** | ~8 cho cả đời nhân vật | không | mục tiêu dài hạn |
+
+### 8b.3 Bộ đếm cộng dồn, không phải sổ sách từng việc
+
+🔒 Lưu **một bảng đếm cộng dồn cả đời nhân vật**, không lưu tiến độ riêng cho
+từng nhiệm vụ:
+
+```
+counters: { 'kill:grey_wolf': 34, 'tier:elite': 3, 'tier:boss': 1 }
+```
+
+Một việc là "xong" khi bộ đếm chạm mốc. Không có bước "nhận việc", không có
+trạng thái đang-làm nào phải đồng bộ — và thêm một nhiệm vụ mới vào
+`data/quests.js` thì tiến độ cũ tự tính lại, không cần migrate gì.
+
+💡 Việc hàng ngày không dùng được bộ đếm cộng dồn (nó sẽ xong ngay lập tức), nên
+mỗi ngày chụp một **mốc nền**: `dailyBase`. Tiến độ = `counters − dailyBase`.
+Ngày mới thì chụp lại. Cùng cơ chế cửa sổ thời gian với quầy hàng thương nhân
+(§6c), và cùng lý do: hạt giống buộc vào (nhân vật, ngày) nên thoát ra vào lại
+vẫn thấy đúng ba việc cũ, không biến thành máy quay xổ số.
+
+### 8b.4 Thưởng
+
+```
+việc vùng      = 40 × cấp trần vùng  vàng  +  50% một cấp  kinh nghiệm
+việc hàng ngày = 60 × cấp nhân vật   vàng  +  25% một cấp  kinh nghiệm
+cột mốc        = vàng lớn, có mốc thưởng thẳng một cuốn Dị Điển
+```
+
+Đối chiếu để thấy nó có đáng: ở Đồng Cỏ một con quái cho 84 kinh nghiệm và 53
+vàng, lên cấp cần 1.264. Việc vùng ở đó trả 400 vàng + 632 kinh nghiệm — bằng
+khoảng 7 con quái, cho một việc đòi hạ 20 con. Đủ để đáng làm, không đủ để thay
+thế việc đi đánh.
+
+⚠️ Kinh nghiệm tính theo `expToNext` của cấp trần vùng, **không** theo cấp người
+chơi: nếu không thì người cấp 60 quay về Đồng Cỏ làm lại ba việc vùng đó sẽ nhận
+kinh nghiệm cấp 60 cho việc hạ hai chục con sói cấp 5.
+
+---
+
 ## 8. Còn bỏ ngỏ
 
 Không cản trở giai đoạn 1–3, quyết sau cũng được:

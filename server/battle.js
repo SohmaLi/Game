@@ -765,7 +765,7 @@ class Battle {
     if (result === 'win') {
       // Kèm cấp thật của từng con: cùng một bản mẫu ở vùng cấp 41-50 cho nhiều
       // kinh nghiệm và đồ tốt hơn hẳn ở vùng cấp 1-10
-      const killed = this.enemies.map((m) => ({ id: m.monsterId, level: m.level }));
+      const killed = this.enemies.map((m) => ({ id: m.monsterId, level: m.level, tier: m.tier }));
       const partySize = this.allies.length || 1;
 
       // Kinh nghiệm và vàng chia đều; ĐỒ thì mỗi người bốc riêng — nếu chia đều
@@ -798,7 +798,12 @@ class Battle {
       const books = Object.values(perPlayer).flatMap((r) => r.books);
       const drops = Object.values(perPlayer).flatMap((r) => r.drops);
 
-      rewards = { exp, gold, books, drops, perPlayer };
+      /**
+       * `killed` đi kèm phần thưởng để bộ máy nhiệm vụ đếm được (server/quests.js).
+       * Dựng lại danh sách này ở `applyRewards` là dựng bản đếm THỨ HAI của cùng
+       * một việc — và hai bản đếm ở hai nơi là hai chỗ để lệch nhau.
+       */
+      rewards = { exp, gold, books, drops, perPlayer, killed };
     }
 
     events.push({ type: 'end', result, rewards });

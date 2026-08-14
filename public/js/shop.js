@@ -82,6 +82,7 @@ const Shop = (() => {
     tab = 'buy';
     Panel.close();
     Tree.close();
+    Quests.close();
     $('shop').classList.remove('hidden');
     $('shopTitle').textContent = theNpc.name;
     $('shopRole').textContent = theNpc.role;

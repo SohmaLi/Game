@@ -66,12 +66,13 @@ server/
   shop.js              giá cả, quầy hàng, mua bán đồ và SÁCH với thương nhân
   codex.js             Dị Điển: gắn · gỡ · vứt · tiêu sách trùng nâng bậc
   respec.js            rửa điểm chỉ số / điểm kỹ năng, tính phí bằng vàng
+  quests.js            Nhật Ký: bộ đếm cộng dồn, việc hàng ngày, nhận thưởng
   inventory.js         túi đồ, 10 ô trang bị
   loot.js              rớt đồ và sách
   progression.js       cấp độ, kinh nghiệm, điểm chỉ số
   characters.js        CRUD nhân vật + lưu/đọc tiến trình
   auth.js              scrypt + JWT
-  data/                items · monsters · skills · skilltree · boons · nations · classes · zones · npcs
+  data/                items · monsters · skills · skilltree · boons · nations · classes · zones · npcs · quests
 public/js/
   game.js              vòng vẽ canvas, bàn phím, kết nối
   battle.js            màn chiến đấu
@@ -79,6 +80,7 @@ public/js/
   tree.js              cây kỹ năng
   shop.js              cửa hàng thương nhân (Mua / Bán)
   party.js             khung nhóm, thẻ lời mời, menu mời trên bản đồ
+  quests.js            Nhật Ký nhiệm vụ (phím J)
   hud.js               HUD 4 thanh góc trái
   ui.js                menu chuột phải, hộp xác nhận
   icons.js             nạp sprite icon, đổi [data-icon] thành SVG
@@ -128,6 +130,12 @@ tests/                 node --test — chạy trước mỗi lần deploy
    `contacts` — danh sách con đang đè lên mình. Nhờ vậy con đứng sẵn dưới chân
    lúc hết miễn va chạm phải bỏ đi rồi quay lại mới kéo được ai.
 
+6a. **Nhiệm vụ đếm bằng MỘT bảng cộng dồn, không có sổ sách từng việc**
+   (DESIGN.md §8b). Không có bước "nhận việc", không có trạng thái đang-làm nào
+   phải đồng bộ — một việc là xong khi bộ đếm chạm mốc. Nhờ vậy thêm nhiệm vụ
+   mới thì tiến độ cũ tự tính lại, không cần migrate. Việc hàng ngày chạy trên
+   cùng bộ đếm đó nhờ một ảnh chụp mốc nền mỗi ngày (`dailyBase`).
+
 7. **Đo chiều cao thanh cố định bằng `getBoundingClientRect`, ghi vào biến CSS**
    (`--sb-h`, `--nav-h`). Đoán số cứng là cách đã làm thông báo chui xuống dưới
    nút Balo.
@@ -173,6 +181,8 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Tiêu sách Dị Điển trùng để nâng bậc thì mất một điểm kỹ năng | `rankPointsSpent` cộng theo TOÀN BỘ bảng bậc, không phân biệt bậc nào mua bằng điểm, bậc nào lên bằng sách. Cả giao diện lẫn chú thích code đều nói việc đó miễn phí, mà mỗi cuốn lại lặng lẽ lấy thêm học phí một điểm. Phải có `book_ranks` tách riêng phần đến từ sách |
 | Gỡ sách khỏi ô Dị Điển làm rớt luôn chiêu vẫn mở từ Cây Nền | `releaseSkill` nhấc chiêu khỏi `carried` TRƯỚC khi xét xem nó còn đường nào khác để dùng không. Phải xét `unlockedSkills` trước — còn dùng được thì không đụng gì cả |
 | Cấp 60 dư 21 điểm kỹ năng không tiêu vào đâu | Cây Nền 15 + nâng bậc 24 = 39, mà cấp 60 nhận 60. Hệ Tinh Thông là chỗ chứa — nhưng giá phẳng 1 điểm/nấc biến nó thành một tầng sức mạnh mới (+20 điểm phần trăm thắng). Giá tăng dần `1·1·2·2·3` cộng với hạ mỗi nấc xuống một nửa mới đưa về đúng mức chứa điểm thừa |
+| Bốc 3 việc hàng ngày từ bể 4 khuôn mà chỉ ra 2 | `for (i = 0; i < Math.min(3, pool.length); i++)` với `pool.splice` bên trong — độ dài teo đi sau mỗi lần bốc nên điều kiện lặp tự thắt lại. Chốt số lượng TRƯỚC vòng lặp |
+| Nhật Ký trống trơn ngay sau khi vào phòng | `Quests.update` chỉ được gọi từ sự kiện `character`, mà lúc mới vào phòng trạng thái đến kèm gói `join` (`res.characterState`). Cùng chỗ đã phải nhớ cho `Panel`, `Tree`, `Party` — thêm bảng mới là thêm một chỗ để quên |
 | Đã chọn chiêu xong vẫn ngồi hết 20 giây | Người cuối cùng chưa bấm mà RỜI trận (rớt mạng, hoặc trốn thoát khỏi trận Thủ Lĩnh) thì `removeAlly` chỉ gỡ tên rồi thôi — không ai xét lại xem còn ai để chờ nữa không. Cả nhóm chờ một người không còn trong trận |
 | `deploy.sh` chạy tới bước khởi động lại rồi im, không in dòng kiểm tra nào | `pkill -f` soi dòng lệnh của MỌI tiến trình, kể cả `bash -c` đang chạy chính câu pkill đó — mẫu nằm nguyên văn trong dòng lệnh của nó. pkill tự giết phiên ssh của mình, ssh trả 255, `set -e` cắt script đúng trước khối KIỂM TRA `uptimeSec`. Deploy vẫn ăn nên không ai để ý, nhưng cái chốt chặn quan trọng nhất thì chưa bao giờ chạy. Viết mẫu kiểu `[g]ame` để nó không tự khớp chính mình |
 
@@ -207,6 +217,10 @@ thương nhân · chặn gắn trùng) · **Tinh Thông** — sáu dòng chỉ s
 dần, chỗ tiêu 21 điểm dư ở cấp 60 · **rửa điểm chỉ số và điểm kỹ năng** bằng
 vàng · **đồ rơi theo cấp NGƯỜI CHƠI, hạng theo ĐỘ KHÓ BẢN ĐỒ** (DESIGN.md §6.1b)
 · bảng bị động ghi thẳng hiệu quả ra dòng, khỏi phải rê chuột.
+
+**Xong đợt này:** **Nhật Ký nhiệm vụ** (DESIGN.md §8b) — 18 việc vùng, 3 việc
+hàng ngày đổi theo ngày, 8 cột mốc; đếm bằng một bảng cộng dồn duy nhất, nhận
+thưởng ngay trong bảng ở bất cứ đâu vì đổi vùng là mất nhóm.
 
 **Chưa xong:** **giao dịch giữa người chơi với nhau** (mua bán với
 NPC đã xong) · PvP · lá chắn miễn nhiễm vật lý cho Thủ Lĩnh (loại cơ chế thứ tư,

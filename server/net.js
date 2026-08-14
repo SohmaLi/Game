@@ -14,6 +14,7 @@ const npcData = require('./data/npcs');
 const shop = require('./shop');
 const codex = require('./codex');
 const respec = require('./respec');
+const quests = require('./quests');
 const party = require('./party');
 
 /** Làm sạch tên người chơi trước khi cho vào hệ thống. */
@@ -274,6 +275,13 @@ function attach(io) {
      */
     socket.on('respec:stats', invAction((p) => respec.resetStats(p)));
     socket.on('respec:skills', invAction((p) => respec.resetSkills(p)));
+
+    /**
+     * Nhận thưởng một nhiệm vụ (DESIGN.md §8b). Đây là sự kiện DUY NHẤT client
+     * được gửi về nhiệm vụ — tiến độ do server đếm, client không bao giờ báo lên
+     * "tôi vừa hạ 20 con sói".
+     */
+    socket.on('quest:claim', invAction((p, d) => quests.claim(p, d.questId)));
 
     /* ------------------------------------------------ mua bán ---------- */
 

@@ -34,6 +34,7 @@ const Tree = (() => {
   function close() { $('tree').classList.add('hidden'); }
   function open() {
     Panel.close();
+    Quests.close();
     $('tree').classList.remove('hidden');
     render();
   }
