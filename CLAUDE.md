@@ -185,6 +185,7 @@ tests/                 node --test — chạy trước mỗi lần deploy
 | Nhật Ký trống trơn ngay sau khi vào phòng | `Quests.update` chỉ được gọi từ sự kiện `character`, mà lúc mới vào phòng trạng thái đến kèm gói `join` (`res.characterState`). Cùng chỗ đã phải nhớ cho `Panel`, `Tree`, `Party` — thêm bảng mới là thêm một chỗ để quên |
 | Đã chọn chiêu xong vẫn ngồi hết 20 giây | Người cuối cùng chưa bấm mà RỜI trận (rớt mạng, hoặc trốn thoát khỏi trận Thủ Lĩnh) thì `removeAlly` chỉ gỡ tên rồi thôi — không ai xét lại xem còn ai để chờ nữa không. Cả nhóm chờ một người không còn trong trận |
 | `deploy.sh` chạy tới bước khởi động lại rồi im, không in dòng kiểm tra nào | `pkill -f` soi dòng lệnh của MỌI tiến trình, kể cả `bash -c` đang chạy chính câu pkill đó — mẫu nằm nguyên văn trong dòng lệnh của nó. pkill tự giết phiên ssh của mình, ssh trả 255, `set -e` cắt script đúng trước khối KIỂM TRA `uptimeSec`. Deploy vẫn ăn nên không ai để ý, nhưng cái chốt chặn quan trọng nhất thì chưa bao giờ chạy. Viết mẫu kiểu `[g]ame` để nó không tự khớp chính mình |
+| Thêm NPC thứ hai vào quảng trường là mở được quầy hàng trên bàn Người Chép Sử | `npcId` đi lên từ CLIENT, mà `room.npcNear` chỉ tra theo id rồi đo khoảng cách — suốt thời gian chỉ có một NPC thì không có gì để nhầm. Có người thứ hai là `shop:buy` với `npcId: 'scribe'` chạy trót lọt. Nay `npcNear(p, id, kind)` xét cả NGHỀ, và cả hai đường (`atShop`, `quest:claimAll`) đều phải khai nghề mình cần |
 
 ---
 
@@ -221,6 +222,11 @@ vàng · **đồ rơi theo cấp NGƯỜI CHƠI, hạng theo ĐỘ KHÓ BẢN Đ
 **Xong đợt này:** **Nhật Ký nhiệm vụ** (DESIGN.md §8b) — 18 việc vùng, 3 việc
 hàng ngày đổi theo ngày, 8 cột mốc; đếm bằng một bảng cộng dồn duy nhất, nhận
 thưởng ngay trong bảng ở bất cứ đâu vì đổi vùng là mất nhóm.
+
+**Xong đợt này:** **Người Chép Sử Orin Bút Sắt** (DESIGN.md §8b.5) — NPC thứ hai
+trên quảng trường Duskmoor, bấm E mở Nhật Ký kèm nút **Nhận tất cả**. Cái ông ta
+bán là sự tiện tay, KHÔNG phải sức mạnh: thưởng đứng cạnh ông ta bằng đúng thưởng
+bấm từng nút giữa Vực Băng, vì bắt về thị trấn lấy phần hơn là bắt giải tán nhóm.
 
 **Chưa xong:** **giao dịch giữa người chơi với nhau** (mua bán với
 NPC đã xong) · PvP · lá chắn miễn nhiễm vật lý cho Thủ Lĩnh (loại cơ chế thứ tư,

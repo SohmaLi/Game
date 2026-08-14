@@ -74,13 +74,18 @@ window.addEventListener('keydown', (e) => {
     if (Quests.isOpen()) { Quests.close(); return; }
     if (Panel.isOpen()) { Panel.close(); return; }
   }
-  // Nói chuyện với người bán hàng. Nhả hết phím trước khi mở, nếu không nhân
-  // vật chạy tiếp dưới cửa sổ đang mở rồi lạc ra khỏi tầm nói chuyện
+  // Nói chuyện với người đang đứng cạnh. Nhả hết phím trước khi mở, nếu không
+  // nhân vật chạy tiếp dưới cửa sổ đang mở rồi lạc ra khỏi tầm nói chuyện.
+  // Cửa sổ nào là do NGHỀ của họ quyết định (`kind`), không phải do id
   if (e.code === 'KeyE' && state.me && state.nearNpc && !Shop.isOpen()) {
     e.preventDefault();
     for (const key of Object.keys(keys)) keys[key] = false;
     sendInputIfChanged();
-    Shop.open(state.nearNpc);
+    if (state.nearNpc.kind === 'quest') {
+      Quests.toggle();
+    } else {
+      Shop.open(state.nearNpc);
+    }
     return;
   }
   if (Shop.isOpen()) return;
@@ -181,7 +186,10 @@ function connect({ token, characterId, zone }) {
         Tree.init(socket);
         Shop.init(socket);
         Party.init(socket);
-        Quests.init(socket);
+        // Nhật Ký hỏi lại vị trí mỗi lần vẽ: người chơi đi lại được trong lúc
+        // bảng đang mở, nên "đang đứng cạnh Người Chép Sử" không phải thứ chụp
+        // được một lần lúc bấm E
+        Quests.init(socket, () => state.nearNpc);
       }
       Battle.setMyId(res.you);
       Party.setMe(res.you, res.maxParty);
@@ -683,6 +691,16 @@ function updateNearNpc(me) {
     : null;
 
   if ((state.nearNpc?.id || null) === before) return;
+
+  /**
+   * Bước ra khỏi tầm là nút Nhận tất cả phải biến mất ngay, không đợi gói
+   * `character` tiếp theo — nút còn đó mà bấm vào bị từ chối là nút hỏng.
+   *
+   * Bảng đang mở thì phím điều khiển bị chặn, nhưng nút Nhật Ký dưới thanh
+   * kinh nghiệm mở được bằng CHUỘT: đang giữ W mà bấm nút thì `keys.up` còn
+   * nguyên, nhân vật chạy tiếp trong lúc bảng đã mở.
+   */
+  Quests.refresh();
 
   const el = $('npcPrompt');
   if (!state.nearNpc) return el.classList.add('hidden');

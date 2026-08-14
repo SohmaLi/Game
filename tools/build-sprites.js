@@ -77,6 +77,7 @@ const MOBS = {
  */
 const NPCS = {
   merchant: 14,   // mũ rộng vành, áo khoác đi đường — dân buôn đường dài
+  scribe: 10,     // râu dài, khăn buộc trán, áo chùng — người chép sử
 };
 
 /**

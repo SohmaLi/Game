@@ -21,14 +21,24 @@ const Quests = (() => {
   let socket = null;
   let data = null;
   let tab = 'daily';
+  /**
+   * Hỏi vòng vẽ xem đang đứng cạnh ai, thay vì tự giữ một bản sao.
+   *
+   * Bảng này mở được từ ba đường (phím J, nút dưới HUD, bấm E cạnh Người Chép
+   * Sử) mà người chơi vẫn đi lại được trong lúc nó mở. Ghi nhớ "mở từ chỗ NPC"
+   * lúc mở là ghi một sự thật hết hạn ngay bước chân tiếp theo.
+   */
+  let nearNpc = () => null;
 
   /* ------------------------------------------------ khởi tạo ---------- */
 
-  function init(sock) {
+  function init(sock, nearNpcFn) {
     socket = sock;
+    if (nearNpcFn) nearNpc = nearNpcFn;
 
     $('openQuests').onclick = toggle;
     $('questClose').onclick = close;
+    $('qClaimAll').onclick = claimAll;
     $('quests').addEventListener('click', (e) => { if (e.target.id === 'quests') close(); });
 
     document.querySelectorAll('.q-tab').forEach((btn) => {
@@ -45,6 +55,12 @@ const Quests = (() => {
     render();
   }
   function toggle() { isOpen() ? close() : open(); }
+
+  /** Người Chép Sử trong tầm nói chuyện, null nếu đang đứng ở đâu đó khác. */
+  const scribe = () => {
+    const n = nearNpc();
+    return n?.kind === 'quest' ? n : null;
+  };
 
   /** Nhật Ký đi kèm bảng nhân vật — cùng một gói, không có sự kiện riêng. */
   function update(c) {
@@ -73,6 +89,7 @@ const Quests = (() => {
   function render() {
     if (!data) return;
 
+    renderNpc();
     document.querySelectorAll('.q-tab').forEach((b) =>
       b.classList.toggle('active', b.dataset.qtab === tab));
 
@@ -129,6 +146,21 @@ const Quests = (() => {
       </div>`;
   }
 
+  function renderNpc() {
+    const npc = scribe();
+    $('qNpc').classList.toggle('hidden', !npc);
+    if (!npc) return;
+
+    $('qNpcName').textContent = npc.name;
+    $('qNpcRole').textContent = npc.role;
+    $('qNpcGreet').textContent = npc.greet || '';
+
+    const n = data?.claimable || 0;
+    const btn = $('qClaimAll');
+    btn.disabled = !n;
+    btn.textContent = n ? `Nhận tất cả (${n})` : 'Chưa có việc nào xong';
+  }
+
   function claim(questId) {
     socket.emit('quest:claim', { questId }, (res) => {
       if (!res?.ok) return Panel.toast('warn', 'Chưa nhận được', res?.error || '');
@@ -138,6 +170,30 @@ const Quests = (() => {
         res.book ? res.book.name : '',
       ].filter(Boolean).join(' · ');
       Panel.toast('levelup', res.name, extra);
+    });
+  }
+
+  /**
+   * Nhận hết một lượt. Server nhận lại từng việc một và tự chốt lại điều kiện —
+   * client chỉ gửi đúng một chữ "nhận hết", không gửi kèm danh sách id nào.
+   */
+  function claimAll() {
+    socket.emit('quest:claimAll', {}, (res) => {
+      if (!res?.ok) return Panel.toast('warn', 'Chưa nhận được', res?.error || '');
+
+      const extra = [
+        `+${res.gold.toLocaleString('vi-VN')} vàng`,
+        res.exp ? `+${res.exp.toLocaleString('vi-VN')} kn` : '',
+        res.books?.length ? `${res.books.length} Dị Điển` : '',
+      ].filter(Boolean).join(' · ');
+      Panel.toast('levelup', `Nhận thưởng ${res.count} việc`, extra);
+
+      // Việc hàng ngày nâng mốc theo cấp, nên vừa lên cấp giữa chừng là có việc
+      // tụt lại. Im lặng ở đây thì người chơi tưởng nút bấm hụt
+      if (res.skipped) {
+        Panel.toast('warn', `Còn ${res.skipped} việc chưa nhận được`,
+          'Lên cấp giữa chừng làm mốc của việc hàng ngày cao lên.');
+      }
     });
   }
 
@@ -152,5 +208,8 @@ const Quests = (() => {
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g,
     (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
-  return { init, update, open, close, toggle, isOpen };
+  /** Vòng vẽ gọi khi bước vào hoặc bước ra khỏi tầm nói chuyện. */
+  function refresh() { if (isOpen()) render(); }
+
+  return { init, update, open, close, toggle, isOpen, refresh };
 })();

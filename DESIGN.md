@@ -970,8 +970,8 @@ không có gì trả lời câu "giờ tôi nên làm gì".
 nhiệm vụ nào bắt quay về Duskmoor để trả**: một việc như vậy trả giá bằng cả
 nhóm 5 người vừa lập.
 
-→ **Nhận và trả thưởng đều ngay trong bảng Nhật Ký, ở bất cứ đâu.** NPC Quản Sự
-ở Duskmoor chỉ giới thiệu hệ thống, không giữ độc quyền gì.
+→ **Nhận và trả thưởng đều ngay trong bảng Nhật Ký, ở bất cứ đâu.** Người Chép
+Sử ở Duskmoor không giữ độc quyền gì — xem §8b.5.
 
 🔒 **Server là nơi duy nhất đếm.** Client không bao giờ gửi "tôi vừa hạ 20 con
 sói" — nó chỉ được phép gửi "tôi bấm nhận thưởng việc X". Cùng lý do với mọi thứ
@@ -1032,6 +1032,38 @@ thế việc đi đánh.
 ⚠️ Kinh nghiệm tính theo `expToNext` của cấp trần vùng, **không** theo cấp người
 chơi: nếu không thì người cấp 60 quay về Đồng Cỏ làm lại ba việc vùng đó sẽ nhận
 kinh nghiệm cấp 60 cho việc hạ hai chục con sói cấp 5.
+
+### 8b.5 Người Chép Sử — mặt người của hệ nhiệm vụ
+
+**Orin Bút Sắt**, đứng cách thương nhân bốn ô trên quảng trường Bến Cảng
+Duskmoor. Bấm **E** cạnh ông ta mở đúng bảng Nhật Ký đó, thêm một khối giới
+thiệu và một nút **Nhận tất cả**.
+
+Vì sao cần một người thật đứng đó, khi phím **J** đã mở được bảng này ở mọi nơi:
+một hệ thống không có ai đại diện thì không ai đi tìm. Nhật Ký trước đó là một
+nút trên thanh dưới — người chơi phải tự đoán ra rằng nó tồn tại.
+
+🔒 **Cái ông ta bán là sự tiện tay, KHÔNG phải sức mạnh.**
+
+| | Ở bất cứ đâu (phím J) | Đứng cạnh Người Chép Sử |
+|---|---|---|
+| Xem tiến độ | ✅ | ✅ |
+| Nhận thưởng từng việc | ✅ | ✅ |
+| Nhận cả lượt bằng một nút | ❌ | ✅ |
+| Số vàng · kinh nghiệm nhận được | như nhau | **như nhau** |
+
+Đây là hệ quả trực tiếp của ràng buộc đầu §8b.1. Nếu đứng cạnh ông ta mà được
+thưởng nhiều hơn thì mọi người chơi có nhóm đều phải chọn: giải tán nhóm để về
+lấy phần hơn, hay chịu thiệt. Một nhiệm vụ không được phép đặt ra câu hỏi đó.
+Còn nút Nhận tất cả thì ai không bao giờ ghé cũng không mất gì ngoài mấy cú bấm.
+
+⚠️ Nhận cả lượt phải bằng **đúng tổng** của từng lần nhận riêng lẻ — có một bài
+test giữ chốt đó. Một nút gộp cộng dư một đồng vàng là một nút đẻ vàng.
+
+⚠️ Việc hàng ngày đi trước trong vòng lặp: mốc của nó co giãn theo cấp người
+chơi, nên kinh nghiệm của một việc vùng có thể đẩy người chơi qua mốc 16/31/46
+và nâng mốc của chính việc đang chờ nhận. Việc nào bị lỡ thì báo thẳng ra màn
+hình, không im lặng.
 
 ---
 

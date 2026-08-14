@@ -48,71 +48,75 @@
     "merchant": {
       "x": 128,
       "y": 64
+    },
+    "scribe": {
+      "x": 192,
+      "y": 64
     }
   },
   "mobs": {
     "grey_wolf": {
-      "x": 192,
+      "x": 256,
       "y": 64
     },
     "bandit": {
-      "x": 256,
+      "x": 320,
       "y": 64
     },
     "skeleton": {
-      "x": 320,
+      "x": 384,
       "y": 64
     },
     "mist_spider": {
-      "x": 384,
+      "x": 448,
       "y": 64
     },
     "bone_archer": {
-      "x": 448,
-      "y": 64
+      "x": 0,
+      "y": 128
     },
     "frost_revenant": {
-      "x": 0,
+      "x": 64,
       "y": 128
     },
     "storm_cultist": {
-      "x": 64,
+      "x": 128,
       "y": 128
     },
     "cliff_bear": {
-      "x": 128,
-      "y": 128
-    },
-    "alpha_wolf": {
       "x": 192,
       "y": 128
     },
-    "spider_matron": {
+    "alpha_wolf": {
       "x": 256,
       "y": 128
     },
-    "bone_general": {
+    "spider_matron": {
       "x": 320,
       "y": 128
     },
-    "ice_troll": {
+    "bone_general": {
       "x": 384,
       "y": 128
     },
-    "storm_herald": {
+    "ice_troll": {
       "x": 448,
       "y": 128
     },
-    "void_wraith": {
+    "storm_herald": {
       "x": 0,
       "y": 192
     },
-    "void_eye": {
+    "void_wraith": {
       "x": 64,
       "y": 192
     },
-    "void_lord": {
+    "void_eye": {
       "x": 128,
+      "y": 192
+    },
+    "void_lord": {
+      "x": 192,
       "y": 192
     }
   },

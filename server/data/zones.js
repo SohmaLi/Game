@@ -39,7 +39,7 @@ const ZONES = [
     desc: 'Không có gì ngoài kia bò được qua cổng thành. Chỗ duy nhất trên lục địa mà cất kiếm đi vẫn sống.',
     monsters: [],
     boss: null,
-    npcs: ['merchant'],
+    npcs: ['merchant', 'scribe'],
     theme: { floorA: '#2a2318', floorB: '#2e2719', wall: '#4a3a22', wallTop: '#66502f', accent: '#ffd166' },
   },
   {

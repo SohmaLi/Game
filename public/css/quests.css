@@ -46,6 +46,53 @@
 }
 .q-close:hover { background: #1b2740; color: #e6e9ef; }
 
+/* ------------------------------------------- Người Chép Sử ----------- */
+/* Khối này chỉ có mặt khi bảng được mở từ chỗ ông ta. Bấm J ở giữa Vực Băng thì
+   không có gì ở đây cả — và cũng không có nút Nhận tất cả. */
+
+.q-npc {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 12px 16px 0;
+  padding: 11px 13px;
+  background: #131b2c;
+  border: 1px solid #2b3651;
+  border-left: 3px solid #7dd3fc;
+  border-radius: 10px;
+}
+.q-npc.hidden { display: none; }
+.q-npc-who { font-size: 13px; color: #dbe4f5; }
+.q-npc-who span { font-size: 11px; color: #7dd3fc; margin-left: 8px; }
+.q-npc-greet {
+  grid-column: 1;
+  margin: 0;
+  font-size: 11.5px;
+  font-style: italic;
+  color: #8b95ab;
+  line-height: 1.5;
+}
+.q-all {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid #46c46b;
+  background: #1d4f33;
+  color: #a8f0c0;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.q-all:hover { background: #266641; }
+.q-all:disabled {
+  border-color: #2b3651;
+  background: #131b2c;
+  color: #4d5a72;
+  cursor: default;
+}
+
 .q-tabs { display: flex; gap: 6px; padding: 10px 16px 0; }
 .q-tab {
   padding: 7px 14px;

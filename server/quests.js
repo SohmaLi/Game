@@ -295,6 +295,41 @@ function claim(p, questId, now = Date.now()) {
   };
 }
 
+/**
+ * Nhận thưởng MỌI việc đang xong — chỉ làm được khi đứng cạnh Người Chép Sử.
+ *
+ * Đây là lý do duy nhất để đi bộ về Bến Cảng: nhận từng việc một thì ở đâu cũng
+ * bấm được, và phải như vậy — đổi vùng là mất nhóm (`Room.dropFromParty`), bắt
+ * người chơi về thị trấn để lấy thưởng là bắt họ giải tán nhóm. Cái NPC bán là
+ * sự tiện tay, không phải sức mạnh, nên ai không bao giờ ghé cũng không thiệt.
+ */
+function claimAll(p, now = Date.now()) {
+  const view = stateFor(p, now);
+
+  // Việc hàng ngày đi TRƯỚC: mốc của nó tính theo cấp hiện tại, nên kinh nghiệm
+  // của một việc vùng có thể đẩy người chơi qua mốc 16/31/46 và nâng mốc của
+  // chính việc hàng ngày đang chờ nhận ngay trong vòng lặp này
+  const ids = [...view.dailies, ...view.zones, ...view.milestones]
+    .filter((v) => v.claimable)
+    .map((v) => v.id);
+
+  if (!ids.length) return { ok: false, error: 'Chưa có việc nào xong để nhận.' };
+
+  const out = { ok: true, count: 0, skipped: 0, gold: 0, exp: 0, books: [], names: [], levels: 0 };
+  for (const id of ids) {
+    const r = claim(p, id, now);
+    if (!r.ok) { out.skipped++; continue; }
+
+    out.count++;
+    out.gold += r.gold;
+    out.exp += r.exp;
+    out.names.push(r.name);
+    if (r.book) out.books.push(r.book);
+    out.levels += r.levelUp?.levelsGained || 0;
+  }
+  return out;
+}
+
 function rollQuestBook(tier, from) {
   const pool = skills.CODEX_SKILLS;
   const skillId = pool[Math.floor(Math.random() * pool.length)];
@@ -313,7 +348,7 @@ module.exports = {
   DAY_MS, DAILY_COUNT,
   blank, normalize, recordKills, progressOf, isDone,
   rollDaily, dailyGoal, dailyReward, nextResetIn, dayOf,
-  stateFor, claim,
+  stateFor, claim, claimAll,
   // Chỉ để test đọc được khoá bộ đếm mà không phải đoán chuỗi
   killKey, tierKey,
   CODEX_SLOTS: tree.CODEX_SLOTS,

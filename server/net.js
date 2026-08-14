@@ -87,7 +87,10 @@ function attach(io) {
            * rằng không có gì thay đổi là đúng thứ lãng phí mà cả file này đang
            * cố tránh.
            */
-          npcs: room.npcs.map((n) => ({ id: n.id, name: n.name, role: n.role, sprite: n.sprite, x: n.x, y: n.y })),
+          npcs: room.npcs.map((n) => ({
+            id: n.id, name: n.name, role: n.role, kind: n.kind, sprite: n.sprite,
+            greet: n.greet, x: n.x, y: n.y,
+          })),
           talkRadius: npcData.TALK_RADIUS,
           maxParty: party.MAX_PARTY,
           tickHz: cfg.TICK_HZ,
@@ -283,6 +286,18 @@ function attach(io) {
      */
     socket.on('quest:claim', invAction((p, d) => quests.claim(p, d.questId)));
 
+    /**
+     * Nhận hết một lượt — phải ĐỨNG CẠNH Người Chép Sử, kiểm ở server đúng như
+     * mọi việc với thương nhân. Nhận từng việc thì ở đâu cũng được; đây là thứ
+     * duy nhất bắt đi bộ về Bến Cảng, nên nó cũng là thứ duy nhất phải canh.
+     */
+    socket.on('quest:claimAll', invAction((p, d, room) => {
+      if (!room.npcNear(p, 'scribe', 'quest')) {
+        return { ok: false, error: 'Phải đứng cạnh Người Chép Sử.' };
+      }
+      return quests.claimAll(p);
+    }));
+
     /* ------------------------------------------------ mua bán ---------- */
 
     /**
@@ -293,7 +308,7 @@ function attach(io) {
      * nhất của việc đi bộ về thị trấn biến mất.
      */
     const atShop = (fn) => invAction((p, d, room) => {
-      const npc = room.npcNear(p, d.npcId || 'merchant');
+      const npc = room.npcNear(p, d.npcId || 'merchant', 'shop');
       if (!npc) return { ok: false, error: 'Phải đứng cạnh người bán hàng.' };
 
       const res = fn(p, d, npc);
@@ -307,7 +322,7 @@ function attach(io) {
       const p = room?.players.get(socket.id);
       if (!p) return ack?.({ ok: false, error: 'Chưa ở trong phòng nào.' });
 
-      const npc = room.npcNear(p, payload.npcId || 'merchant');
+      const npc = room.npcNear(p, payload.npcId || 'merchant', 'shop');
       if (!npc) return ack?.({ ok: false, error: 'Phải đứng cạnh người bán hàng.' });
 
       ack?.({ ok: true, state: shop.stateFor(p, npc) });

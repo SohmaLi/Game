@@ -129,10 +129,17 @@ class Room {
     this.timers = new Set();
   }
 
-  /** Người bán hàng ở gần một người chơi, null nếu đứng quá xa. */
-  npcNear(p, npcId) {
+  /**
+   * NPC ở gần một người chơi, null nếu đứng quá xa.
+   *
+   * `kind` không phải trang trí: id đi lên từ client, nên từ ngày quảng trường
+   * có hai người đứng cạnh nhau thì `shop:buy` với `npcId: 'scribe'` sẽ mở quầy
+   * hàng ngay trên bàn của Người Chép Sử nếu không ai xét ông ta làm nghề gì.
+   */
+  npcNear(p, npcId, kind = null) {
     const npc = this.npcs.find((n) => n.id === npcId);
-    return npc && npcData.inTalkRange(npc, p) ? npc : null;
+    if (!npc || (kind && npc.kind !== kind)) return null;
+    return npcData.inTalkRange(npc, p) ? npc : null;
   }
 
   /** Mọi thứ có thể va chạm trên bản đồ — quái thường và Thủ Lĩnh. */
